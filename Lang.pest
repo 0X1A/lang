@@ -1,0 +1,243 @@
+Program = { Declaration+ }
+
+Declaration = {
+    Comment
+    | StructDecl
+    | LetDecl
+    | EnumDecl
+    | FunctionDecl
+    | Statement
+    | TraitDecl
+    | ImplTrait
+    | ImplDecl
+}
+
+Statement = {
+    ReturnStatement
+    | ExpressionStatement
+    | ForStatement
+    | IfStatement
+    | WhileStatement
+    | Block
+    | ImportStatement
+}
+
+Comment = {
+    BlockComment | LineComment
+}
+
+EnumDecl = {
+    "enum" ~ Identifier ~ "{" ~ EnumItemList? ~ "}"
+}
+
+EnumItemList = {
+    EnumItem ~ ("," ~EnumItem)*
+}
+
+EnumItem = {
+    Identifier
+}
+
+BlockComment = {
+    "/*" ~ (BlockComment | ANY*) ~ "*/"
+}
+
+LineComment = {
+    "//" ~ ANY*
+}
+
+ImportStatement = {
+    "import" ~ ImportPath ~ ";"
+}
+
+ImportPath = {
+    SimplePath ~ ("::" ~ ImportPathSpecifier+)?
+}
+
+ImportPathSpecifier = {
+    "*" | "{" ~ Identifier ~ ("," ~ Identifier) ~ "}"
+}
+
+SimplePath = {
+    "::"? ~ PathSegment ~ ("::" ~ PathSegment)*
+}
+
+PathSegment = {
+    Identifier
+}
+
+ExpressionStatement = {
+    Expression ~ ";"
+}
+
+ImplTrait = {
+    "impl" ~ Identifier ~ "for" ~ Identifier ~ "{" ~ FunctionDecl* ~ "}"
+}
+
+ForStatement = {
+    "for" ~ "(" ~ (LetDecl | ExpressionStatement | ";") ~ Expression? ~ ";" ~ Expression? ~ ")" ~ Statement
+}
+
+IfStatement = {
+    "if" ~ "(" ~ Expression ~ ")" ~ Statement ~ ("else" ~ Statement)?
+}
+
+ReturnStatement = {
+    "return" ~ Expression? ~ ";"
+}
+
+WhileStatement = {
+    "while" ~ "(" ~ Expression ~ ")" ~ Statement
+}
+
+Block = {
+    "{" ~ Declaration? ~ "}"
+}
+
+TraitDecl = {
+    "trait" ~ Identifier ~ "{" ~ TraitFunctionDecl* ~ "}"
+}
+
+TraitFunctionDecl = {
+    "fn" ~ Identifier ~ "(" ~ Parameters? ~ ")" ~ "->" ~ Type ~ ";"
+}
+
+StructDecl = {
+    "struct" ~ Identifier ~ "{" ~ StructFields* ~ "}"
+}
+
+StructFields = {
+    Identifier ~ ":" ~ Type ~ ","?
+}
+
+LetDecl = {
+    "let" ~ Identifier ~ ":" ~ Type ~ ("=" ~ Expression)? ~ ";"
+}
+
+ImplDecl = {
+    "impl" ~ Identifier ~ "{" ~ FunctionDecl* ~ "}"
+}
+
+Expression = {
+    Assignment
+}
+
+Assignment = {
+    (Call ~ ".")? ~ Identifier ~ "=" ~ Assignment
+    | LogicOr
+}
+
+LogicOr = {
+    LogicAnd ~ ("or" ~ LogicAnd)*
+}
+
+LogicAnd = {
+    Equality ~ ("and" ~ Equality)*
+}
+
+Equality = {
+    Comparison ~ (("!=" | "==") ~ Comparison)*
+}
+
+Comparison = {
+    Addition ~ ((">" | ">=" | "<" | "<=") ~ Addition)*
+}
+
+Addition = {
+    Multiplication ~ (("-" | "+" ) ~ Multiplication)*
+}
+
+Multiplication = {
+    Unary ~ (("/" | "*") ~ Unary)*
+}
+
+Unary = {
+    ("!" | "-") ~ Unary | Call
+}
+
+Call = {
+    Primary ~ ("(" ~ Arguments? ~ ")" | "." ~ Identifier)*
+}
+
+Arguments = {
+    Expression ~ ("," ~ Expression)*
+}
+
+Primary = {
+    "true"
+    | "false"
+    | Number
+    | String
+    | "(" ~ Expression ~ ")"
+    | Identifier ~ IndexExpression
+    | ArrayExpr
+    | Identifier
+    | EnumPrimary
+}
+
+ArrayExpr = {
+    "[" ~ ArrayElements? ~ "]"
+}
+
+ArrayElements = {
+    (Expression ~ ("," ~ Expression)*)
+}
+
+IndexExpression = {
+  "[" ~ Expression ~ "]"
+}
+
+EnumPrimary = {
+    Identifier ~ ("::" ~ Identifier)*
+}
+
+String = {
+    "\"" ~ ANY*? ~ "\""
+}
+
+Identifier = {
+    ValidIdentifierCharacters+
+}
+
+FunctionDecl = {
+    "fn" ~ Function
+}
+
+Function = {
+    Identifier ~ "(" ~ Parameters? ~ ")" ~ "->" ~ Type ~ Block
+}
+
+Parameters = {
+    Identifier ~ ":" ~ Type ~ ("," ~ Identifier ~ ":" ~ Type)*
+}
+
+Type = {
+    "i32"
+    | "i64"
+    | "f64"
+    | "f32"
+    | UserDefined
+    | "Array<" ~ Type ~ ">"
+}
+
+UserDefined = {
+    Identifier 
+}
+
+Number = {
+   Digit+ ~ ("." ~ Digit+)?
+}
+
+Digit = {
+    '0'..'9'
+}
+
+Alpha = {
+    'a'..'z' | 'A'..'Z' | Digit | "_"
+}
+
+ValidIdentifierCharacters = {
+    Alpha
+}
+
+WHITESPACE = _{ " " | "\t" | "\n" }

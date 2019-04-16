@@ -1,0 +1,16 @@
+name: lang
+version: "0.1"
+author: Alberto Corona <albcoron@gmail.com>
+about: Lang
+args:
+  - debug:
+      short: d
+      long: debug
+      help: Print debug information inline
+  - print_ast:
+      short: p
+      long: printast
+      help: Print the AST
+  - run_file:
+      index: 1
+      required: true

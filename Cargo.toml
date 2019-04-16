@@ -1,0 +1,14 @@
+[package]
+name = "lang"
+version = "0.1.0"
+authors = ["Alberto Corona <albcoron@gmail.com>"]
+
+[dependencies]
+failure = "*"
+clap = { version = "2.32.0", features = ["yaml"] }
+fern = "*"
+log = "*"
+
+[lib]
+name = "lang"
+path = "lib/lib.rs"
