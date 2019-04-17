@@ -10,7 +10,6 @@ use std::convert::TryInto;
 use token::*;
 use value::*;
 use value_traits::callable::*;
-use value_traits::r#struct::*;
 use visitor::*;
 
 #[derive(Debug)]
@@ -695,7 +694,7 @@ impl Visitor<Expr> for Interpreter {
                 _ => Ok(literal_expr.value.clone()),
             },
             Expr::Variable(var_expr) => Ok(self.look_up_variable(&var_expr.name, &expr)?),
-            Expr::EnumPath(enum_path_expr) => {
+            Expr::EnumPath(_) => {
                 Ok(TypedValue::new(Value::Unit, TypeAnnotation::Unit))
             }
             Expr::Grouping(_) => Ok(TypedValue::new(Value::Unit, TypeAnnotation::Unit)),
