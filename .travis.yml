@@ -1,0 +1,5 @@
+language: rust
+script:
+  - export RUSTFLAGS=-Dwarnings
+  - cargo build --verbose
+  - cargo test -- --nocapture
