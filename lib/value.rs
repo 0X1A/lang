@@ -68,7 +68,6 @@ pub struct Enum {
     pub values: HashMap<String, Value>,
 }
 
-// Our 'god object' version of Java's Object class that's used through crafting interpreters
 pub enum Value {
     Struct(Box<dyn StructInstanceTrait>),
     Callable(Box<dyn CallableTrait>),
@@ -86,11 +85,11 @@ pub enum Value {
     Unit,
 }
 
-impl TryInto<Box<dyn StructInstanceTrait>> for Value {
+impl<'a> TryInto<&'a StructInstanceTrait> for &'a Value {
     type Error = LangError;
-    fn try_into(self) -> Result<Box<dyn StructInstanceTrait>, Self::Error> {
+    fn try_into(self) -> Result<&'a StructInstanceTrait, Self::Error> {
         match self {
-            Value::Struct(struct_value) => Ok(struct_value),
+            Value::Struct(struct_value) => Ok(&**struct_value),
             _ => Err(LangError::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("struct".to_string()),
             ))),
@@ -98,11 +97,11 @@ impl TryInto<Box<dyn StructInstanceTrait>> for Value {
     }
 }
 
-impl<'a> TryInto<&'a StructInstanceTrait> for &'a Value {
+impl<'a> TryInto<&'a mut StructInstanceTrait> for &'a mut Value {
     type Error = LangError;
-    fn try_into(self) -> Result<&'a StructInstanceTrait, Self::Error> {
+    fn try_into(self) -> Result<&'a mut StructInstanceTrait, Self::Error> {
         match self {
-            Value::Struct(struct_value) => Ok(&**struct_value),
+            Value::Struct(struct_value) => Ok(&mut **struct_value),
             _ => Err(LangError::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("struct".to_string()),
             ))),

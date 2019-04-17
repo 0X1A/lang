@@ -333,18 +333,9 @@ impl Interpreter {
                     ));
                 }
                 let mutate_struct = |struct_value: &mut TypedValue| -> Result<(), LangError> {
-                    match struct_value.value {
-                        Value::Struct(ref mut struct_value) => {
-                            struct_value.set_field(&set_expr.name, &value)?;
-                        }
-                        _ => {
-                            return Err(LangError::new_runtime_error(
-                                RuntimeErrorType::UndefinedVariable {
-                                    reason: "Tried to set an undefined struct field".to_string(),
-                                },
-                            ));
-                        }
-                    };
+                    let struct_value: &mut StructInstanceTrait =
+                        (&mut struct_value.value).try_into()?;
+                    struct_value.set_field(&set_expr.name, &value)?;
                     Ok(())
                 };
                 if let Expr::Variable(var) = set_expr.object.clone() {
@@ -694,9 +685,7 @@ impl Visitor<Expr> for Interpreter {
                 _ => Ok(literal_expr.value.clone()),
             },
             Expr::Variable(var_expr) => Ok(self.look_up_variable(&var_expr.name, &expr)?),
-            Expr::EnumPath(_) => {
-                Ok(TypedValue::new(Value::Unit, TypeAnnotation::Unit))
-            }
+            Expr::EnumPath(_) => Ok(TypedValue::new(Value::Unit, TypeAnnotation::Unit)),
             Expr::Grouping(_) => Ok(TypedValue::new(Value::Unit, TypeAnnotation::Unit)),
         }
     }
