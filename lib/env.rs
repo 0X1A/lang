@@ -321,14 +321,14 @@ impl Environment {
         }
     }
 
-    pub fn mutable_action<Closure>(
+    pub fn update_value<Closure>(
         &mut self,
         env_id: &EnvironmentId,
         name: &Token,
-        mut closure: Closure,
+        closure: Closure,
     ) -> Result<(), LangError>
     where
-        Closure: FnMut(&mut TypedValue) -> Result<(), LangError>,
+        Closure: FnOnce(&mut TypedValue) -> Result<(), LangError>,
     {
         if let Some(value) = self[env_id].values.get_mut(&name.lexeme) {
             closure(value)?;

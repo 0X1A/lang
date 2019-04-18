@@ -220,21 +220,17 @@ impl Interpreter {
                     *function_statement.clone(),
                     &self.env_id,
                 )));
-                let mut struct_dec = self.env_entries.get(&self.env_id, &impl_stmt.name)?;
-                if let Value::Struct(ref mut struct_value) = struct_dec.value {
+                let update_struct = |struct_value: &mut TypedValue| -> Result<(), LangError> {
+                    let struct_value: &mut StructInstanceTrait =
+                        (&mut struct_value.value).try_into()?;
                     struct_value.define_method(
                         &function_statement.name,
                         &TypedValue::new(function, TypeAnnotation::Fn),
                     )?;
-                    self.env_entries.direct_assign(
-                        &self.env_id,
-                        impl_stmt.clone().name.lexeme,
-                        TypedValue::new(
-                            Value::Struct(struct_value.clone()),
-                            TypeAnnotation::User(struct_value.struct_trait().get_name()),
-                        ),
-                    )?;
-                }
+                    Ok(())
+                };
+                self.env_entries
+                    .update_value(&self.env_id, &impl_stmt.name, update_struct)?;
             }
         }
         Ok(TypedValue::new(Value::Unit, TypeAnnotation::Unit))
@@ -332,7 +328,7 @@ impl Interpreter {
                         },
                     ));
                 }
-                let mutate_struct = |struct_value: &mut TypedValue| -> Result<(), LangError> {
+                let update_struct = |struct_value: &mut TypedValue| -> Result<(), LangError> {
                     let struct_value: &mut StructInstanceTrait =
                         (&mut struct_value.value).try_into()?;
                     struct_value.set_field(&set_expr.name, &value)?;
@@ -340,7 +336,7 @@ impl Interpreter {
                 };
                 if let Expr::Variable(var) = set_expr.object.clone() {
                     self.env_entries
-                        .mutable_action(&self.env_id, &var.name, mutate_struct)?;
+                        .update_value(&self.env_id, &var.name, update_struct)?;
                 }
             }
             _ => {
