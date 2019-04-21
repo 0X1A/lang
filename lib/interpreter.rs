@@ -163,7 +163,7 @@ impl Interpreter {
                 if let Value::Struct(ref mut struct_value) = struct_dec.value {
                     struct_value.define_method(
                         &function_statement.name,
-                        &TypedValue::new(function, TypeAnnotation::Fn),
+                        TypedValue::new(function, TypeAnnotation::Fn),
                     )?;
                     self.env_entries.direct_assign(
                         &self.env_id,
@@ -225,7 +225,7 @@ impl Interpreter {
                         (&mut struct_value.value).try_into()?;
                     struct_value.define_method(
                         &function_statement.name,
-                        &TypedValue::new(function, TypeAnnotation::Fn),
+                        TypedValue::new(function, TypeAnnotation::Fn),
                     )?;
                     Ok(())
                 };

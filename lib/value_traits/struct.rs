@@ -7,6 +7,7 @@ pub trait StructTrait {
     fn box_clone(&self) -> Box<dyn StructTrait>;
     fn get_field(&self, name: String) -> Result<TypedValue, LangError>;
     fn field_exists(&self, name: &str) -> bool;
-    fn define_method(&mut self, name: &Token, value: &TypedValue) -> Result<(), LangError>;
+    fn define_method(&mut self, name: &Token, value: TypedValue) -> Result<(), LangError>;
+    fn get_method(&self, name: String) -> Result<TypedValue, LangError>;
     fn set_field(&mut self, name: &Token, value: &TypedValue) -> Result<(), LangError>;
 }

@@ -679,19 +679,35 @@ impl StructTrait for StructValue {
 
     fn get_field(&self, name: String) -> Result<TypedValue, LangError> {
         self.fields.get(&name).map_or(
-            Err(LangError::new_runtime_error(
-                RuntimeErrorType::UndefinedVariable {
-                    reason: format!("tried to get an undefined variable: '{}'", name),
-                },
-            )),
+            {
+                if let Ok(method) = self.get_method(name.clone()) {
+                    return Ok(method);
+                }
+                Err(LangError::new_runtime_error(
+                    RuntimeErrorType::UndefinedVariable {
+                        reason: format!("tried to get an undefined variable: '{}'", name),
+                    },
+                ))
+            },
             |value| Ok(value.clone()),
         )
     }
 
-    fn define_method(&mut self, name: &Token, value: &TypedValue) -> Result<(), LangError> {
-        debug!("Setting field with name {:?} to value {:?}", name, value);
-        self.fields.insert(name.lexeme.clone(), value.clone());
+    fn define_method(&mut self, name: &Token, value: TypedValue) -> Result<(), LangError> {
+        debug!("Setting method with name {:?} to value {:?}", name, value);
+        self.methods.insert(name.lexeme.clone(), value);
         Ok(())
+    }
+
+    fn get_method(&self, name: String) -> Result<TypedValue, LangError> {
+        self.methods.get(&name).map_or(
+            Err(LangError::new_runtime_error(
+                RuntimeErrorType::UndefinedVariable {
+                    reason: format!("tried to get an undefined method: '{}'", name),
+                },
+            )),
+            |value| Ok(value.clone()),
+        )
     }
 
     fn set_field(&mut self, name: &Token, value: &TypedValue) -> Result<(), LangError> {
