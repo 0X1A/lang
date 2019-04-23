@@ -55,7 +55,7 @@ fn struct_decl() {
 fn struct_decl_with_fields() {
     let mut lang = Lang::new(Some("struct TestStruct { one: i32, two: String }"));
     let result = lang.run().is_ok();
-    assert_eq!(result, false);
+    assert_eq!(result, true);
 }
 
 // Test variable declaration
@@ -71,5 +71,5 @@ fn struct_decl_with_fields_failure() {
 fn struct_decl_with_impl() {
     let mut lang = Lang::new(Some("struct TestStruct { one: i32 } impl TestStruct { }"));
     let result = lang.run().is_ok();
-    assert_eq!(result, false);
+    assert_eq!(result, true);
 }

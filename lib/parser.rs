@@ -773,6 +773,7 @@ impl Parser {
         self.pop_expect(&TokenType::LeftBrace, "Expected '{' before struct body")?;
 
         let mut fields = Vec::new();
+        let mut comma_count = 0;
         loop {
             if self.check(&TokenType::RightBrace) || self.is_at_end() {
                 break;
@@ -781,12 +782,18 @@ impl Parser {
             self.pop_expect(&TokenType::Colon, "Expected ':' after field identifier")?;
             let type_annotation = self.advance();
             TypeAnnotation::check_token_type(&type_annotation)?;
-            self.pop_expect(&TokenType::Comma, "Expected ',' after field identifier")?;
+            if self.matches(&[TokenType::Comma]) {
+                comma_count += 1;
+            }
             fields.push(VariableData::new(
                 field,
                 type_annotation.token_type.to_type_annotation()?,
             ));
-            //let type_name = self.consume(&TokenType::Type, "Expected type annotation after field identifier")?;
+            if comma_count < fields.len() - 1 && !fields.is_empty() {
+                return Err(LangError::new_parser_error(
+                    "need comma after field declaration".to_string(),
+                ));
+            }
         }
 
         self.pop_expect(&TokenType::RightBrace, "Expected '}' after struct body")?;
