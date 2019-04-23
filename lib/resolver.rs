@@ -199,7 +199,12 @@ impl<'a> Visitor<Expr> for Resolver<'a> {
                 }
                 Ok(Value::Unit)
             }
-            _ => Ok(Value::Unit),
+            Expr::EnumPath(_) => Ok(Value::Unit),
+            Expr::SetArrayElement(_) => Ok(Value::Unit),
+            Expr::SelfIdent(self_ident_expr) => {
+                self.resolve_local(expr, &self_ident_expr.keyword);
+                Ok(Value::Unit)
+            }
         }
     }
 }
@@ -253,6 +258,12 @@ impl<'a> Visitor<Stmt> for Resolver<'a> {
             Stmt::Struct(struct_stmt) => {
                 debug!("Resolver::visit Stmt::Struct\n");
                 self.declare(&struct_stmt.name)?;
+                self.begin_scope();
+                // TODO: Error if no scope
+                if let Some(ref mut last_scope) = self.scopes.last_mut() {
+                    last_scope.insert("self".to_string(), true);
+                }
+                self.end_scope();
                 self.define(&struct_stmt.name);
                 Ok(())
             }

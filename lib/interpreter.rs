@@ -661,6 +661,9 @@ impl Visitor<Expr> for Interpreter {
 
     fn visit(&mut self, expr: &Expr) -> Self::Value {
         match expr {
+            Expr::SelfIdent(self_ident_expr) => {
+                Ok(self.look_up_variable(&self_ident_expr.keyword, expr)?)
+            }
             Expr::Assign(_) => Ok(self.visit_assign_expr(expr)?),
             Expr::Call(_) => Ok(self.visit_call_expr(expr)?),
             Expr::Get(_) => Ok(self.visit_get_expr(expr)?),

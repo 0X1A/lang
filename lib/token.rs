@@ -171,6 +171,7 @@ pub enum TokenType {
     While,
     PathSeparator,
     Type(TypeAnnotation),
+    SelfIdent,
     Eof,
 }
 
@@ -235,6 +236,7 @@ impl Display for TokenType {
             TokenType::True => write!(f, "true"),
             TokenType::Let => write!(f, "let"),
             TokenType::While => write!(f, "while"),
+            TokenType::SelfIdent => write!(f, "self"),
             TokenType::Type(type_annotation) => write!(f, "Type({})", type_annotation.to_string()),
             TokenType::Eof => write!(f, "EoF"),
         }

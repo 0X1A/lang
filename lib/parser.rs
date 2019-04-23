@@ -190,6 +190,11 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<Expr, LangError> {
+        if self.matches(&[TokenType::SelfIdent]) {
+            return Ok(Expr::SelfIdent(Box::new(SelfIdentExpr {
+                keyword: self.previous(),
+            })));
+        }
         if self.matches(&[TokenType::False]) {
             return Ok(Expr::Literal(Box::new(LiteralExpr::new(TypedValue::new(
                 Value::Boolean(false),

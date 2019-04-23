@@ -51,6 +51,7 @@ impl<'a> Scanner<'a> {
         keywords.insert("true", TokenType::True);
         keywords.insert("let", TokenType::Let);
         keywords.insert("while", TokenType::While);
+        keywords.insert("self", TokenType::SelfIdent);
         Scanner {
             source: script_content,
             tokens: Vec::new(),
@@ -177,7 +178,6 @@ impl<'a> Scanner<'a> {
             '(' => {
                 let prev_token = self.prev_token()?;
                 let right_paren = self.peek() == ')';
-                debug!("prev_token {:?}", prev_token);
                 if right_paren {
                     if prev_token == TokenType::Colon || prev_token == TokenType::ReturnType {
                         self.current += 1;

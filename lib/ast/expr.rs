@@ -21,6 +21,7 @@ pub enum Expr {
     Index(Box<IndexExpr>),
     SetArrayElement(Box<SetArrayElementExpr>),
     Variable(Box<VariableExpr>),
+    SelfIdent(Box<SelfIdentExpr>),
 }
 
 impl Accept for Expr {
@@ -30,6 +31,11 @@ impl Accept for Expr {
     {
         visitor.visit(self)
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct SelfIdentExpr {
+    pub keyword: Token,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
