@@ -321,6 +321,27 @@ impl Environment {
         }
     }
 
+    pub fn get_ref(&self, env_id: &EnvironmentId, name: &Token) -> Result<&TypedValue, LangError> {
+        debug!(
+            "Env::get\nLooking for token with lexeme '{}' at index '{}' env:\n{:?}",
+            name.lexeme, env_id.index, self
+        );
+        //debug_assert!(env_id.index >= self.entries.len(), "EnvironmentId {} is out of bounds of environment entries of len {}", env_id.index, self.entries.len());
+        if let Some(value) = self[env_id].values.get(&name.lexeme) {
+            return Ok(value);
+        } else if let Some(enclosing) = self[env_id].enclosing.clone() {
+            return Ok(self.get_ref(&enclosing, name)?);
+        } else {
+            Err(Lang::error(
+                name,
+                &format!(
+                    "(get) Tried to get an undefined variable: '{}'",
+                    name.lexeme.clone()
+                ),
+            ))
+        }
+    }
+
     pub fn update_value<Closure>(
         &mut self,
         env_id: &EnvironmentId,

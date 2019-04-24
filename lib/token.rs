@@ -225,7 +225,7 @@ impl Display for TokenType {
             TokenType::Fn => write!(f, "fn"),
             TokenType::For => write!(f, "for"),
             TokenType::If => write!(f, "if"),
-            TokenType::Unit => write!(f, "unit"),
+            TokenType::Unit => write!(f, "()"),
             TokenType::Or => write!(f, "or"),
             TokenType::Print => write!(f, "print"),
             TokenType::Return => write!(f, "return"),

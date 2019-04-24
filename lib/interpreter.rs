@@ -157,23 +157,20 @@ impl Interpreter {
                     &function,
                     &impl_trait_stmt.trait_name,
                 )?;
-                let mut struct_dec = self
-                    .env_entries
-                    .get(&self.env_id, &impl_trait_stmt.impl_name)?;
-                if let Value::Struct(ref mut struct_value) = struct_dec.value {
+                let update_struct_decl = |struct_value: &mut TypedValue| -> Result<(), LangError> {
+                    let struct_value: &mut StructInstanceTrait =
+                        (&mut struct_value.value).try_into()?;
                     struct_value.define_method(
                         &function_statement.name,
-                        TypedValue::new(function, TypeAnnotation::Fn),
+                        TypedValue::new(function.clone(), TypeAnnotation::Fn),
                     )?;
-                    self.env_entries.direct_assign(
-                        &self.env_id,
-                        impl_trait_stmt.impl_name.lexeme.clone(),
-                        TypedValue::new(
-                            Value::Struct(struct_value.clone()),
-                            TypeAnnotation::User(struct_value.struct_trait().get_name()),
-                        ),
-                    )?;
-                }
+                    Ok(())
+                };
+                self.env_entries.update_value(
+                    &self.env_id,
+                    &impl_trait_stmt.impl_name,
+                    update_struct_decl,
+                )?;
             }
         }
         Ok(TypedValue::new(Value::Unit, TypeAnnotation::Unit))
@@ -541,7 +538,7 @@ impl Interpreter {
         fn_value: &Value,
         trait_token: &Token,
     ) -> Result<bool, LangError> {
-        let typed_trait_value = self.env_entries.get(&self.env_id, trait_token)?;
+        let typed_trait_value = self.env_entries.get_ref(&self.env_id, trait_token)?;
         let trait_value_type: &TraitValue = (&typed_trait_value.value).try_into()?;
         if let Some(trait_fn_decl) = trait_value_type.fn_declarations.get(&impl_trait.lexeme) {
             if let Value::TraitFunction(ref trait_function) = trait_fn_decl.value {
