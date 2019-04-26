@@ -14,57 +14,6 @@ use token::{Token, TokenType, TypeAnnotation};
 use value_traits::callable::CallableTrait;
 use value_traits::r#struct::StructTrait;
 
-#[derive(Clone, Debug)]
-pub struct TypedValueKey {
-    pub name: String,
-    pub env_id: EnvironmentId,
-}
-
-#[derive(Clone, Debug)]
-enum TypedValueIndex {
-    Key(TypedValueKey),
-    Literal(TypedValue),
-}
-
-impl TypedValueIndex {
-    pub fn new_literal(value: &TypedValue) -> TypedValueIndex {
-        TypedValueIndex::Literal(value.clone())
-    }
-
-    pub fn new_key(name: &str, env_id: &EnvironmentId) -> TypedValueIndex {
-        TypedValueIndex::Key(TypedValueKey {
-            name: name.to_string(),
-            env_id: env_id.clone(),
-        })
-    }
-}
-
-impl<'a> TryInto<&'a mut TypedValue> for &'a mut TypedValueIndex {
-    type Error = LangError;
-    fn try_into(self) -> Result<&'a mut TypedValue, Self::Error> {
-        match self {
-            TypedValueIndex::Literal(literal) => Ok(literal),
-            // TODO: Fix these error messages
-            _ => Err(LangError::new_iie_error(error_message(
-                &ErrMessage::ExpectValueType("struct".to_string()),
-            ))),
-        }
-    }
-}
-
-impl<'a> TryInto<&'a mut TypedValueKey> for &'a mut TypedValueIndex {
-    type Error = LangError;
-    fn try_into(self) -> Result<&'a mut TypedValueKey, Self::Error> {
-        match self {
-            TypedValueIndex::Key(key) => Ok(key),
-            // TODO: Fix these error messages
-            _ => Err(LangError::new_iie_error(error_message(
-                &ErrMessage::ExpectValueType("struct".to_string()),
-            ))),
-        }
-    }
-}
-
 #[derive(Clone, Copy, PartialOrd, Debug)]
 pub struct Float64 {
     pub inner: f64,
