@@ -852,7 +852,7 @@ impl CallableTrait for Callable {
                 .env_entries
                 .define(&env_id, &it.0.identifier.lexeme, &it.1);
         }
-        let return_value = interpreter.execute_block(self.function.body.clone(), env_id)?;
+        let return_value = interpreter.execute_block(&self.function.body, env_id)?;
         if let Some(function_return_type) = self.get_return_type() {
             if function_return_type != return_value.value_type {
                 return Err(LangError::new_runtime_error(
