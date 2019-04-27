@@ -83,7 +83,7 @@ impl<'a> Lang<'a> {
         let mut parser = Parser::new(tokens);
         let statements = parser.parse()?;
         resolver.resolve(&statements)?;
-        resolver.interpreter.interpret(statements)?;
+        resolver.interpreter.interpret_two(statements)?;
         Ok(())
     }
 
