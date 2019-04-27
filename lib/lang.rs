@@ -67,7 +67,7 @@ impl<'a> Lang<'a> {
         match statements {
             Ok(s) => {
                 resolver.resolve(&s)?;
-                resolver.interpreter.interpret(s)?;
+                resolver.interpreter.interpret_two(s)?;
             }
             Err(e) => {
                 return Err(e);

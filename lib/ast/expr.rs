@@ -4,6 +4,7 @@ use std::convert::TryInto;
 use token::Token;
 use value::TypedValue;
 use visitor::Visitor;
+use visitor::VisitorTwo;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Expr {
