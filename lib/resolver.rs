@@ -1,6 +1,5 @@
 extern crate log;
 
-use accept::*;
 use ast::expr::*;
 use ast::stmt::*;
 use error::*;
@@ -38,19 +37,17 @@ impl<'a> Resolver<'a> {
 
     pub fn resolve(&mut self, stmts: &[Stmt]) -> Result<(), LangError> {
         for stmt in stmts {
-            self.resolve_statement(&stmt)?;
+            self.resolve_statement_two(&stmt)?;
         }
         Ok(())
     }
 
-    fn resolve_statement(&mut self, stmt: &Stmt) -> Result<(), LangError> {
-        stmt.accept(self)?;
-        Ok(())
+    fn resolve_statement_two(&mut self, stmt: &Stmt) -> Result<(), LangError> {
+        Ok(self.visit_stmt(stmt)?)
     }
 
-    fn resolve_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
-        expr.accept(self)?;
-        Ok(())
+    fn resolve_expr_two(&mut self, expr: &Expr) -> Result<(), LangError> {
+        Ok(self.visit_expr(expr)?)
     }
 
     fn begin_scope(&mut self) {
@@ -116,197 +113,188 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
-    fn resolve_local(&mut self, var: &Expr, name: &Token) {
+    fn resolve_local_two(&mut self, name: &Token) {
         debug!(
             "Resolver::resolve_local:\nAttempting to resolve expr '{:?}' within scopes '{:?}'",
-            var, self.scopes
+            name, self.scopes
         );
         for scope_index in (0..self.scopes.len()).rev() {
             if self.scopes[scope_index].contains_key(&name.lexeme) {
-                self.interpreter.resolve(var, self.scopes.len() - 1);
+                self.interpreter.resolve_two(name, self.scopes.len() - 1);
                 return;
             }
         }
     }
 }
 
-impl<'a> Visitor<Expr> for Resolver<'a> {
-    type Value = Result<Value, LangError>;
-
-    fn visit(&mut self, expr: &Expr) -> Self::Value {
-        match expr {
-            Expr::Binary(binary_expr) => {
-                self.resolve_expr(&binary_expr.left)?;
-                self.resolve_expr(&binary_expr.right)?;
-                Ok(Value::Unit)
-            }
-            Expr::Call(call_expr) => {
-                self.resolve_expr(&call_expr.callee)?;
-                for arg in &call_expr.arguments {
-                    self.resolve_expr(&arg)?;
-                }
-                Ok(Value::Unit)
-            }
-            Expr::Get(get_expr) => {
-                self.resolve_expr(&get_expr.object)?;
-                Ok(Value::Unit)
-            }
-            Expr::Unary(unary_expr) => {
-                self.resolve_expr(&unary_expr.right)?;
-                Ok(Value::Unit)
-            }
-            Expr::Logical(logical_expr) => {
-                self.resolve_expr(&logical_expr.left)?;
-                self.resolve_expr(&logical_expr.right)?;
-                Ok(Value::Unit)
-            }
-            Expr::Set(set_expr) => {
-                self.resolve_expr(&set_expr.value)?;
-                self.resolve_expr(&set_expr.object)?;
-                Ok(Value::Unit)
-            }
-            Expr::Grouping(grouping_expr) => {
-                self.resolve_expr(&grouping_expr.expression)?;
-                Ok(Value::Unit)
-            }
-            Expr::Literal(_) => Ok(Value::Unit),
-            Expr::Assign(assign_expr) => {
-                self.resolve_expr(&assign_expr.expr)?;
-                self.resolve_local(expr, &assign_expr.name);
-                Ok(Value::Unit)
-            }
-            Expr::Variable(var_expr) => {
-                if let Some(last) = self.scopes.last() {
-                    if let Some(value) = last.get(&var_expr.name.lexeme) {
-                        if !(*value) {
-                            return Err(LangError::new_iie_error(format!(
-                                "the value with identifier {} was not in scope",
-                                var_expr.name.lexeme
-                            )));
-                        }
-                    }
-                }
-                self.resolve_local(expr, &var_expr.name);
-                Ok(Value::Unit)
-            }
-            Expr::Index(index_expr) => {
-                self.resolve_expr(&index_expr.index)?;
-                Ok(Value::Unit)
-            }
-            Expr::Array(array_expr) => {
-                for item in array_expr.elements.iter() {
-                    self.resolve_expr(&item)?;
-                }
-                Ok(Value::Unit)
-            }
-            Expr::EnumPath(_) => Ok(Value::Unit),
-            Expr::SetArrayElement(_) => Ok(Value::Unit),
-            Expr::SelfIdent(self_ident_expr) => {
-                self.resolve_local(expr, &self_ident_expr.keyword);
-                Ok(Value::Unit)
-            }
-        }
+impl<'a> VisitorTwo for Resolver<'a> {
+    fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
+        Ok(noop_expr(self, expr)?)
     }
-}
+    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), LangError> {
+        Ok(noop_stmt(self, stmt)?)
+    }
 
-impl<'a> Visitor<Stmt> for Resolver<'a> {
-    type Value = Result<(), LangError>;
-
-    fn visit(&mut self, expr: &Stmt) -> Self::Value {
-        match expr {
-            Stmt::Enum(_) => unimplemented!(),
-            Stmt::Break => Ok(()),
-            Stmt::ImplTrait(_) => Ok(()),
-            Stmt::Trait(ref trait_stmt) => {
-                for fn_decl_statement in &trait_stmt.trait_fn_declarations {
-                    self.resolve_statement(&fn_decl_statement)?;
+    fn visit_assign(&mut self, assign: &AssignExpr) -> Result<(), LangError> {
+        self.resolve_expr_two(&assign.expr)?;
+        self.resolve_local_two(&assign.name);
+        Ok(())
+    }
+    fn visit_binary(&mut self, binary: &BinaryExpr) -> Result<(), LangError> {
+        self.resolve_expr_two(&binary.left)?;
+        Ok(self.resolve_expr_two(&binary.right)?)
+    }
+    fn visit_call(&mut self, call: &CallExpr) -> Result<(), LangError> {
+        self.resolve_expr_two(&call.callee)?;
+        for arg in &call.arguments {
+            self.resolve_expr_two(&arg)?;
+        }
+        Ok(())
+    }
+    fn visit_get(&mut self, get: &GetExpr) -> Result<(), LangError> {
+        Ok(self.resolve_expr_two(&get.object)?)
+    }
+    fn visit_enum_path(&mut self, _: &EnumPathExpr) -> Result<(), LangError> {
+        Ok(())
+    }
+    fn visit_grouping(&mut self, grouping: &GroupingExpr) -> Result<(), LangError> {
+        Ok(self.resolve_expr_two(&grouping.expression)?)
+    }
+    fn visit_literal(&mut self, _: &LiteralExpr) -> Result<(), LangError> {
+        Ok(())
+    }
+    fn visit_logical(&mut self, logical: &LogicalExpr) -> Result<(), LangError> {
+        self.resolve_expr_two(&logical.left)?;
+        Ok(self.resolve_expr_two(&logical.right)?)
+    }
+    fn visit_set(&mut self, set: &SetExpr) -> Result<(), LangError> {
+        self.resolve_expr_two(&set.value)?;
+        Ok(self.resolve_expr_two(&set.object)?)
+    }
+    fn visit_unary(&mut self, unary: &UnaryExpr) -> Result<(), LangError> {
+        Ok(self.resolve_expr_two(&unary.right)?)
+    }
+    fn visit_array(&mut self, array: &ArrayExpr) -> Result<(), LangError> {
+        for item in array.elements.iter() {
+            self.resolve_expr_two(&item)?;
+        }
+        Ok(())
+    }
+    fn visit_index(&mut self, index: &IndexExpr) -> Result<(), LangError> {
+        Ok(self.resolve_expr_two(&index.index)?)
+    }
+    fn visit_set_array_element(&mut self, _: &SetArrayElementExpr) -> Result<(), LangError> {
+        Ok(())
+    }
+    fn visit_variable(&mut self, variable: &VariableExpr) -> Result<(), LangError> {
+        if let Some(last) = self.scopes.last() {
+            if let Some(value) = last.get(&variable.name.lexeme) {
+                if !(*value) {
+                    return Err(LangError::new_iie_error(format!(
+                        "the value with identifier {} was not in scope",
+                        variable.name.lexeme
+                    )));
                 }
-                Ok(())
-            }
-            Stmt::TraitFunction(ref trait_fn_stmt) => {
-                self.declare(&trait_fn_stmt.name)?;
-                self.define(&trait_fn_stmt.name);
-                Ok(())
-            }
-            Stmt::Impl(ref impl_stmt) => {
-                for fn_decl_statement in &impl_stmt.fn_declarations {
-                    self.resolve_statement(&fn_decl_statement)?;
-                }
-                Ok(())
-            }
-            Stmt::Expression(expr_stmt) => {
-                debug!("Resolver::visit Stmt::Expression\n");
-                self.resolve_expr(&expr_stmt.expression)?;
-                Ok(())
-            }
-            Stmt::If(if_stmt) => {
-                debug!("Resolver::visit Stmt::If\n");
-                self.resolve_expr(&if_stmt.condition)?;
-                self.resolve_statement(&if_stmt.then_branch)?;
-                if let Some(ref else_branch) = if_stmt.else_branch {
-                    self.resolve_statement(else_branch)?;
-                }
-                Ok(())
-            }
-            Stmt::Block(block_stmt) => {
-                debug!("Resolver::visit Stmt::Block\n");
-                self.begin_scope();
-                self.resolve(&block_stmt.statements)?;
-                self.end_scope();
-                Ok(())
-            }
-            Stmt::Struct(struct_stmt) => {
-                debug!("Resolver::visit Stmt::Struct\n");
-                self.declare(&struct_stmt.name)?;
-                self.begin_scope();
-                // TODO: Error if no scope
-                if let Some(ref mut last_scope) = self.scopes.last_mut() {
-                    last_scope.insert("self".to_string(), true);
-                }
-                self.end_scope();
-                self.define(&struct_stmt.name);
-                Ok(())
-            }
-            Stmt::Print(print_stmt) => {
-                self.resolve_expr(&print_stmt.expression)?;
-                Ok(())
-            }
-            Stmt::Return(return_stmt) => {
-                if self.current_function_type == FunctionType::None {
-                    return Err(Lang::error(
-                        &return_stmt.keyword,
-                        "Cannot return from top-level code",
-                    ));
-                }
-                if return_stmt.value
-                    != Expr::Literal(Box::new(LiteralExpr::new(TypedValue::new(
-                        Value::Unit,
-                        TypeAnnotation::Unit,
-                    ))))
-                {
-                    self.resolve_expr(&return_stmt.value)?;
-                }
-                Ok(())
-            }
-            Stmt::While(while_stmt) => {
-                self.resolve_expr(&while_stmt.condition)?;
-                self.resolve_statement(&while_stmt.body)?;
-                Ok(())
-            }
-            Stmt::Function(function_stmt) => {
-                self.declare(&function_stmt.name)?;
-                self.define(&function_stmt.name);
-                self.resolve_function(&function_stmt, FunctionType::Function)?;
-                Ok(())
-            }
-            Stmt::Var(var_stmt) => {
-                self.declare(&var_stmt.name)?;
-                if let Some(ref initializer) = var_stmt.initializer {
-                    self.resolve_expr(initializer)?;
-                }
-                self.define(&var_stmt.name);
-                Ok(())
             }
         }
+        self.resolve_local_two(&variable.name);
+        Ok(())
+    }
+    fn visit_self_ident(&mut self, self_ident: &SelfIdentExpr) -> Result<(), LangError> {
+        self.resolve_local_two(&self_ident.keyword);
+        Ok(())
+    }
+
+    // stmt
+    fn visit_break(&mut self) -> Result<(), LangError> {
+        Ok(())
+    }
+    fn visit_enum(&mut self, _: &EnumStmt) -> Result<(), LangError> {
+        unimplemented!()
+    }
+    fn visit_impl(&mut self, impl_stmt: &ImplStmt) -> Result<(), LangError> {
+        for fn_decl_statement in &impl_stmt.fn_declarations {
+            self.resolve_statement_two(&fn_decl_statement)?;
+        }
+        Ok(())
+    }
+    fn visit_impl_trait(&mut self, _: &ImplTraitStmt) -> Result<(), LangError> {
+        Ok(())
+    }
+    fn visit_block(&mut self, block: &BlockStmt) -> Result<(), LangError> {
+        self.begin_scope();
+        self.resolve(&block.statements)?;
+        self.end_scope();
+        Ok(())
+    }
+    fn visit_struct(&mut self, struct_stmt: &StructStmt) -> Result<(), LangError> {
+        self.declare(&struct_stmt.name)?;
+        self.begin_scope();
+        if let Some(ref mut last_scope) = self.scopes.last_mut() {
+            last_scope.insert("self".to_string(), true);
+        }
+        self.end_scope();
+        self.define(&struct_stmt.name);
+        Ok(())
+    }
+    fn visit_expression(&mut self, expr: &ExpressionStmt) -> Result<(), LangError> {
+        Ok(self.resolve_expr_two(&expr.expression)?)
+    }
+    fn visit_trait(&mut self, trait_stmt: &TraitStmt) -> Result<(), LangError> {
+        for fn_declarations in &trait_stmt.trait_fn_declarations {
+            self.resolve_statement_two(&fn_declarations)?;
+        }
+        Ok(())
+    }
+    fn visit_trait_function(&mut self, trait_fn_stmt: &TraitFunctionStmt) -> Result<(), LangError> {
+        self.declare(&trait_fn_stmt.name)?;
+        self.define(&trait_fn_stmt.name);
+        Ok(())
+    }
+    fn visit_function(&mut self, function_stmt: &FunctionStmt) -> Result<(), LangError> {
+        self.declare(&function_stmt.name)?;
+        self.define(&function_stmt.name);
+        Ok(self.resolve_function(&function_stmt, FunctionType::Function)?)
+    }
+    fn visit_if(&mut self, if_stmt: &IfStmt) -> Result<(), LangError> {
+        self.resolve_expr_two(&if_stmt.condition)?;
+        self.resolve_statement_two(&if_stmt.then_branch)?;
+        if let Some(ref else_branch) = if_stmt.else_branch {
+            self.resolve_statement_two(else_branch)?;
+        }
+        Ok(())
+    }
+    fn visit_print(&mut self, print_stmt: &PrintStmt) -> Result<(), LangError> {
+        Ok(self.resolve_expr_two(&print_stmt.expression)?)
+    }
+    fn visit_return(&mut self, return_stmt: &ReturnStmt) -> Result<(), LangError> {
+        if self.current_function_type == FunctionType::None {
+            return Err(Lang::error(
+                &return_stmt.keyword,
+                "Cannot return from top-level code",
+            ));
+        }
+        if return_stmt.value
+            != Expr::Literal(Box::new(LiteralExpr::new(TypedValue::new(
+                Value::Unit,
+                TypeAnnotation::Unit,
+            ))))
+        {
+            self.resolve_expr_two(&return_stmt.value)?;
+        }
+        Ok(())
+    }
+    fn visit_var(&mut self, var_stmt: &VarStmt) -> Result<(), LangError> {
+        self.declare(&var_stmt.name)?;
+        if let Some(ref initializer) = var_stmt.initializer {
+            self.resolve_expr_two(initializer)?;
+        }
+        self.define(&var_stmt.name);
+        Ok(())
+    }
+    fn visit_while(&mut self, while_stmt: &WhileStmt) -> Result<(), LangError> {
+        self.resolve_expr_two(&while_stmt.condition)?;
+        self.resolve_statement_two(&while_stmt.body)?;
+        Ok(())
     }
 }

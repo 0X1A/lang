@@ -67,6 +67,11 @@ impl<'a> Scanner<'a> {
         self.current >= self.source.len()
     }
 
+    fn clear(&mut self) {
+        self.source = "";
+        self.tokens = Vec::with_capacity(0);
+    }
+
     /// Advances the `current` position, and returns the character at the previous `current` position
     pub fn pop(&mut self) -> Result<char, LangError> {
         self.current += 1;
@@ -407,7 +412,9 @@ impl<'a> Scanner<'a> {
         }
         self.tokens
             .push(Token::from(TokenType::Eof, &"EoF".to_string(), self.line)?);
-        Ok(self.tokens.clone())
+        let tokens = self.tokens.clone();
+        self.clear();
+        Ok(tokens)
     }
 }
 

@@ -67,7 +67,7 @@ impl<'a> Lang<'a> {
         match statements {
             Ok(s) => {
                 resolver.resolve(&s)?;
-                resolver.interpreter.interpret_two(s)?;
+                resolver.interpreter.interpret(s)?;
             }
             Err(e) => {
                 return Err(e);
@@ -83,7 +83,7 @@ impl<'a> Lang<'a> {
         let mut parser = Parser::new(tokens);
         let statements = parser.parse()?;
         resolver.resolve(&statements)?;
-        resolver.interpreter.interpret_two(statements)?;
+        resolver.interpreter.interpret(statements)?;
         Ok(())
     }
 

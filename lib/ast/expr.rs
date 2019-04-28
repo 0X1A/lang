@@ -1,5 +1,6 @@
 use accept::*;
 use error::*;
+use std::convert::Into;
 use std::convert::TryInto;
 use token::Token;
 use value::TypedValue;
@@ -141,6 +142,12 @@ impl<'a> TryInto<&'a AssignExpr> for &'a Expr {
                 &ErrMessage::ExpectExpr("assignment".to_string()),
             ))),
         }
+    }
+}
+
+impl<'a> Into<Expr> for &'a AssignExpr {
+    fn into(self) -> Expr {
+        Expr::Assign(Box::new(self.clone()))
     }
 }
 

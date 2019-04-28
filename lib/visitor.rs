@@ -7,6 +7,8 @@ pub trait Visitor<T> {
     fn visit(&mut self, expr: &T) -> Self::Value;
 }
 
+// We _have_ to return a concrete definition of Result here since we can't have
+// bounds on an associated type in order to use the error propogation operator
 pub trait VisitorTwo: Sized {
     fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
         Ok(noop_expr(self, expr)?)
