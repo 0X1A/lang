@@ -14,8 +14,7 @@ use visitor::*;
 #[derive(Debug)]
 pub struct Interpreter {
     pub env_id: EnvironmentId,
-    pub locals: HashMap<Expr, usize>,
-    pub locals_two: HashMap<Token, usize>,
+    pub locals: HashMap<Token, usize>,
     pub env_entries: Environment,
     pub stack: Vec<TypedValue>,
 }
@@ -24,7 +23,6 @@ impl Default for Interpreter {
     fn default() -> Interpreter {
         Interpreter {
             locals: HashMap::new(),
-            locals_two: HashMap::new(),
             env_id: EnvironmentId { index: 0 },
             env_entries: Environment::default(),
             stack: Vec::new(),
@@ -46,24 +44,14 @@ impl Interpreter {
         let env_id = env_entries.new_entry();
         Interpreter {
             locals: HashMap::new(),
-            locals_two: HashMap::new(),
             env_id,
             env_entries,
             stack: Vec::new(),
         }
     }
 
-    /// Inserts `expr` into the local scope
-    pub fn resolve(&mut self, expr: &Expr, idx: usize) {
-        self.locals.insert(expr.clone(), idx);
-        debug!(
-            "Interpreter::resolve\nInserting expr '{:?}' at index '{}' into locals '{:?}' and env '{:?}'",
-            expr, idx, self.locals, self.env_entries
-        );
-    }
-
-    pub fn resolve_two(&mut self, token: &Token, idx: usize) {
-        self.locals_two.insert(token.clone(), idx);
+    pub fn resolve(&mut self, token: &Token, idx: usize) {
+        self.locals.insert(token.clone(), idx);
         debug!(
             "Interpreter::resolve\nInserting expr '{:?}' at index '{}' into locals '{:?}' and env '{:?}'",
             token, idx, self.locals, self.env_entries
@@ -471,12 +459,12 @@ impl Interpreter {
         Ok(())
     }
 
-    fn look_up_variable_two(&mut self, token: &Token) -> Result<(), LangError> {
+    fn look_up_variable(&mut self, token: &Token) -> Result<(), LangError> {
         debug!(
             "Interpreter::look_up_variable:\nLooking for token '{:?}' within env '{:?}' and locals\n'{}'",
             token, self.env_entries, self.pretty_print_locals()
         );
-        if let Some(distance) = self.locals_two.get(&token) {
+        if let Some(distance) = self.locals.get(&token) {
             if let Ok(value) = self
                 .env_entries
                 .get(&EnvironmentId { index: *distance }, &token)
@@ -675,10 +663,10 @@ impl VisitorTwo for Interpreter {
         Ok(self.visit_set_array_element_expr(set_array_element)?)
     }
     fn visit_variable(&mut self, variable: &VariableExpr) -> Result<(), LangError> {
-        Ok(self.look_up_variable_two(&variable.name)?)
+        Ok(self.look_up_variable(&variable.name)?)
     }
     fn visit_self_ident(&mut self, self_ident: &SelfIdentExpr) -> Result<(), LangError> {
-        self.look_up_variable_two(&self_ident.keyword)?;
+        self.look_up_variable(&self_ident.keyword)?;
         Ok(())
     }
 

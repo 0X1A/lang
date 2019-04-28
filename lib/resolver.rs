@@ -37,16 +37,16 @@ impl<'a> Resolver<'a> {
 
     pub fn resolve(&mut self, stmts: &[Stmt]) -> Result<(), LangError> {
         for stmt in stmts {
-            self.resolve_statement_two(&stmt)?;
+            self.resolve_statement(&stmt)?;
         }
         Ok(())
     }
 
-    fn resolve_statement_two(&mut self, stmt: &Stmt) -> Result<(), LangError> {
+    fn resolve_statement(&mut self, stmt: &Stmt) -> Result<(), LangError> {
         Ok(self.visit_stmt(stmt)?)
     }
 
-    fn resolve_expr_two(&mut self, expr: &Expr) -> Result<(), LangError> {
+    fn resolve_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
         Ok(self.visit_expr(expr)?)
     }
 
@@ -113,14 +113,14 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
-    fn resolve_local_two(&mut self, name: &Token) {
+    fn resolve_local(&mut self, name: &Token) {
         debug!(
             "Resolver::resolve_local:\nAttempting to resolve expr '{:?}' within scopes '{:?}'",
             name, self.scopes
         );
         for scope_index in (0..self.scopes.len()).rev() {
             if self.scopes[scope_index].contains_key(&name.lexeme) {
-                self.interpreter.resolve_two(name, self.scopes.len() - 1);
+                self.interpreter.resolve(name, self.scopes.len() - 1);
                 return;
             }
         }
@@ -136,52 +136,52 @@ impl<'a> VisitorTwo for Resolver<'a> {
     }
 
     fn visit_assign(&mut self, assign: &AssignExpr) -> Result<(), LangError> {
-        self.resolve_expr_two(&assign.expr)?;
-        self.resolve_local_two(&assign.name);
+        self.resolve_expr(&assign.expr)?;
+        self.resolve_local(&assign.name);
         Ok(())
     }
     fn visit_binary(&mut self, binary: &BinaryExpr) -> Result<(), LangError> {
-        self.resolve_expr_two(&binary.left)?;
-        Ok(self.resolve_expr_two(&binary.right)?)
+        self.resolve_expr(&binary.left)?;
+        Ok(self.resolve_expr(&binary.right)?)
     }
     fn visit_call(&mut self, call: &CallExpr) -> Result<(), LangError> {
-        self.resolve_expr_two(&call.callee)?;
+        self.resolve_expr(&call.callee)?;
         for arg in &call.arguments {
-            self.resolve_expr_two(&arg)?;
+            self.resolve_expr(&arg)?;
         }
         Ok(())
     }
     fn visit_get(&mut self, get: &GetExpr) -> Result<(), LangError> {
-        Ok(self.resolve_expr_two(&get.object)?)
+        Ok(self.resolve_expr(&get.object)?)
     }
     fn visit_enum_path(&mut self, _: &EnumPathExpr) -> Result<(), LangError> {
         Ok(())
     }
     fn visit_grouping(&mut self, grouping: &GroupingExpr) -> Result<(), LangError> {
-        Ok(self.resolve_expr_two(&grouping.expression)?)
+        Ok(self.resolve_expr(&grouping.expression)?)
     }
     fn visit_literal(&mut self, _: &LiteralExpr) -> Result<(), LangError> {
         Ok(())
     }
     fn visit_logical(&mut self, logical: &LogicalExpr) -> Result<(), LangError> {
-        self.resolve_expr_two(&logical.left)?;
-        Ok(self.resolve_expr_two(&logical.right)?)
+        self.resolve_expr(&logical.left)?;
+        Ok(self.resolve_expr(&logical.right)?)
     }
     fn visit_set(&mut self, set: &SetExpr) -> Result<(), LangError> {
-        self.resolve_expr_two(&set.value)?;
-        Ok(self.resolve_expr_two(&set.object)?)
+        self.resolve_expr(&set.value)?;
+        Ok(self.resolve_expr(&set.object)?)
     }
     fn visit_unary(&mut self, unary: &UnaryExpr) -> Result<(), LangError> {
-        Ok(self.resolve_expr_two(&unary.right)?)
+        Ok(self.resolve_expr(&unary.right)?)
     }
     fn visit_array(&mut self, array: &ArrayExpr) -> Result<(), LangError> {
         for item in array.elements.iter() {
-            self.resolve_expr_two(&item)?;
+            self.resolve_expr(&item)?;
         }
         Ok(())
     }
     fn visit_index(&mut self, index: &IndexExpr) -> Result<(), LangError> {
-        Ok(self.resolve_expr_two(&index.index)?)
+        Ok(self.resolve_expr(&index.index)?)
     }
     fn visit_set_array_element(&mut self, _: &SetArrayElementExpr) -> Result<(), LangError> {
         Ok(())
@@ -197,11 +197,11 @@ impl<'a> VisitorTwo for Resolver<'a> {
                 }
             }
         }
-        self.resolve_local_two(&variable.name);
+        self.resolve_local(&variable.name);
         Ok(())
     }
     fn visit_self_ident(&mut self, self_ident: &SelfIdentExpr) -> Result<(), LangError> {
-        self.resolve_local_two(&self_ident.keyword);
+        self.resolve_local(&self_ident.keyword);
         Ok(())
     }
 
@@ -214,7 +214,7 @@ impl<'a> VisitorTwo for Resolver<'a> {
     }
     fn visit_impl(&mut self, impl_stmt: &ImplStmt) -> Result<(), LangError> {
         for fn_decl_statement in &impl_stmt.fn_declarations {
-            self.resolve_statement_two(&fn_decl_statement)?;
+            self.resolve_statement(&fn_decl_statement)?;
         }
         Ok(())
     }
@@ -238,11 +238,11 @@ impl<'a> VisitorTwo for Resolver<'a> {
         Ok(())
     }
     fn visit_expression(&mut self, expr: &ExpressionStmt) -> Result<(), LangError> {
-        Ok(self.resolve_expr_two(&expr.expression)?)
+        Ok(self.resolve_expr(&expr.expression)?)
     }
     fn visit_trait(&mut self, trait_stmt: &TraitStmt) -> Result<(), LangError> {
         for fn_declarations in &trait_stmt.trait_fn_declarations {
-            self.resolve_statement_two(&fn_declarations)?;
+            self.resolve_statement(&fn_declarations)?;
         }
         Ok(())
     }
@@ -257,15 +257,15 @@ impl<'a> VisitorTwo for Resolver<'a> {
         Ok(self.resolve_function(&function_stmt, FunctionType::Function)?)
     }
     fn visit_if(&mut self, if_stmt: &IfStmt) -> Result<(), LangError> {
-        self.resolve_expr_two(&if_stmt.condition)?;
-        self.resolve_statement_two(&if_stmt.then_branch)?;
+        self.resolve_expr(&if_stmt.condition)?;
+        self.resolve_statement(&if_stmt.then_branch)?;
         if let Some(ref else_branch) = if_stmt.else_branch {
-            self.resolve_statement_two(else_branch)?;
+            self.resolve_statement(else_branch)?;
         }
         Ok(())
     }
     fn visit_print(&mut self, print_stmt: &PrintStmt) -> Result<(), LangError> {
-        Ok(self.resolve_expr_two(&print_stmt.expression)?)
+        Ok(self.resolve_expr(&print_stmt.expression)?)
     }
     fn visit_return(&mut self, return_stmt: &ReturnStmt) -> Result<(), LangError> {
         if self.current_function_type == FunctionType::None {
@@ -280,21 +280,21 @@ impl<'a> VisitorTwo for Resolver<'a> {
                 TypeAnnotation::Unit,
             ))))
         {
-            self.resolve_expr_two(&return_stmt.value)?;
+            self.resolve_expr(&return_stmt.value)?;
         }
         Ok(())
     }
     fn visit_var(&mut self, var_stmt: &VarStmt) -> Result<(), LangError> {
         self.declare(&var_stmt.name)?;
         if let Some(ref initializer) = var_stmt.initializer {
-            self.resolve_expr_two(initializer)?;
+            self.resolve_expr(initializer)?;
         }
         self.define(&var_stmt.name);
         Ok(())
     }
     fn visit_while(&mut self, while_stmt: &WhileStmt) -> Result<(), LangError> {
-        self.resolve_expr_two(&while_stmt.condition)?;
-        self.resolve_statement_two(&while_stmt.body)?;
+        self.resolve_expr(&while_stmt.condition)?;
+        self.resolve_statement(&while_stmt.body)?;
         Ok(())
     }
 }
