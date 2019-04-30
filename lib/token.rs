@@ -17,6 +17,7 @@ pub enum TypeAnnotation {
     Unit,
     Fn,
     Array(Box<TypeAnnotation>),
+    SelfIndex,
     User(String),
 }
 
@@ -49,6 +50,7 @@ impl Display for TypeAnnotation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             TypeAnnotation::I32 => write!(f, "i32"),
+            TypeAnnotation::SelfIndex => write!(f, "self"),
             TypeAnnotation::I64 => write!(f, "i64"),
             TypeAnnotation::F32 => write!(f, "f32"),
             TypeAnnotation::F64 => write!(f, "f64"),
@@ -68,6 +70,9 @@ impl PartialEq for TypeAnnotation {
         match self {
             TypeAnnotation::I32 => match other {
                 TypeAnnotation::I32 => true,
+                _ => false,
+            },
+            TypeAnnotation::SelfIndex => match other {
                 _ => false,
             },
             TypeAnnotation::I64 => match other {

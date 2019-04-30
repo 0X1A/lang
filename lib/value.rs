@@ -68,6 +68,12 @@ pub struct Enum {
     pub values: HashMap<String, Value>,
 }
 
+#[derive(Debug, Clone)]
+pub struct SelfIndex {
+    pub name: String,
+    pub env_id: EnvironmentId,
+}
+
 pub enum Value {
     Struct(Box<dyn StructInstanceTrait>),
     Callable(Box<dyn CallableTrait>),
@@ -82,6 +88,7 @@ pub enum Value {
     Ident(String),
     Boolean(bool),
     Array(Vec<TypedValue>),
+    SelfIndex(SelfIndex),
     Unit,
 }
 
@@ -165,6 +172,7 @@ impl Value {
     pub fn type_to_str(&self) -> &str {
         match self {
             Value::Struct(_) => "struct",
+            Value::SelfIndex(_) => "self",
             Value::Callable(_) => "callable",
             Value::String(_) => "string",
             Value::Enum(_) => "enum",
@@ -296,6 +304,7 @@ impl PartialEq for Value {
     fn eq(&self, other: &Value) -> bool {
         match self {
             Value::Struct(_) => false,
+            Value::SelfIndex(_) => false,
             Value::Callable(_) => false,
             Value::Enum(_) => unimplemented!(),
             Value::String(lhs) => match other {
@@ -377,6 +386,7 @@ impl Ord for Value {
     fn cmp(&self, other: &Value) -> Ordering {
         match self {
             Value::Struct(_) => Ordering::Less,
+            Value::SelfIndex(_) => Ordering::Less,
             Value::Callable(_) => Ordering::Less,
             Value::Enum(_) => Ordering::Less,
             Value::String(lhs) => match other {
@@ -450,6 +460,7 @@ impl Clone for Value {
     fn clone(&self) -> Value {
         match self {
             Value::Struct(s) => Value::Struct(s.clone()),
+            Value::SelfIndex(s) => Value::SelfIndex(s.clone()),
             Value::Enum(_) => unimplemented!(),
             Value::Callable(c) => Value::Callable(c.clone()),
             Value::String(lhs) => Value::String(lhs.clone()),
@@ -474,6 +485,11 @@ impl Debug for Value {
                 f,
                 "Value::Struct({})",
                 struct_value.struct_trait().get_name()
+            ),
+            Value::SelfIndex(self_index) => write!(
+                f,
+                "Value::SelfIndex({}, {})",
+                self_index.name, self_index.env_id.index
             ),
             Value::Enum(_) => unimplemented!(),
             Value::Callable(callable_value) => {
@@ -727,6 +743,7 @@ impl Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Value::Struct(s) => return write!(f, "{}", s.struct_trait().get_name()),
+            Value::SelfIndex(s) => return write!(f, "{}, {}", s.name, s.env_id.index),
             Value::Enum(_) => unimplemented!(),
             Value::Callable(c) => return write!(f, "{}", c.get_name()),
             Value::String(v) => {
