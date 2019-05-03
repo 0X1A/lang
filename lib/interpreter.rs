@@ -111,9 +111,20 @@ impl Interpreter {
     fn visit_get_expr(&mut self, get_expr: &GetExpr) -> Result<(), LangError> {
         self.evaluate(&get_expr.object)?;
         let value = self.stack.pop().unwrap();
-        let struct_value: &StructInstanceTrait = (&value.value).try_into()?;
-        self.stack
-            .push(struct_value.get_field(get_expr.name.lexeme.clone())?);
+        match value.value {
+            Value::Struct(_) => {
+                let struct_value: &StructInstanceTrait = (&value.value).try_into()?;
+                let field = struct_value.get_field(&get_expr.name.lexeme, self)?;
+                self.stack.push(field);
+            }
+            Value::SelfIndex(s) => {
+                let nvalue = self.env_entries.get(&s.env_id, &s.name)?;
+                let struct_value: &StructInstanceTrait = (&nvalue.value).try_into()?;
+                let field = struct_value.get_field(&get_expr.name.lexeme, self)?;
+                self.stack.push(field);
+            }
+            _ => {}
+        }
         Ok(())
     }
 
@@ -181,7 +192,7 @@ impl Interpreter {
                 };
                 self.env_entries.update_value(
                     &self.env_id,
-                    &impl_trait_stmt.impl_name,
+                    &impl_trait_stmt.impl_name.lexeme,
                     update_struct_decl,
                 )?;
             }
@@ -239,8 +250,11 @@ impl Interpreter {
                     )?;
                     Ok(())
                 };
-                self.env_entries
-                    .update_value(&self.env_id, &impl_stmt.name, update_struct)?;
+                self.env_entries.update_value(
+                    &self.env_id,
+                    &impl_stmt.name.lexeme,
+                    update_struct,
+                )?;
             }
         }
         Ok(())
@@ -262,7 +276,11 @@ impl Interpreter {
                 ),
             );
         }
-        let struct_value = Value::Struct(Box::new(StructValue::new(struct_stmt.clone(), fields)));
+        let struct_value = Value::Struct(Box::new(StructValue::new(
+            struct_stmt.clone(),
+            fields,
+            struct_stmt.name.lexeme.clone(),
+        )));
         self.env_entries.assign(
             &self.env_id,
             &struct_stmt.name,
@@ -367,7 +385,31 @@ impl Interpreter {
                 };
                 if let Expr::Variable(var) = set_expr.object.clone() {
                     self.env_entries
-                        .update_value(&self.env_id, &var.name, update_struct)?;
+                        .update_value(&self.env_id, &var.name.lexeme, update_struct)?;
+                }
+            }
+            Value::SelfIndex(s) => {
+                let nvalue = self.env_entries.get(&s.env_id, &s.name)?;
+                let struct_value: &StructInstanceTrait = (&nvalue.value).try_into()?;
+                if !struct_value.field_exists(&set_expr.name.lexeme) {
+                    return Err(LangError::new_runtime_error(
+                        RuntimeErrorType::UndefinedVariable {
+                            reason: "Tried to set an undefined struct field".to_string(),
+                        },
+                    ));
+                }
+                let update_struct = |typed_value: &mut TypedValue| -> Result<(), LangError> {
+                    let struct_value: &mut StructInstanceTrait =
+                        (&mut typed_value.value).try_into()?;
+                    struct_value.set_field(&set_expr.name, &value)?;
+                    Ok(())
+                };
+                if let Expr::SelfIdent(_) = set_expr.object.clone() {
+                    self.env_entries.update_value(
+                        &s.env_id,
+                        &struct_value.get_instance_name(),
+                        update_struct,
+                    )?;
                 }
             }
             _ => {
@@ -420,7 +462,9 @@ impl Interpreter {
     fn visit_index_expr(&mut self, index_expr: &IndexExpr) -> Result<(), LangError> {
         self.evaluate(&index_expr.index)?;
         let index = self.stack.pop().unwrap().as_array_index()?;
-        let value = self.env_entries.get(&self.env_id, &index_expr.from)?;
+        let value = self
+            .env_entries
+            .get(&self.env_id, &index_expr.from.lexeme)?;
         match value.value {
             Value::Array(arr) => {
                 if index < arr.len() {
@@ -467,22 +511,30 @@ impl Interpreter {
         if let Some(distance) = self.locals.get(&token) {
             if let Ok(value) = self
                 .env_entries
-                .get(&EnvironmentId { index: *distance }, &token)
+                .get(&EnvironmentId { index: *distance }, &token.lexeme)
             {
-                self.stack.push(value);
+                match value.value {
+                    Value::SelfIndex(s) => {
+                        let str_val = self.env_entries.get(&s.env_id, &s.name)?;
+                        self.stack.push(str_val);
+                    }
+                    _ => {
+                        self.stack.push(value);
+                    }
+                }
                 Ok(())
             } else {
                 let value = self.env_entries.get(
                     &EnvironmentId {
                         index: *distance + 1,
                     },
-                    &token,
+                    &token.lexeme,
                 )?;
                 self.stack.push(value);
                 Ok(())
             }
         } else {
-            let value = self.env_entries.get(&self.env_id, &token)?;
+            let value = self.env_entries.get(&self.env_id, &token.lexeme)?;
             self.stack.push(value);
             Ok(())
         }
@@ -629,10 +681,7 @@ impl VisitorTwo for Interpreter {
     fn visit_literal(&mut self, literal: &LiteralExpr) -> Result<(), LangError> {
         match literal.value.value_type {
             TypeAnnotation::User(ref user_type) => {
-                let value = self
-                    .env_entries
-                    .direct_get(&self.env_id, user_type.clone())
-                    .unwrap();
+                let value = self.env_entries.get(&self.env_id, &user_type).unwrap();
                 self.stack.push(value);
             }
             _ => {
@@ -769,6 +818,12 @@ impl VisitorTwo for Interpreter {
                     ),
                 },
             ));
+        }
+        match value.value {
+            Value::Struct(ref mut s) => {
+                s.set_instance_name(var_stmt.name.lexeme.clone());
+            }
+            _ => {}
         }
         self.env_entries
             .define(&self.env_id, &var_stmt.name.lexeme, &value);

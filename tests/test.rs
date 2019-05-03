@@ -73,3 +73,13 @@ fn struct_decl_with_impl() {
     let result = lang.run().is_ok();
     assert_eq!(result, true);
 }
+
+// Test variable declaration
+#[test]
+fn array_index() {
+    let mut lang = Lang::new(Some(
+        "let arr: Array<i64> = [0, 1, 2]; let idx: i64 = arr[0];",
+    ));
+    let result = lang.run().is_ok();
+    assert_eq!(result, true);
+}

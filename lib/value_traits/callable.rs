@@ -3,6 +3,7 @@ use error::*;
 use interpreter::*;
 use std::fmt::{self, Debug};
 use token::TypeAnnotation;
+use value::StructInstanceTrait;
 use value::TypedValue;
 
 pub trait CallableTrait {
@@ -14,6 +15,11 @@ pub trait CallableTrait {
         interpreter: &mut Interpreter,
         args: Vec<TypedValue>,
     ) -> Result<TypedValue, LangError>;
+    fn bind(
+        &self,
+        struct_instance: &StructInstanceTrait,
+        interpreter: &mut Interpreter,
+    ) -> Result<(), LangError>;
     fn get_params(&self) -> Vec<VariableData>;
     fn box_clone(&self) -> Box<dyn CallableTrait>;
 }

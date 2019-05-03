@@ -360,11 +360,21 @@ pub trait StructInstanceTrait: CallableTrait + StructTrait + Debug {
     // For constructors
     fn callable_trait(&self) -> &CallableTrait;
     fn struct_trait(&self) -> &StructTrait;
+    fn set_instance_name(&mut self, name: String);
+    fn get_instance_name(&self) -> String;
 }
 
 impl StructInstanceTrait for StructValue {
     fn box_clone(&self) -> Box<StructInstanceTrait> {
         Box::new((*self).clone())
+    }
+
+    fn set_instance_name(&mut self, name: String) {
+        self.instance_name = name;
+    }
+
+    fn get_instance_name(&self) -> String {
+        self.instance_name.clone()
     }
 
     fn struct_trait(&self) -> &StructTrait {
@@ -634,14 +644,20 @@ pub struct StructValue {
     struct_stmt: StructStmt,
     fields: HashMap<String, TypedValue>,
     methods: HashMap<String, TypedValue>,
+    instance_name: String,
 }
 
 impl StructValue {
-    pub fn new(struct_stmt: StructStmt, fields: HashMap<String, TypedValue>) -> StructValue {
+    pub fn new(
+        struct_stmt: StructStmt,
+        fields: HashMap<String, TypedValue>,
+        instance_name: String,
+    ) -> StructValue {
         StructValue {
             struct_stmt,
             methods: HashMap::new(),
             fields,
+            instance_name,
         }
     }
 }
@@ -657,6 +673,10 @@ impl CallableTrait for StructValue {
 
     fn get_return_type(&self) -> Option<TypeAnnotation> {
         Some(TypeAnnotation::User(self.struct_stmt.name.lexeme.clone()))
+    }
+
+    fn bind(&self, _: &StructInstanceTrait, _: &mut Interpreter) -> Result<(), LangError> {
+        unimplemented!()
     }
 
     fn get_params(&self) -> Vec<VariableData> {
@@ -685,23 +705,24 @@ impl StructTrait for StructValue {
         Box::new((*self).clone())
     }
 
+    #[inline(always)]
     fn field_exists(&self, name: &str) -> bool {
-        debug!(
-            "Checking if '{}' is defined in struct with fields {:?}",
-            name, self.fields
-        );
         self.fields.contains_key(name)
     }
 
-    fn get_field(&self, name: String) -> Result<TypedValue, LangError> {
-        self.fields.get(&name).map_or(
+    fn get_field(
+        &self,
+        name: &str,
+        interpreter: &mut Interpreter,
+    ) -> Result<TypedValue, LangError> {
+        self.fields.get(name).map_or(
             {
-                if let Ok(method) = self.get_method(name.clone()) {
+                if let Ok(method) = self.get_method(name, interpreter) {
                     return Ok(method);
                 }
                 Err(LangError::new_runtime_error(
                     RuntimeErrorType::UndefinedVariable {
-                        reason: format!("tried to get an undefined variable: '{}'", name),
+                        reason: format!("get_field tried to get an undefined variable: '{}'", name),
                     },
                 ))
             },
@@ -715,19 +736,30 @@ impl StructTrait for StructValue {
         Ok(())
     }
 
-    fn get_method(&self, name: String) -> Result<TypedValue, LangError> {
-        self.methods.get(&name).map_or(
+    fn get_method(
+        &self,
+        name: &str,
+        interpreter: &mut Interpreter,
+    ) -> Result<TypedValue, LangError> {
+        debug!("get_method\nLooking for {} in {:?}", name, self.methods);
+        self.methods.get(name).map_or(
             Err(LangError::new_runtime_error(
                 RuntimeErrorType::UndefinedVariable {
                     reason: format!("tried to get an undefined method: '{}'", name),
                 },
             )),
-            |value| Ok(value.clone()),
+            |value| {
+                let callable_value = value.clone();
+                {
+                    let callable: &CallableTrait = (&callable_value.value).try_into()?;
+                    callable.bind(self, interpreter)?;
+                }
+                Ok(callable_value)
+            },
         )
     }
 
     fn set_field(&mut self, name: &Token, value: &TypedValue) -> Result<(), LangError> {
-        debug!("Setting field with name {:?} to value {:?}", name, value);
         self.fields.get_mut(&name.lexeme).map_or(
             Err(LangError::new_runtime_error(
                 RuntimeErrorType::UndefinedVariable {
@@ -819,6 +851,24 @@ impl CallableTrait for Callable {
     #[inline(always)]
     fn arity(&self) -> usize {
         self.function.params.len()
+    }
+
+    fn bind(
+        &self,
+        struct_instance: &StructInstanceTrait,
+        interpreter: &mut Interpreter,
+    ) -> Result<(), LangError> {
+        let value = TypedValue::new(
+            Value::SelfIndex(SelfIndex {
+                name: struct_instance.get_instance_name(),
+                env_id: self.closure.clone(),
+            }),
+            TypeAnnotation::SelfIndex,
+        );
+        interpreter
+            .env_entries
+            .direct_declare(&self.closure, "self".to_string(), value)?;
+        Ok(())
     }
 
     fn get_params(&self) -> Vec<VariableData> {

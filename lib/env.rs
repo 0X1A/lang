@@ -107,15 +107,11 @@ impl Environment {
         )
     }
 
-    pub fn direct_get(
-        &self,
-        env_id: &EnvironmentId,
-        name: String,
-    ) -> Result<TypedValue, LangError> {
-        if self[env_id].values.contains_key(&name) {
-            return Ok(self[env_id].values[&name].clone());
+    pub fn get(&self, env_id: &EnvironmentId, name: &str) -> Result<TypedValue, LangError> {
+        if self[env_id].values.contains_key(name) {
+            return Ok(self[env_id].values[name].clone());
         } else if let Some(enclosing) = self[env_id].enclosing.clone() {
-            return Ok(self.direct_get(&enclosing, name)?);
+            return Ok(self.get(&enclosing, name)?);
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
         Err(LangError::new_runtime_error(
@@ -123,6 +119,20 @@ impl Environment {
                 reason: format!("Tried to get a variable: '{}'", name),
             },
         ))
+    }
+
+    pub fn direct_declare(
+        &mut self,
+        env_id: &EnvironmentId,
+        name: String,
+        value: TypedValue,
+    ) -> Result<(), LangError> {
+        debug!(
+            "Env::direct_declare\nAssigning '{}' with value '{:?}' at index '{}'",
+            name, value, env_id.index
+        );
+        self[env_id].values.insert(name.clone(), value.clone());
+        return Ok(());
     }
 
     pub fn direct_assign(
@@ -300,33 +310,11 @@ impl Environment {
         false
     }
 
-    pub fn get(&self, env_id: &EnvironmentId, name: &Token) -> Result<TypedValue, LangError> {
-        debug!(
-            "Env::get\nLooking for token with lexeme '{}' at index '{}' env:\n{:?}",
-            name.lexeme, env_id.index, self
-        );
-        //debug_assert!(env_id.index >= self.entries.len(), "EnvironmentId {} is out of bounds of environment entries of len {}", env_id.index, self.entries.len());
-        if let Some(value) = self[env_id].values.get(&name.lexeme) {
-            return Ok(value.clone());
-        } else if let Some(enclosing) = self[env_id].enclosing.clone() {
-            return Ok(self.get(&enclosing, name)?);
-        } else {
-            Err(Lang::error(
-                name,
-                &format!(
-                    "(get) Tried to get an undefined variable: '{}'",
-                    name.lexeme.clone()
-                ),
-            ))
-        }
-    }
-
     pub fn get_ref(&self, env_id: &EnvironmentId, name: &Token) -> Result<&TypedValue, LangError> {
         debug!(
             "Env::get\nLooking for token with lexeme '{}' at index '{}' env:\n{:?}",
             name.lexeme, env_id.index, self
         );
-        //debug_assert!(env_id.index >= self.entries.len(), "EnvironmentId {} is out of bounds of environment entries of len {}", env_id.index, self.entries.len());
         if let Some(value) = self[env_id].values.get(&name.lexeme) {
             return Ok(value);
         } else if let Some(enclosing) = self[env_id].enclosing.clone() {
@@ -345,14 +333,16 @@ impl Environment {
     pub fn update_value<Closure>(
         &mut self,
         env_id: &EnvironmentId,
-        name: &Token,
+        name: &str,
         closure: Closure,
     ) -> Result<(), LangError>
     where
         Closure: FnOnce(&mut TypedValue) -> Result<(), LangError>,
     {
-        if let Some(value) = self[env_id].values.get_mut(&name.lexeme) {
+        if let Some(value) = self[env_id].values.get_mut(name) {
             closure(value)?;
+        } else {
+            debug!("Didn't find the thing :O");
         }
         Ok(())
     }
