@@ -4,7 +4,6 @@ extern crate fern;
 #[macro_use]
 extern crate log;
 
-pub mod accept;
 pub mod ast;
 pub mod ast_printer;
 pub mod env;

@@ -1,10 +1,8 @@
-use accept::*;
 use error::*;
 use std::convert::Into;
 use std::convert::TryInto;
 use token::Token;
 use value::TypedValue;
-use visitor::Visitor;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Expr {
@@ -23,15 +21,6 @@ pub enum Expr {
     SetArrayElement(Box<SetArrayElementExpr>),
     Variable(Box<VariableExpr>),
     SelfIdent(Box<SelfIdentExpr>),
-}
-
-impl Accept for Expr {
-    fn accept<T>(&self, visitor: &mut T) -> T::Value
-    where
-        T: Visitor<Self>,
-    {
-        visitor.visit(self)
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

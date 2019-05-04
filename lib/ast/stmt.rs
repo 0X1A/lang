@@ -1,9 +1,7 @@
-use accept::*;
 use ast::expr::*;
 use error::*;
 use std::convert::TryInto;
 use token::{Token, TypeAnnotation};
-use visitor::Visitor;
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
@@ -130,15 +128,6 @@ pub struct VarStmt {
 pub struct WhileStmt {
     pub body: Stmt,
     pub condition: Expr,
-}
-
-impl Accept for Stmt {
-    fn accept<T>(&self, visitor: &mut T) -> T::Value
-    where
-        T: Visitor<Self>,
-    {
-        visitor.visit(&self)
-    }
 }
 
 impl TryInto<ImplStmt> for Stmt {

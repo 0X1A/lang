@@ -652,7 +652,7 @@ impl Interpreter {
     }
 }
 
-impl Visit for Interpreter {
+impl Visitor for Interpreter {
     fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
         Ok(noop_expr(self, expr)?)
     }

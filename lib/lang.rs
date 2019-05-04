@@ -1,9 +1,7 @@
 extern crate fern;
 extern crate log;
 
-use accept::*;
 use ast::stmt::*;
-use ast_printer::*;
 use error::*;
 use interpreter::Interpreter;
 use parser::*;
@@ -88,19 +86,7 @@ impl<'a> Lang<'a> {
     }
 
     pub fn print_ast(&mut self) -> Result<(), LangError> {
-        let statements = self.build_statements();
-        let mut printer = ASTPrinter::default();
-        match statements {
-            Ok(s) => {
-                for statement in s {
-                    statement.accept(&mut printer);
-                }
-            }
-            Err(e) => {
-                println!("{}", e);
-            }
-        }
-        Ok(())
+        unimplemented!()
     }
 
     pub fn error(token: &Token, message: &str) -> LangError {
