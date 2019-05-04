@@ -179,6 +179,7 @@ impl Parser {
                 }
             }
         }
+        arguments.shrink_to_fit();
         self.pop_expect(
             &TokenType::RightParen,
             "Expect ')' after function arguments",
@@ -284,6 +285,7 @@ impl Parser {
                     let path_item = self.pop_expect(&TokenType::Identifier, "expected ident")?;
                     path_elements.push(path_item);
                 }
+                path_elements.shrink_to_fit();
                 return Ok(Expr::EnumPath(Box::new(EnumPathExpr {
                     name: enum_name,
                     path_items: path_elements,
@@ -311,6 +313,7 @@ impl Parser {
                 &TokenType::RightBracket,
                 "Expect ']' after array expression",
             )?;
+            elements.shrink_to_fit();
             return Ok(Expr::Array(Box::new(ArrayExpr { elements })));
         }
         Err(Lang::error(&self.peek(), "Expected expression"))
@@ -547,6 +550,7 @@ impl Parser {
         while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
             statements.push(self.declaration()?);
         }
+        statements.shrink_to_fit();
         self.pop_expect(&TokenType::RightBrace, "Expect '}' after a block.")?;
         Ok(statements)
     }
@@ -602,6 +606,7 @@ impl Parser {
             }
         }
         self.pop_expect(&TokenType::RightBrace, "expected right brace")?;
+        item_list.shrink_to_fit();
         Ok(Stmt::Enum(Box::new(EnumStmt { name, item_list })))
     }
 
@@ -626,6 +631,7 @@ impl Parser {
             &TokenType::RightBrace,
             "expected right brace after function declarations",
         )?;
+        trait_fn_declarations.shrink_to_fit();
         Ok(Stmt::ImplTrait(Box::new(ImplTraitStmt {
             impl_name: impl_trait_name,
             trait_name,
@@ -655,6 +661,7 @@ impl Parser {
             &TokenType::RightBrace,
             "expected right brace after function declarations",
         )?;
+        trait_fn_declarations.shrink_to_fit();
         Ok(Stmt::Trait(Box::new(TraitStmt {
             name: trait_name,
             trait_fn_declarations,
@@ -689,6 +696,7 @@ impl Parser {
             &TokenType::RightBrace,
             "expected right brace after function declarations",
         )?;
+        fn_declarations.shrink_to_fit();
         Ok(Stmt::Impl(Box::new(ImplStmt {
             name,
             fn_declarations,
@@ -721,6 +729,7 @@ impl Parser {
         self.pop_expect(&TokenType::ReturnType, "Expected '->' after ')'")?;
         let return_type_annotation_token = self.advance();
         TypeAnnotation::check_token_type(&return_type_annotation_token)?;
+        parameters.shrink_to_fit();
         Ok(Stmt::TraitFunction(Box::new(TraitFunctionStmt {
             name,
             return_type: return_type_annotation_token,
@@ -765,6 +774,7 @@ impl Parser {
             &format!("Expect '{{' before {} body.", kind),
         )?;
         let body = self.block()?;
+        parameters.shrink_to_fit();
         Ok(Stmt::Function(Box::new(FunctionStmt {
             name,
             return_type: return_type_annotation_token,
@@ -802,7 +812,7 @@ impl Parser {
         }
 
         self.pop_expect(&TokenType::RightBrace, "Expected '}' after struct body")?;
-
+        fields.shrink_to_fit();
         Ok(Stmt::Struct(Box::new(StructStmt { fields, name })))
     }
 
