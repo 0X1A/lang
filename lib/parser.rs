@@ -1,9 +1,9 @@
-use ast::expr::*;
-use ast::stmt::*;
-use error::*;
-use lang::*;
-use token::{Token, TokenType, TypeAnnotation};
-use value::{TypedValue, Value};
+use crate::ast::expr::*;
+use crate::ast::stmt::*;
+use crate::error::*;
+use crate::lang::*;
+use crate::token::{Token, TokenType, TypeAnnotation};
+use crate::value::{TypedValue, Value};
 
 pub struct Parser {
     tokens: Vec<Token>,

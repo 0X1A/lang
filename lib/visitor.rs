@@ -1,6 +1,6 @@
-use ast::expr::*;
-use ast::stmt::*;
-use error::LangError;
+use crate::ast::expr::*;
+use crate::ast::stmt::*;
+use crate::error::LangError;
 
 // We _have_ to return a concrete definition of Result here since we can't have
 // bounds on an associated type in order to use the error propogation operator

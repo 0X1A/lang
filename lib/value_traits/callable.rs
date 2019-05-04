@@ -1,10 +1,10 @@
-use ast::stmt::*;
-use error::*;
-use interpreter::*;
+use crate::ast::stmt::*;
+use crate::error::*;
+use crate::interpreter::*;
+use crate::token::TypeAnnotation;
+use crate::value::StructInstanceTrait;
+use crate::value::TypedValue;
 use std::fmt::{self, Debug};
-use token::TypeAnnotation;
-use value::StructInstanceTrait;
-use value::TypedValue;
 
 pub trait CallableTrait {
     fn get_name(&self) -> String;

@@ -1,13 +1,10 @@
-extern crate failure;
-extern crate log;
-
 use std::{
     error::Error,
     fmt::{self, Debug},
     io, num, str, time,
 };
 
-static ISSUES_URL: &str = "https://github.com/0X1A/lang/issues";
+const ISSUES_URL: &str = "https://github.com/0X1A/lang/issues";
 
 #[derive(Hash, PartialEq, Eq)]
 pub enum ErrMessage {
@@ -19,7 +16,7 @@ pub enum ErrMessage {
 
 #[inline]
 pub fn error_message(msg_type: &ErrMessage) -> String {
-    use error::ErrMessage::*;
+    use crate::error::ErrMessage::*;
     match msg_type {
         ExpectValueType(type_string) => format!("expected a {} value", type_string),
         ExpectExpr(expr_string) => format!("expected {} expression", expr_string),

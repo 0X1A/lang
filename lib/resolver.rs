@@ -1,13 +1,13 @@
 extern crate log;
 
-use ast::expr::*;
-use ast::stmt::*;
-use error::*;
-use interpreter::*;
-use lang::*;
-use token::*;
-use value::*;
-use visitor::*;
+use crate::ast::expr::*;
+use crate::ast::stmt::*;
+use crate::error::*;
+use crate::interpreter::*;
+use crate::lang::*;
+use crate::token::*;
+use crate::value::*;
+use crate::visitor::*;
 
 use std::collections::HashMap;
 

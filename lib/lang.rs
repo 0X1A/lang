@@ -1,17 +1,14 @@
-extern crate fern;
-extern crate log;
-
-use ast::stmt::*;
-use error::*;
-use interpreter::Interpreter;
-use parser::*;
-use resolver::*;
-use scanner::*;
+use crate::ast::stmt::*;
+use crate::error::*;
+use crate::interpreter::Interpreter;
+use crate::parser::*;
+use crate::resolver::*;
+use crate::scanner::*;
+use crate::token::*;
 use std::{
     fs::File,
     io::{self, prelude::*},
 };
-use token::*;
 
 pub struct Lang<'a> {
     interpreter: Interpreter,

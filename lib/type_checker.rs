@@ -1,5 +1,5 @@
-use error::*;
-use value::TypedValue;
+use crate::error::*;
+use crate::value::TypedValue;
 
 pub struct TypeChecker;
 

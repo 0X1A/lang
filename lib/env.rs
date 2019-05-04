@@ -1,15 +1,15 @@
 extern crate log;
 
-use error::*;
-use lang::*;
+use crate::error::*;
+use crate::lang::*;
+use crate::token::Token;
+use crate::type_checker::TypeChecker;
+use crate::value::*;
 use std::{
     collections::HashMap,
     fmt::{self, Debug},
     ops::{Index, IndexMut},
 };
-use token::Token;
-use type_checker::TypeChecker;
-use value::*;
 
 #[derive(Clone, Debug)]
 pub struct EnvironmentId {

@@ -1,7 +1,7 @@
-use error::*;
-use lang::*;
+use crate::error::*;
+use crate::lang::*;
+use crate::value::{Float64, Value};
 use std::fmt::{self, Debug, Display};
-use value::{Float64, Value};
 
 // TODO: Revisit hashing Token
 #[allow(clippy::derive_hash_xor_eq)]

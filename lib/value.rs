@@ -1,7 +1,10 @@
-use ast::stmt::*;
-use env::*;
-use error::*;
-use interpreter::*;
+use crate::ast::stmt::*;
+use crate::env::*;
+use crate::error::*;
+use crate::interpreter::*;
+use crate::token::{Token, TokenType, TypeAnnotation};
+use crate::value_traits::callable::CallableTrait;
+use crate::value_traits::r#struct::StructTrait;
 use std::{
     cmp::Ordering,
     collections::HashMap,
@@ -10,9 +13,6 @@ use std::{
     hash::{Hash, Hasher},
     ops::*,
 };
-use token::{Token, TokenType, TypeAnnotation};
-use value_traits::callable::CallableTrait;
-use value_traits::r#struct::StructTrait;
 
 #[derive(Clone, Copy, PartialOrd, Debug)]
 pub struct Float64 {

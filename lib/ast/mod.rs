@@ -2,7 +2,7 @@ pub mod expr;
 pub mod stmt;
 
 use self::expr::*;
-use token::*;
+use crate::token::*;
 
 pub enum ASTTypes {
     Expr(Expr),

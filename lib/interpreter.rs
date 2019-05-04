@@ -1,15 +1,15 @@
 extern crate log;
 
-use ast::expr::*;
-use ast::stmt::*;
-use env::*;
-use error::*;
+use crate::ast::expr::*;
+use crate::ast::stmt::*;
+use crate::env::*;
+use crate::error::*;
+use crate::token::*;
+use crate::value::*;
+use crate::value_traits::callable::*;
+use crate::visitor::*;
 use std::collections::HashMap;
 use std::convert::TryInto;
-use token::*;
-use value::*;
-use value_traits::callable::*;
-use visitor::*;
 
 #[derive(Debug)]
 pub struct Interpreter {

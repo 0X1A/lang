@@ -1,8 +1,8 @@
-use error::*;
+use crate::error::*;
+use crate::token::Token;
+use crate::value::TypedValue;
 use std::convert::Into;
 use std::convert::TryInto;
-use token::Token;
-use value::TypedValue;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Expr {

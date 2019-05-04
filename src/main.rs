@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate clap;
-extern crate lang;
 
 use clap::App;
 use lang::{error::*, lang::*};

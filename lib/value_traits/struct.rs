@@ -1,7 +1,7 @@
-use error::*;
-use interpreter::Interpreter;
-use token::Token;
-use value::TypedValue;
+use crate::error::*;
+use crate::interpreter::Interpreter;
+use crate::token::Token;
+use crate::value::TypedValue;
 
 pub trait StructTrait {
     fn get_name(&self) -> String;

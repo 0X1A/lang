@@ -1,7 +1,7 @@
-use ast::expr::*;
-use error::*;
+use crate::ast::expr::*;
+use crate::error::*;
+use crate::token::{Token, TypeAnnotation};
 use std::convert::TryInto;
-use token::{Token, TypeAnnotation};
 
 #[derive(Clone, Debug)]
 pub enum Stmt {

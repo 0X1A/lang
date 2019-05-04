@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use error::*;
-use token::*;
+use crate::error::*;
+use crate::token::*;
 
 trait SubStr {
     fn substr(&self, beg: usize, end: usize) -> String;

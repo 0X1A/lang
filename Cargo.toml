@@ -2,6 +2,7 @@
 name = "lang"
 version = "0.1.0"
 authors = ["Alberto Corona <albcoron@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 failure = "*"
@@ -12,3 +13,10 @@ log = "*"
 [lib]
 name = "lang"
 path = "lib/lib.rs"
+
+[dev-dependencies]
+criterion = "0.2.11"
+
+[[bench]]
+name = "lib"
+harness = false
