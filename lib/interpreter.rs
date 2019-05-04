@@ -63,6 +63,12 @@ impl Interpreter {
         Ok(())
     }
 
+    fn pop(&mut self) -> Result<TypedValue, LangError> {
+        self.stack.pop().ok_or_else(|| {
+            LangError::new_iie_error("the interpreter's stack pop failed!".to_string())
+        })
+    }
+
     fn is_truthy(&self, val: &Value) -> bool {
         if *val == Value::Unit {
             false
@@ -76,7 +82,7 @@ impl Interpreter {
 
     fn visit_assign_expr(&mut self, assign: &AssignExpr) -> Result<(), LangError> {
         self.evaluate(&assign.expr)?;
-        let value = self.stack.pop().unwrap();
+        let value = self.pop()?;
         self.env_entries
             .assign(&self.env_id, &assign.name, &value)?;
         self.stack.push(value);
@@ -85,11 +91,11 @@ impl Interpreter {
 
     fn visit_call_expr(&mut self, call: &CallExpr) -> Result<(), LangError> {
         self.evaluate(&call.callee)?;
-        let callee = self.stack.pop().unwrap();
+        let callee = self.pop()?;
         let mut args = Vec::new();
         for arg in &call.arguments {
             self.evaluate(&arg)?;
-            args.push(self.stack.pop().unwrap());
+            args.push(self.pop()?);
         }
         match callee.value {
             Value::Callable(callable) => {
@@ -110,7 +116,7 @@ impl Interpreter {
 
     fn visit_get_expr(&mut self, get_expr: &GetExpr) -> Result<(), LangError> {
         self.evaluate(&get_expr.object)?;
-        let value = self.stack.pop().unwrap();
+        let value = self.pop()?;
         match value.value {
             Value::Struct(_) => {
                 let struct_value: &StructInstanceTrait = (&value.value).try_into()?;
@@ -212,7 +218,7 @@ impl Interpreter {
         };
         for fn_decl in trait_stmt.trait_fn_declarations.iter() {
             self.execute(&fn_decl)?;
-            let trait_fn = self.stack.pop().unwrap();
+            let trait_fn = self.pop()?;
             if let Stmt::TraitFunction(trait_fn_decl) = fn_decl {
                 trait_value
                     .fn_declarations
@@ -296,9 +302,9 @@ impl Interpreter {
 
     fn visit_binary_expr(&mut self, expr: &BinaryExpr) -> Result<(), LangError> {
         self.evaluate(&expr.left)?;
-        let left = self.stack.pop().unwrap();
+        let left = self.pop()?;
         self.evaluate(&expr.right)?;
-        let right = self.stack.pop().unwrap();
+        let right = self.pop()?;
         let value = self.execute_binary_op(&expr.operator, left, right)?;
         self.stack.push(value);
         Ok(())
@@ -306,7 +312,7 @@ impl Interpreter {
 
     fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) -> Result<(), LangError> {
         self.evaluate(&unary_expr.right)?;
-        let right = self.stack.pop().unwrap();
+        let right = self.pop()?;
         match unary_expr.operator.token_type {
             TokenType::Minus => match right.value {
                 Value::Int32(i) => {
@@ -348,7 +354,7 @@ impl Interpreter {
 
     fn visit_logical_expr(&mut self, logical_expr: &LogicalExpr) -> Result<(), LangError> {
         self.evaluate(&logical_expr.left)?;
-        let left = self.stack.pop().unwrap();
+        let left = self.pop()?;
         if logical_expr.operator.token_type == TokenType::Or {
             if self.is_truthy(&left.value) {
                 self.stack.push(left);
@@ -364,10 +370,10 @@ impl Interpreter {
 
     fn visit_set_expr(&mut self, set_expr: &SetExpr) -> Result<(), LangError> {
         self.evaluate(&set_expr.object)?;
-        let mut object = self.stack.pop().unwrap();
+        let mut object = self.pop()?;
         // check value
         self.evaluate(&set_expr.value)?;
-        let value = self.stack.pop().unwrap();
+        let value = self.pop()?;
         match object.value {
             Value::Struct(ref mut struct_value) => {
                 if !struct_value.field_exists(&set_expr.name.lexeme) {
@@ -428,9 +434,9 @@ impl Interpreter {
         set_array_element_expr: &SetArrayElementExpr,
     ) -> Result<(), LangError> {
         self.evaluate(&set_array_element_expr.value)?;
-        let value = self.stack.pop().unwrap();
+        let value = self.pop()?;
         self.evaluate(&set_array_element_expr.index)?;
-        let index = self.stack.pop().unwrap().as_array_index()?;
+        let index = self.pop()?.as_array_index()?;
         self.env_entries.assign_index_entry(
             &self.env_id,
             &set_array_element_expr.name,
@@ -446,7 +452,7 @@ impl Interpreter {
         let mut type_annotation = TypeAnnotation::Unit;
         for item in array_expr.elements.iter() {
             self.evaluate(&item)?;
-            let element = self.stack.pop().unwrap();
+            let element = self.pop()?;
             elements.push(element);
         }
         if let Some(type_annotation_set) = elements.last() {
@@ -461,7 +467,7 @@ impl Interpreter {
 
     fn visit_index_expr(&mut self, index_expr: &IndexExpr) -> Result<(), LangError> {
         self.evaluate(&index_expr.index)?;
-        let index = self.stack.pop().unwrap().as_array_index()?;
+        let index = self.pop()?.as_array_index()?;
         let value = self
             .env_entries
             .get(&self.env_id, &index_expr.from.lexeme)?;
@@ -553,7 +559,7 @@ impl Interpreter {
                 Stmt::Return(_) => {
                     // Set value and break early on a return
                     self.execute(&stmt)?;
-                    value = self.stack.pop().unwrap();
+                    value = self.pop()?;
                     break;
                 }
                 _ => {
@@ -768,7 +774,7 @@ impl Visitor for Interpreter {
     }
     fn visit_if(&mut self, if_stmt: &IfStmt) -> Result<(), LangError> {
         self.evaluate(&if_stmt.condition)?;
-        let eval = self.stack.pop().unwrap();
+        let eval = self.pop()?;
         if self.is_truthy(&eval.value) {
             self.execute(&if_stmt.then_branch)?;
         }
@@ -779,7 +785,7 @@ impl Visitor for Interpreter {
     }
     fn visit_print(&mut self, print_stmt: &PrintStmt) -> Result<(), LangError> {
         self.evaluate(&print_stmt.expression)?;
-        let value = self.stack.pop().unwrap();
+        let value = self.pop()?;
         println!("{}", value.value);
         Ok(())
     }
@@ -790,7 +796,7 @@ impl Visitor for Interpreter {
         ))));
         let return_value = if return_stmt.value != value {
             self.evaluate(&return_stmt.value)?;
-            self.stack.pop().unwrap()
+            self.pop()?
         } else {
             TypedValue::new(Value::Unit, TypeAnnotation::Unit)
         };
@@ -801,7 +807,7 @@ impl Visitor for Interpreter {
         let mut value = TypedValue::new(Value::Unit, TypeAnnotation::Unit);
         if let Some(ref initializer) = var_stmt.initializer {
             self.evaluate(&initializer)?;
-            value = self.stack.pop().unwrap();
+            value = self.pop()?;
         }
         let var_type_annotation = var_stmt
             .type_annotation
@@ -819,11 +825,8 @@ impl Visitor for Interpreter {
                 },
             ));
         }
-        match value.value {
-            Value::Struct(ref mut s) => {
-                s.set_instance_name(var_stmt.name.lexeme.clone());
-            }
-            _ => {}
+        if let Value::Struct(ref mut struct_value) = value.value {
+            struct_value.set_instance_name(var_stmt.name.lexeme.clone());
         }
         self.env_entries
             .define(&self.env_id, &var_stmt.name.lexeme, &value);
@@ -833,7 +836,7 @@ impl Visitor for Interpreter {
     }
     fn visit_while(&mut self, while_stmt: &WhileStmt) -> Result<(), LangError> {
         self.evaluate(&while_stmt.condition)?;
-        let mut while_condition = self.stack.pop().unwrap();
+        let mut while_condition = self.pop()?;
         while self.is_truthy(&while_condition.value) {
             if let Err(error) = self.execute(&while_stmt.body) {
                 match error {
@@ -846,7 +849,7 @@ impl Visitor for Interpreter {
                 }
             }
             self.evaluate(&while_stmt.condition)?;
-            while_condition = self.stack.pop().unwrap();
+            while_condition = self.pop()?;
         }
         Ok(())
     }

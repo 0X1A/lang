@@ -132,7 +132,7 @@ impl Environment {
             name, value, env_id.index
         );
         self[env_id].values.insert(name.clone(), value.clone());
-        return Ok(());
+        Ok(())
     }
 
     pub fn direct_assign(

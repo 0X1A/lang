@@ -1,6 +1,14 @@
 extern crate failure;
 extern crate log;
 
+use std::{
+    error::Error,
+    fmt::{self, Debug},
+    io, num, str, time,
+};
+
+static ISSUES_URL: &str = "https://github.com/0X1A/lang/issues";
+
 #[derive(Hash, PartialEq, Eq)]
 pub enum ErrMessage {
     ExpectValueType(String),
@@ -22,12 +30,6 @@ pub fn error_message(msg_type: &ErrMessage) -> String {
         ),
     }
 }
-
-use std::{
-    error::Error,
-    fmt::{self, Debug},
-    io, num, str, time,
-};
 
 #[derive(Fail)]
 pub enum RuntimeErrorType {
@@ -92,7 +94,11 @@ impl Debug for LangError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             LangError::RuntimeError { subtype } => write!(f, "runtime error {:?}", subtype),
-            LangError::InternalError { reason } => write!(f, "IIE {:?}", reason),
+            LangError::InternalError { reason } => write!(
+                f,
+                "IIE {:?}\nPlease report this issue at: {}",
+                reason, ISSUES_URL
+            ),
             LangError::ParserError { reason } => write!(f, "parser error {:?}", reason),
             LangError::ControlFlow { subtype } => {
                 write!(f, "{} must be used within a loop", subtype)
