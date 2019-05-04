@@ -3,3 +3,4 @@ script:
   - export RUSTFLAGS=-Dwarnings
   - cargo build --verbose
   - cargo test -- --nocapture
+  - cargo bench
