@@ -84,7 +84,7 @@ impl Interpreter {
         self.evaluate(&assign.expr)?;
         let value = self.pop()?;
         self.env_entries
-            .assign(&self.env_id, &assign.name, &value)?;
+            .assign(&self.env_id, &assign.name.lexeme, value.clone())?;
         self.stack.push(value);
         Ok(())
     }
@@ -210,7 +210,7 @@ impl Interpreter {
         self.env_entries.define(
             &self.env_id,
             &trait_stmt.name.lexeme,
-            &TypedValue::new(Value::Unit, TypeAnnotation::Unit),
+            TypedValue::new(Value::Unit, TypeAnnotation::Unit),
         );
         let mut trait_value = TraitValue {
             trait_stmt: trait_stmt.clone(),
@@ -225,9 +225,9 @@ impl Interpreter {
                     .insert(trait_fn_decl.name.lexeme.clone(), trait_fn);
             }
         }
-        self.env_entries.direct_assign(
+        self.env_entries.assign(
             &self.env_id,
-            trait_stmt.name.lexeme.clone(),
+            &trait_stmt.name.lexeme,
             TypedValue::new(
                 Value::Trait(Box::new(trait_value.clone())),
                 TypeAnnotation::Trait,
@@ -270,7 +270,7 @@ impl Interpreter {
         self.env_entries.define(
             &self.env_id,
             &struct_stmt.name.lexeme,
-            &TypedValue::new(Value::Unit, TypeAnnotation::Unit),
+            TypedValue::new(Value::Unit, TypeAnnotation::Unit),
         );
         let mut fields = HashMap::new();
         for field in struct_stmt.fields.iter() {
@@ -289,8 +289,8 @@ impl Interpreter {
         )));
         self.env_entries.assign(
             &self.env_id,
-            &struct_stmt.name,
-            &TypedValue::new(
+            &struct_stmt.name.lexeme,
+            TypedValue::new(
                 struct_value.clone(),
                 TypeAnnotation::User(struct_stmt.name.lexeme.clone()),
             ),
@@ -768,7 +768,7 @@ impl Visitor for Interpreter {
         self.env_entries.define(
             &self.env_id,
             &function_stmt.name.lexeme,
-            &TypedValue::new(function.clone(), TypeAnnotation::Fn),
+            TypedValue::new(function.clone(), TypeAnnotation::Fn),
         );
         Ok(())
     }
@@ -829,7 +829,7 @@ impl Visitor for Interpreter {
             struct_value.set_instance_name(var_stmt.name.lexeme.clone());
         }
         self.env_entries
-            .define(&self.env_id, &var_stmt.name.lexeme, &value);
+            .define(&self.env_id, &var_stmt.name.lexeme, value);
         self.stack
             .push(TypedValue::new(Value::Unit, TypeAnnotation::Unit));
         Ok(())

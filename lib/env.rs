@@ -121,64 +121,34 @@ impl Environment {
         ))
     }
 
-    pub fn direct_declare(
-        &mut self,
-        env_id: &EnvironmentId,
-        name: String,
-        value: TypedValue,
-    ) -> Result<(), LangError> {
-        debug!(
-            "Env::direct_declare\nAssigning '{}' with value '{:?}' at index '{}'",
-            name, value, env_id.index
-        );
-        self[env_id].values.insert(name.clone(), value.clone());
-        Ok(())
+    pub fn define(&mut self, env_id: &EnvironmentId, name: &str, value: TypedValue) {
+        self[env_id].values.insert(name.to_string(), value.clone());
     }
 
-    pub fn direct_assign(
+    pub fn assign(
         &mut self,
         env_id: &EnvironmentId,
-        name: String,
+        name: &str,
         value: TypedValue,
     ) -> Result<(), LangError> {
         debug!(
-            "Env::direct_assign\nAssigning '{}' with value '{:?}' at index '{}'",
+            "Env::assign\nAssigning '{}' with value '{:?}' at index '{}'",
             name, value, env_id.index
         );
-        if self[env_id].values.contains_key(&name) {
-            self[env_id].values.insert(name.clone(), value.clone());
+        if self[env_id].values.contains_key(name) {
+            if let Some(existing_value) = self[env_id].values.get(name) {
+                TypeChecker::check_type(&existing_value, &value)?;
+            }
+            self[env_id].values.insert(name.to_string(), value.clone());
             return Ok(());
         } else if let Some(enclosing) = self[env_id].enclosing.clone() {
-            self.direct_assign(&enclosing, name, value)?;
+            self.assign(&enclosing, name, value)?;
             return Ok(());
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
         Err(LangError::new_runtime_error(
             RuntimeErrorType::UndefinedVariable {
-                reason: format!("Tried to assign a variable: '{}'", name),
-            },
-        ))
-    }
-
-    pub fn assign_at(
-        &mut self,
-        index: usize,
-        name: &Token,
-        value: &TypedValue,
-    ) -> Result<(), LangError> {
-        debug!(
-            "Env::assign_at\nAssigning '{}' with value '{:?}' at index '{}'",
-            name.lexeme, value, index
-        );
-        if index < self.entries.len() {
-            self.entries[index]
-                .values
-                .insert(name.lexeme.clone(), value.clone());
-            return Ok(());
-        }
-        Err(LangError::new_runtime_error(
-            RuntimeErrorType::UndefinedVariable {
-                reason: format!("Tried to assign a variable: '{}'", name),
+                reason: format!("tried to assign an undefined variable: '{}'", name),
             },
         ))
     }
@@ -228,76 +198,14 @@ impl Environment {
         ))
     }
 
-    pub fn assign(
-        &mut self,
-        env_id: &EnvironmentId,
-        name: &Token,
-        value: &TypedValue,
-    ) -> Result<(), LangError> {
-        debug!(
-            "Env::assign\nAssigning '{}' with value '{:?}' at index '{}'",
-            name.lexeme, value, env_id.index
-        );
-        if self[env_id].values.contains_key(&name.lexeme) {
-            if let Some(existing_value) = self[env_id].values.get(&name.lexeme) {
-                if existing_value.value_type != value.value_type {
-                    return Err(Lang::error(
-                        name,
-                        &format!(
-                            "expected type {}, found {}",
-                            existing_value.value_type, value.value_type
-                        ),
-                    ));
-                }
-                TypeChecker::check_type(&existing_value, &value)?;
-            }
-            self[env_id]
-                .values
-                .insert(name.lexeme.clone(), value.clone());
-            return Ok(());
-        } else if let Some(enclosing) = self[env_id].enclosing.clone() {
-            self.assign(&enclosing, name, value)?;
-            return Ok(());
-        }
-        // We error when an assignment is attempted on a variable that hasn't been instantiated
-        Err(Lang::error(
-            name,
-            &format!(
-                "Tried to assign an undefined variable: '{}', self at time of undefined var: {:?}",
-                name.lexeme.clone(),
-                self
-            ),
-        ))
-    }
-
     pub fn entry_from(&mut self, enclosing: &EnvironmentId) -> EnvironmentId {
         let new_entry = self.new_entry();
         self[&new_entry].enclosing = Some(enclosing.clone());
         new_entry
     }
 
-    // Uses closure to make a temporary env entry
-    pub fn in_context<F>(&mut self, enclosing: &EnvironmentId, context: F)
-    where
-        F: FnOnce(),
-    {
-        let new_entry = self.new_entry();
-        self[&new_entry].enclosing = Some(enclosing.clone());
-        context();
-        self.remove_entry(&new_entry);
-    }
-
     pub fn remove_entry(&mut self, env_id: &EnvironmentId) {
         self.entries.remove(env_id.index);
-    }
-
-    /// Inserts the value `value` into the environment's hash table using `name`
-    pub fn define(&mut self, env_id: &EnvironmentId, name: &str, value: &TypedValue) {
-        self[env_id].values.insert(name.to_string(), value.clone());
-        debug!(
-            "Env::define\nDefining '{}' with value '{:?}' at index '{}' env '{:?}'",
-            name, value, env_id.index, self
-        );
     }
 
     pub fn is_defined(&self, env_id: &EnvironmentId, name: String) -> bool {

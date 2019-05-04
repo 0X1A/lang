@@ -3,6 +3,8 @@ use lang::*;
 use std::fmt::{self, Debug, Display};
 use value::{Float64, Value};
 
+// TODO: Revisit hashing Token
+#[allow(clippy::derive_hash_xor_eq)]
 #[derive(Clone, Debug, Hash, PartialOrd)]
 /// Types we currently support
 /// TODO: Check user types to make sure they're actually defined

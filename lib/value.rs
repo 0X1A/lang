@@ -865,9 +865,7 @@ impl CallableTrait for Callable {
             }),
             TypeAnnotation::SelfIndex,
         );
-        interpreter
-            .env_entries
-            .direct_declare(&self.closure, "self".to_string(), value)?;
+        interpreter.env_entries.define(&self.closure, "self", value);
         Ok(())
     }
 
@@ -917,7 +915,7 @@ impl CallableTrait for Callable {
             }
             interpreter
                 .env_entries
-                .define(&env_id, &it.0.identifier.lexeme, &it.1);
+                .define(&env_id, &it.0.identifier.lexeme, it.1.clone());
         }
         let return_value = interpreter.execute_block(&self.function.body, env_id)?;
         if let Some(function_return_type) = self.get_return_type() {

@@ -10,7 +10,7 @@ impl TypeChecker {
             Err(LangError::new_runtime_error(
                 RuntimeErrorType::InvalidTypeAssignmentError {
                     reason: format!(
-                        "tried to assign value of type {} to value of type {}",
+                        "expected type {}, found {}",
                         lhs.value_type.to_string(),
                         rhs.value_type.to_string()
                     ),
