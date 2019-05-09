@@ -267,7 +267,7 @@ mod tests {
     fn i64_variable_re_assignment_failure() {
         let mut lang = Lang::new(Some(
             "let i: i64 = 0;
-        i = 100;",
+        i = 100.00;",
         ));
         let result = lang.run();
         if let Err(ref error) = result {

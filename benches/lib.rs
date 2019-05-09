@@ -215,7 +215,7 @@ fn i64_variable_re_assignment_failure(c: &mut Criterion) {
         b.iter(|| {
             Lang::new(black_box(Some(
                 "let i: i64 = 0;
-        i = 100;",
+        i = 100.00;",
             )))
         })
     });

@@ -24,7 +24,7 @@ class LangTestSources(object):
             i = 100;""",
         "i64 Variable re-assignment failure":
         """let i: i64 = 0;
-        i = 100;""",
+        i = 100.00;""",
 
         "f64 Variable declaration": """let i: f64;""",
         "f64 Variable declaration and assignment": """let i: f64 = 0.00;""",
