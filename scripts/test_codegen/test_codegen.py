@@ -6,6 +6,7 @@ import os
 import json
 import argparse
 from pathlib import Path
+from sortedcontainers import SortedDict
 from slugify import slugify
 
 
@@ -15,7 +16,7 @@ class LangTestSources(object):
     """
 
     FILE_GENERATION_COMMENT = "// This file is auto-generated. Please do not edit it manually."
-    VARIABLE_DECLARATIONS = {
+    VARIABLE_DECLARATIONS = SortedDict({
         # Primitives
         "i64 Variable declaration": """let i: i64;""",
         "i64 Variable declaration and assignment": """let i: i64 = 0;""",
@@ -102,7 +103,7 @@ class LangTestSources(object):
         let instance: TestStruct = TestStruct();
         instance.hello();
         """,
-    }
+    })
 
     def generate_files(self, path):
         output_dir = Path(path)
