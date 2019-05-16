@@ -24,6 +24,22 @@ pub enum TypeAnnotation {
 }
 
 impl TypeAnnotation {
+    pub fn is_array(&self) -> bool {
+        if let TypeAnnotation::Array(_) = self {
+            return true;
+        }
+        return false;
+    }
+
+    pub fn get_array_element_type(array: &TypeAnnotation) -> Result<TypeAnnotation, LangError> {
+        if let TypeAnnotation::Array(element_type) = array {
+            return Ok(*element_type.clone());
+        }
+        Err(LangError::new_iie_error(
+            "failed to get array element type".to_string(),
+        ))
+    }
+
     pub fn from_token_type(token_type: &TokenType) -> Result<TypeAnnotation, LangError> {
         match token_type {
             TokenType::Type(type_annotation) => Ok(type_annotation.clone()),
