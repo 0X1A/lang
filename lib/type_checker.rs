@@ -1,18 +1,18 @@
 use crate::error::*;
-use crate::value::TypedValue;
+use crate::token::*;
 
 pub struct TypeChecker;
 
 impl TypeChecker {
     /// Checks if `lhs` and `rhs` are of the same type by comparing their type annotations.
-    pub fn check_type(lhs: &TypedValue, rhs: &TypedValue) -> Result<(), LangError> {
-        if lhs.value_type != rhs.value_type {
+    pub fn check_type(lhs: &GetTypeAnnotation, rhs: &GetTypeAnnotation) -> Result<(), LangError> {
+        if lhs.get() != rhs.get() {
             Err(LangError::new_runtime_error(
                 RuntimeErrorType::InvalidTypeAssignmentError {
                     reason: format!(
                         "expected type {}, found {}",
-                        lhs.value_type.to_string(),
-                        rhs.value_type.to_string()
+                        lhs.get().to_string(),
+                        rhs.get().to_string()
                     ),
                 },
             ))

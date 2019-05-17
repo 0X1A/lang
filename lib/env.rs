@@ -122,6 +122,10 @@ impl Environment {
     }
 
     pub fn define(&mut self, env_id: &EnvironmentId, name: &str, value: TypedValue) {
+        debug!(
+            "Env::define\nDefining '{}' with value '{:?}' at index '{}'",
+            name, value, env_id.index
+        );
         self[env_id].values.insert(name.to_string(), value.clone());
     }
 
@@ -137,7 +141,7 @@ impl Environment {
         );
         if self[env_id].values.contains_key(name) {
             if let Some(existing_value) = self[env_id].values.get(name) {
-                TypeChecker::check_type(&existing_value, &value)?;
+                TypeChecker::check_type(existing_value, &value)?;
             }
             self[env_id].values.insert(name.to_string(), value.clone());
             return Ok(());

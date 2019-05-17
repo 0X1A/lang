@@ -5,6 +5,7 @@ use crate::ast::stmt::*;
 use crate::env::*;
 use crate::error::*;
 use crate::token::*;
+use crate::type_checker::*;
 use crate::value::*;
 use crate::value_traits::callable::*;
 use crate::visitor::*;
@@ -446,22 +447,31 @@ impl Interpreter {
         Ok(())
     }
 
-    // TODO: Array elements must match the type annotation for the array!
     fn visit_array_expr(&mut self, array_expr: &ArrayExpr) -> Result<(), LangError> {
         let mut elements = Vec::new();
         let mut type_annotation = TypeAnnotation::Unit;
+        let mut array_element_type = TypeAnnotation::Unit;
+        // Invariant used in order evaluate the initial array element only once
+        let mut first_element = true;
         for item in array_expr.elements.iter() {
             self.evaluate(&item)?;
             let element = self.pop()?;
+            if first_element {
+                array_element_type = element.value_type.clone();
+                first_element = false;
+            } else {
+                TypeChecker::check_type(&array_element_type, &element.value_type)?;
+            }
             elements.push(element);
         }
-        if let Some(type_annotation_set) = elements.last() {
-            type_annotation = type_annotation_set.clone().value_type;
+        if let Some(ref type_annotation_set) = array_expr.type_annotation {
+            type_annotation = type_annotation_set.token_type.to_type_annotation()?;
         }
-        self.stack.push(TypedValue::new(
-            Value::Array(elements),
-            TypeAnnotation::Array(Box::new(type_annotation)),
-        ));
+        if type_annotation == TypeAnnotation::Unit {
+            type_annotation = TypeAnnotation::Array(Box::new(array_element_type.clone()));
+        }
+        self.stack
+            .push(TypedValue::new(Value::Array(elements), type_annotation));
         Ok(())
     }
 

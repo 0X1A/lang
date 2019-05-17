@@ -55,6 +55,7 @@ pub struct IndexExpr {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ArrayExpr {
+    pub type_annotation: Option<Token>,
     pub elements: Vec<Expr>,
 }
 

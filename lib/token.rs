@@ -64,6 +64,16 @@ impl TypeAnnotation {
     }
 }
 
+impl GetTypeAnnotation for TypeAnnotation {
+    fn get(&self) -> &TypeAnnotation {
+        self
+    }
+}
+
+pub trait GetTypeAnnotation {
+    fn get(&self) -> &TypeAnnotation;
+}
+
 impl Display for TypeAnnotation {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {

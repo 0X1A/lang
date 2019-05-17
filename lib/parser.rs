@@ -300,6 +300,12 @@ impl Parser {
             self.pop_expect(&TokenType::RightParen, "Expect ')' after and expression")?;
             return Ok(Expr::Grouping(Box::new(GroupingExpr { expression: expr })));
         } else if self.matches(&[TokenType::LeftBracket]) {
+            let mut array_type_annotation: Option<Token> = None;
+            if let Some(array_type_token) = self.token_at(self.current - 3) {
+                if let TokenType::Type(_) = array_type_token.token_type {
+                    array_type_annotation = Some(array_type_token.clone());
+                }
+            }
             let mut elements = Vec::new();
             if !self.check(&TokenType::RightBracket) {
                 loop {
@@ -314,7 +320,10 @@ impl Parser {
                 "Expect ']' after array expression",
             )?;
             elements.shrink_to_fit();
-            return Ok(Expr::Array(Box::new(ArrayExpr { elements })));
+            return Ok(Expr::Array(Box::new(ArrayExpr {
+                type_annotation: array_type_annotation,
+                elements,
+            })));
         }
         Err(Lang::error(&self.peek(), "Expected expression"))
     }
