@@ -634,7 +634,7 @@ impl TypedValue {
 }
 
 impl GetTypeAnnotation for TypedValue {
-    fn get(&self) -> &TypeAnnotation {
+    fn get_type_annotation(&self) -> &TypeAnnotation {
         &self.value_type
     }
 }
@@ -737,7 +737,6 @@ impl StructTrait for StructValue {
     }
 
     fn define_method(&mut self, name: &Token, value: TypedValue) -> Result<(), LangError> {
-        debug!("Setting method with name {:?} to value {:?}", name, value);
         self.methods.insert(name.lexeme.clone(), value);
         Ok(())
     }
@@ -747,7 +746,6 @@ impl StructTrait for StructValue {
         name: &str,
         interpreter: &mut Interpreter,
     ) -> Result<TypedValue, LangError> {
-        debug!("get_method\nLooking for {} in {:?}", name, self.methods);
         self.methods.get(name).map_or(
             Err(LangError::new_runtime_error(
                 RuntimeErrorType::UndefinedVariable {

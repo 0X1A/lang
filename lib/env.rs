@@ -123,8 +123,12 @@ impl Environment {
 
     pub fn define(&mut self, env_id: &EnvironmentId, name: &str, value: TypedValue) {
         debug!(
-            "Env::define\nDefining '{}' with value '{:?}' at index '{}'",
-            name, value, env_id.index
+            "{}:{} Defining '{}' with value '{:?}' at index '{}'",
+            file!(),
+            line!(),
+            name,
+            value,
+            env_id.index
         );
         self[env_id].values.insert(name.to_string(), value.clone());
     }
@@ -136,8 +140,12 @@ impl Environment {
         value: TypedValue,
     ) -> Result<(), LangError> {
         debug!(
-            "Env::assign\nAssigning '{}' with value '{:?}' at index '{}'",
-            name, value, env_id.index
+            "{}:{} Assigning '{}' with value '{:?}' at index '{}'",
+            file!(),
+            line!(),
+            name,
+            value,
+            env_id.index
         );
         if self[env_id].values.contains_key(name) {
             if let Some(existing_value) = self[env_id].values.get(name) {
@@ -224,8 +232,12 @@ impl Environment {
 
     pub fn get_ref(&self, env_id: &EnvironmentId, name: &Token) -> Result<&TypedValue, LangError> {
         debug!(
-            "Env::get\nLooking for token with lexeme '{}' at index '{}' env:\n{:?}",
-            name.lexeme, env_id.index, self
+            "{}:{} Looking for token with lexeme '{}' at index '{}' env: {:?}",
+            file!(),
+            line!(),
+            name.lexeme,
+            env_id.index,
+            self
         );
         if let Some(value) = self[env_id].values.get(&name.lexeme) {
             return Ok(value);
@@ -254,7 +266,7 @@ impl Environment {
         if let Some(value) = self[env_id].values.get_mut(name) {
             closure(value)?;
         } else {
-            debug!("Didn't find the thing :O");
+            debug!("{}:{} Didn't find the thing :O", file!(), line!());
         }
         Ok(())
     }

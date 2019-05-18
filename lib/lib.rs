@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate failure;
-extern crate fern;
 #[macro_use]
 extern crate log;
 

@@ -7,8 +7,8 @@ edition = "2018"
 [dependencies]
 failure = "*"
 clap = { version = "2.32.0", features = ["yaml"] }
-fern = "*"
 log = "*"
+env_logger = "*"
 
 [lib]
 name = "lang"

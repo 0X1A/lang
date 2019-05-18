@@ -52,12 +52,12 @@ impl<'a> Resolver<'a> {
 
     fn begin_scope(&mut self) {
         self.scopes.push(HashMap::new());
-        debug!("Resolver::begin_scope:\n{:?}", self.scopes);
+        debug!("{}:{} Begin_scope: {:?}", file!(), line!(), self.scopes);
     }
 
     fn end_scope(&mut self) {
         self.scopes.pop();
-        debug!("Resolver::end_scope:\n{:?}", self.scopes);
+        debug!("{}:{} End_scope: {:?}", file!(), line!(), self.scopes);
     }
 
     // TODO: Figure out how to handle trait implementations' declarations
@@ -87,7 +87,7 @@ impl<'a> Resolver<'a> {
 
     /// Defines `name` in current scope
     fn define(&mut self, name: &Token) {
-        debug!("Resolver::define:\nDefining {:?} as in scope", name);
+        debug!("{}:{} Defining {:?} as in scope", file!(), line!(), name);
         assert!(!self.scopes.is_empty());
         if let Some(ref mut last) = self.scopes.last_mut() {
             last.insert(name.lexeme.clone(), true);
@@ -115,8 +115,11 @@ impl<'a> Resolver<'a> {
 
     fn resolve_local(&mut self, name: &Token) {
         debug!(
-            "Resolver::resolve_local:\nAttempting to resolve expr '{:?}' within scopes '{:?}'",
-            name, self.scopes
+            "{}:{} Attempting to resolve expr '{:?}' within scopes '{:?}'",
+            file!(),
+            line!(),
+            name,
+            self.scopes
         );
         for scope_index in (0..self.scopes.len()).rev() {
             if self.scopes[scope_index].contains_key(&name.lexeme) {

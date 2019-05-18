@@ -31,16 +31,7 @@ impl<'a> Lang<'a> {
 
 impl<'a> Lang<'a> {
     pub fn setup_logging(_: u64) -> Result<(), LangError> {
-        fern::Dispatch::new()
-            .format(|out, message, record| {
-                if record.level() > log::LevelFilter::Info {
-                    out.finish(format_args!("{:-^80}\n{}", record.level(), message))
-                } else {
-                    out.finish(format_args!("{}: {}", record.level(), message))
-                }
-            })
-            .chain(io::stdout())
-            .apply()?;
+        env_logger::init();
         Ok(())
     }
 

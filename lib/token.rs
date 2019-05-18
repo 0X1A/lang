@@ -65,13 +65,13 @@ impl TypeAnnotation {
 }
 
 impl GetTypeAnnotation for TypeAnnotation {
-    fn get(&self) -> &TypeAnnotation {
+    fn get_type_annotation(&self) -> &TypeAnnotation {
         self
     }
 }
 
 pub trait GetTypeAnnotation {
-    fn get(&self) -> &TypeAnnotation;
+    fn get_type_annotation(&self) -> &TypeAnnotation;
 }
 
 impl Display for TypeAnnotation {

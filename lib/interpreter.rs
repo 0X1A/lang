@@ -54,8 +54,13 @@ impl Interpreter {
     pub fn resolve(&mut self, token: &Token, idx: usize) {
         self.locals.insert(token.clone(), idx);
         debug!(
-            "Interpreter::resolve\nInserting expr '{:?}' at index '{}' into locals '{:?}' and env '{:?}'",
-            token, idx, self.locals, self.env_entries
+            "{}:{} Inserting expr '{:?}' at index '{}' into locals '{:?}' and env '{:?}'",
+            file!(),
+            line!(),
+            token,
+            idx,
+            self.locals,
+            self.env_entries
         );
     }
 
@@ -521,8 +526,12 @@ impl Interpreter {
 
     fn look_up_variable(&mut self, token: &Token) -> Result<(), LangError> {
         debug!(
-            "Interpreter::look_up_variable:\nLooking for token '{:?}' within env '{:?}' and locals\n'{}'",
-            token, self.env_entries, self.pretty_print_locals()
+            "{}:{} Looking for token '{:?}' within env '{:?}' and locals\n'{}'",
+            file!(),
+            line!(),
+            token,
+            self.env_entries,
+            self.pretty_print_locals()
         );
         if let Some(distance) = self.locals.get(&token) {
             if let Ok(value) = self
