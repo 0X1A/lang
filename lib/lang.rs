@@ -5,6 +5,7 @@ use crate::parser::*;
 use crate::resolver::*;
 use crate::scanner::*;
 use crate::token::*;
+
 use std::{
     fs::File,
     io::{self, prelude::*},
@@ -31,7 +32,7 @@ impl<'a> Lang<'a> {
 
 impl<'a> Lang<'a> {
     pub fn setup_logging(_: u64) -> Result<(), LangError> {
-        env_logger::init();
+        env_logger::builder().default_format_timestamp(false).init();
         Ok(())
     }
 

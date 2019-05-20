@@ -14,6 +14,8 @@ use std::{
     ops::*,
 };
 
+use crate::type_checker::TypeChecker;
+
 #[derive(Clone, Copy, PartialOrd, Debug)]
 pub struct Float64 {
     pub inner: f64,
@@ -546,74 +548,11 @@ impl TypedValue {
     /// Checks the type annotation of `other`, returning `Err` if it does not match that of `self`.
     /// Clones the value
     pub fn assign_checked(&mut self, other: &TypedValue) -> Result<(), LangError> {
-        self.check_type(other)?;
+        if !TypeChecker::can_convert_implicitly(self, other) {
+            TypeChecker::check_type(self, other)?;
+        }
         *self = other.clone();
         Ok(())
-    }
-
-    pub fn check_type(&self, value: &TypedValue) -> Result<(), LangError> {
-        let matches = match self.value_type.clone() {
-            TypeAnnotation::User(lhs_struct) => match value.value_type {
-                TypeAnnotation::User(ref rhs_struct) => lhs_struct == *rhs_struct,
-                TypeAnnotation::Unit => true,
-                _ => false,
-            },
-            TypeAnnotation::String => match value.value_type {
-                TypeAnnotation::String => true,
-                TypeAnnotation::Unit => true,
-                _ => false,
-            },
-            TypeAnnotation::I32 => match value.value_type {
-                TypeAnnotation::I32 => true,
-                TypeAnnotation::Unit => true,
-                _ => false,
-            },
-            TypeAnnotation::I64 => match value.value_type {
-                TypeAnnotation::I64 => true,
-                TypeAnnotation::Unit => true,
-                _ => false,
-            },
-            TypeAnnotation::F32 => match value.value_type {
-                TypeAnnotation::F32 => true,
-                TypeAnnotation::Unit => true,
-                _ => false,
-            },
-            TypeAnnotation::F64 => match value.value_type {
-                TypeAnnotation::F64 => true,
-                TypeAnnotation::Unit => true,
-                _ => false,
-            },
-            TypeAnnotation::Bool => match value.value_type {
-                TypeAnnotation::Bool => true,
-                TypeAnnotation::Unit => true,
-                _ => false,
-            },
-            TypeAnnotation::Array(lhs_type) => match value.value_type.clone() {
-                TypeAnnotation::Array(rhs_type) => (*lhs_type).eq(&*rhs_type),
-                TypeAnnotation::Unit => true,
-                _ => false,
-            },
-            TypeAnnotation::Fn => match value.value_type {
-                TypeAnnotation::Fn => true,
-                TypeAnnotation::Unit => true,
-                _ => false,
-            },
-            // TODO(?) this ends up being such that we don't care if we reassign unit values.
-            _ => true,
-        };
-        if !matches {
-            Err(LangError::new_runtime_error(
-                RuntimeErrorType::InvalidTypeAssignmentError {
-                    reason: format!(
-                        "tried to assign value of type {} to value of type {}",
-                        self.value_type.to_string(),
-                        value.value_type.to_string()
-                    ),
-                },
-            ))
-        } else {
-            Ok(())
-        }
     }
 
     pub fn as_array_index(&self) -> Result<usize, LangError> {

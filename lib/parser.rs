@@ -212,6 +212,7 @@ impl Parser {
                 TypeAnnotation::Unit,
             )))));
         } else if self.matches(&[TokenType::Integer]) {
+            let value = self.previous().value;
             // Go back a 3 positions as we're currently at the SemiColon
             if self.check(&TokenType::SemiColon) && self.get_previous_index() > 2 {
                 if let Some(type_annotation_token) = self.token_at(self.get_previous_index() - 2) {
@@ -219,12 +220,12 @@ impl Parser {
                         match type_annotation {
                             TypeAnnotation::I32 => {
                                 return Ok(Expr::Literal(Box::new(LiteralExpr::new(
-                                    TypedValue::new(self.previous().value, TypeAnnotation::I32),
+                                    TypedValue::new(value, TypeAnnotation::I32),
                                 ))));
                             }
                             TypeAnnotation::I64 => {
                                 return Ok(Expr::Literal(Box::new(LiteralExpr::new(
-                                    TypedValue::new(self.previous().value, TypeAnnotation::I64),
+                                    TypedValue::new(value, TypeAnnotation::I64),
                                 ))));
                             }
                             _ => {}
@@ -232,10 +233,21 @@ impl Parser {
                     }
                 }
             }
-            return Ok(Expr::Literal(Box::new(LiteralExpr::new(TypedValue::new(
-                self.previous().value,
-                TypeAnnotation::I64,
-            )))));
+            match value {
+                Value::Int32(_) => {
+                    return Ok(Expr::Literal(Box::new(LiteralExpr::new(TypedValue::new(
+                        value,
+                        TypeAnnotation::I32,
+                    )))));
+                }
+                Value::Int64(_) => {
+                    return Ok(Expr::Literal(Box::new(LiteralExpr::new(TypedValue::new(
+                        value,
+                        TypeAnnotation::I64,
+                    )))));
+                }
+                _ => {}
+            }
         } else if self.matches(&[TokenType::Float]) {
             if self.check(&TokenType::SemiColon) && self.get_previous_index() > 2 {
                 if let Some(type_annotation_token) = self.token_at(self.get_previous_index() - 2) {

@@ -88,7 +88,7 @@ impl Display for TypeAnnotation {
             TypeAnnotation::Fn => write!(f, "fn"),
             TypeAnnotation::String => write!(f, "String"),
             TypeAnnotation::Array(array) => write!(f, "Array<{}>", array.to_string()),
-            TypeAnnotation::User(user_type) => write!(f, "user type {}", user_type.clone()),
+            TypeAnnotation::User(user_type) => write!(f, "{}", user_type.clone()),
         }
     }
 }
@@ -290,7 +290,14 @@ impl Token {
     pub fn from(token_type: TokenType, lexeme: &str, line: u64) -> Result<Token, LangError> {
         let value = match token_type {
             TokenType::String => Value::String(lexeme.to_string()),
-            TokenType::Integer => Value::Int64(lexeme.to_string().parse::<i64>()?),
+            TokenType::Integer => {
+                let integer_value = lexeme.to_string().parse::<i64>()?;
+                if integer_value as i32 <= std::i32::MAX && integer_value as i32 >= std::i32::MIN {
+                    Value::Int32(integer_value as i32)
+                } else {
+                    Value::Int64(integer_value)
+                }
+            }
             TokenType::Float => Value::Float64(Float64 {
                 inner: lexeme.to_string().parse::<f64>()?,
             }),

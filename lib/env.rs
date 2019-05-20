@@ -149,7 +149,9 @@ impl Environment {
         );
         if self[env_id].values.contains_key(name) {
             if let Some(existing_value) = self[env_id].values.get(name) {
-                TypeChecker::check_type(existing_value, &value)?;
+                if !TypeChecker::can_convert_implicitly(existing_value, &value) {
+                    TypeChecker::check_type(existing_value, &value)?;
+                }
             }
             self[env_id].values.insert(name.to_string(), value.clone());
             return Ok(());

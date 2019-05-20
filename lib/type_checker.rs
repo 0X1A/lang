@@ -20,4 +20,27 @@ impl TypeChecker {
             Ok(())
         }
     }
+
+    pub fn can_convert_implicitly(lhs: &GetTypeAnnotation, rhs: &GetTypeAnnotation) -> bool {
+        let lhs_type_annotation = lhs.get_type_annotation();
+        let rhs_type_annotation = rhs.get_type_annotation();
+        match lhs_type_annotation {
+            TypeAnnotation::I64 => match rhs_type_annotation {
+                TypeAnnotation::I32 => true,
+                _ => false,
+            },
+            TypeAnnotation::F64 => match rhs_type_annotation {
+                TypeAnnotation::F32 => true,
+                _ => false,
+            },
+            TypeAnnotation::Array(lhs_element_type) => match rhs_type_annotation {
+                TypeAnnotation::Array(rhs_element_type) => {
+                    let a = lhs_element_type;
+                    return TypeChecker::can_convert_implicitly(&**a, &**rhs_element_type);
+                }
+                _ => false,
+            },
+            _ => false,
+        }
+    }
 }
