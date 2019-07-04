@@ -9,6 +9,7 @@ failure = "*"
 clap = { version = "2.32.0", features = ["yaml"] }
 log = "*"
 env_logger = "*"
+nom = "5.0.0"
 
 [lib]
 name = "lang"

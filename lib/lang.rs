@@ -4,6 +4,8 @@ use crate::interpreter::Interpreter;
 use crate::parser::*;
 use crate::resolver::*;
 use crate::scanner::*;
+use crate::syntax::scanner::*;
+use crate::syntax::token::*;
 use crate::token::*;
 
 use std::{
@@ -14,6 +16,7 @@ use std::{
 pub struct Lang<'a> {
     interpreter: Interpreter,
     scanner: Option<Scanner<'a>>,
+    scanner_two: Option<ScannerTwo<'a>>,
 }
 
 impl<'a> Lang<'a> {
@@ -23,9 +26,15 @@ impl<'a> Lang<'a> {
         } else {
             None
         };
+        let scanner_two = if let Some(give_script) = script {
+            Some(ScannerTwo::new(give_script))
+        } else {
+            None
+        };
         Lang {
             interpreter: Interpreter::new(),
             scanner,
+            scanner_two,
         }
     }
 }
@@ -37,6 +46,10 @@ impl<'a> Lang<'a> {
     }
 
     pub fn build_statements(&mut self) -> Result<Vec<Stmt>, LangError> {
+        if let Some(ref mut scanner) = self.scanner_two {
+            let tokens: Vec<TokenTwo> = scanner.scan_tokens()?;
+            debug!("scanner_two {:?}", tokens);
+        }
         if let Some(ref mut scanner) = self.scanner {
             let tokens: Vec<Token> = scanner.scan_tokens()?;
             debug!("{:?}", tokens);
@@ -79,10 +92,11 @@ impl<'a> Lang<'a> {
     }
 
     pub fn error(token: &Token, message: &str) -> LangError {
-        if token.token_type == TokenType::Eof {
+        unimplemented!()
+        /*         if token.token_type == TokenType::Eof {
             return Lang::report(token.line, "at end ", message);
         }
-        Lang::report(token.line, &format!("at '{}'", token.lexeme), message)
+        Lang::report(token.line, &format!("at '{}'", token.lexeme), message) */
     }
 
     pub fn report(line: u64, ware: &str, message: &str) -> LangError {

@@ -12,6 +12,7 @@ pub mod lang;
 pub mod parser;
 pub mod resolver;
 pub mod scanner;
+pub mod syntax;
 pub mod token;
 pub mod type_checker;
 pub mod value;
