@@ -4,6 +4,7 @@ use std::{
     io, num, str, time,
 };
 
+use failure::{Backtrace, Context, Fail};
 const ISSUES_URL: &str = "https://github.com/0X1A/lang/issues";
 
 #[derive(Hash, PartialEq, Eq)]
@@ -28,7 +29,7 @@ pub fn error_message(msg_type: &ErrMessage) -> String {
     }
 }
 
-#[derive(Fail)]
+#[derive(Fail, Clone)]
 pub enum RuntimeErrorType {
     #[fail(display = "Undefined variable: {}", reason)]
     UndefinedVariable { reason: String },
@@ -52,7 +53,7 @@ pub enum RuntimeErrorType {
     GenericError { reason: String },
 }
 
-#[derive(Fail, Debug)]
+#[derive(Fail, Debug, Clone)]
 pub enum ControlFlow {
     #[fail(display = "Break")]
     Break,
@@ -75,8 +76,8 @@ impl Debug for RuntimeErrorType {
     }
 }
 
-#[derive(Fail)]
-pub enum LangError {
+#[derive(Fail, Clone)]
+pub enum LangErrorType {
     #[fail(display = "Parser error: {}", reason)]
     ParserError { reason: String },
     #[fail(display = "IIE: {}", reason)]
@@ -87,98 +88,122 @@ pub enum LangError {
     ControlFlow { subtype: ControlFlow },
 }
 
-impl Debug for LangError {
+impl Debug for LangErrorType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            LangError::RuntimeError { subtype } => write!(f, "runtime error {:?}", subtype),
-            LangError::InternalError { reason } => write!(
+            LangErrorType::RuntimeError { subtype } => write!(f, "runtime error {:?}", subtype),
+            LangErrorType::InternalError { reason } => write!(
                 f,
                 "IIE {:?}\nPlease report this issue at: {}",
                 reason, ISSUES_URL
             ),
-            LangError::ParserError { reason } => write!(f, "parser error {:?}", reason),
-            LangError::ControlFlow { subtype } => {
+            LangErrorType::ParserError { reason } => write!(f, "parser error {:?}", reason),
+            LangErrorType::ControlFlow { subtype } => {
                 write!(f, "{} must be used within a loop", subtype)
             }
         }
     }
 }
 
-pub enum LangErrorType {
-    ParserError,
-    RuntimeError,
-}
-
-impl LangError {
+impl LangErrorType {
     pub fn new_parser_error(reason: String) -> LangError {
-        LangError::ParserError { reason }
+        LangError::from(LangErrorType::ParserError { reason })
     }
 
     pub fn new_iie_error(reason: String) -> LangError {
-        LangError::InternalError { reason }
+        LangError::from(LangErrorType::InternalError { reason })
     }
 
     pub fn new_runtime_error(subtype: RuntimeErrorType) -> LangError {
-        LangError::RuntimeError { subtype }
+        LangError::from(LangErrorType::RuntimeError { subtype })
     }
 }
 
 impl From<io::Error> for LangError {
     fn from(err: io::Error) -> LangError {
-        LangError::RuntimeError {
+        LangError::from(LangErrorType::RuntimeError {
             subtype: {
                 RuntimeErrorType::IoError {
                     reason: err.description().to_string(),
                 }
             },
-        }
+        })
     }
 }
 
 impl From<log::SetLoggerError> for LangError {
     fn from(err: log::SetLoggerError) -> LangError {
-        LangError::RuntimeError {
+        LangError::from(LangErrorType::RuntimeError {
             subtype: {
                 RuntimeErrorType::LogError {
                     reason: err.description().to_string(),
                 }
             },
-        }
+        })
     }
 }
 
 impl From<num::ParseFloatError> for LangError {
     fn from(err: num::ParseFloatError) -> LangError {
-        LangError::ParserError {
+        LangError::from(LangErrorType::ParserError {
             reason: err.description().to_string(),
-        }
+        })
     }
 }
 
 impl From<num::ParseIntError> for LangError {
     fn from(err: num::ParseIntError) -> LangError {
-        LangError::ParserError {
+        LangError::from(LangErrorType::ParserError {
             reason: err.description().to_string(),
-        }
+        })
     }
 }
 
 impl From<str::ParseBoolError> for LangError {
     fn from(err: str::ParseBoolError) -> LangError {
-        LangError::ParserError {
+        LangError::from(LangErrorType::ParserError {
             reason: err.description().to_string(),
-        }
+        })
     }
 }
 
-impl From<time::SystemTimeError> for LangError {
-    fn from(err: time::SystemTimeError) -> LangError {
-        LangError::RuntimeError {
+impl From<time::SystemTimeError> for LangErrorType {
+    fn from(err: time::SystemTimeError) -> LangErrorType {
+        LangErrorType::RuntimeError {
             subtype: {
                 RuntimeErrorType::GenericError {
                     reason: err.description().to_string(),
                 }
             },
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct LangError {
+    pub context: Context<LangErrorType>,
+}
+
+impl fmt::Display for LangError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.context.get_context(), f)
+    }
+}
+
+impl LangError {
+    pub fn from(e: LangErrorType) -> LangError {
+        LangError {
+            context: Context::new(e),
+        }
+    }
+}
+
+impl Fail for LangError {
+    fn cause(&self) -> Option<&Fail> {
+        self.context.cause()
+    }
+
+    fn backtrace(&self) -> Option<&Backtrace> {
+        self.context.backtrace()
     }
 }

@@ -135,7 +135,7 @@ impl TryInto<ImplStmt> for Stmt {
     fn try_into(self) -> Result<ImplStmt, Self::Error> {
         match self {
             Stmt::Impl(impl_stmt) => Ok(*impl_stmt.clone()),
-            _ => Err(LangError::new_iie_error("".to_string())),
+            _ => Err(LangErrorType::new_iie_error("".to_string())),
         }
     }
 }
@@ -145,7 +145,7 @@ impl<'a> TryInto<&'a ImplStmt> for &'a Stmt {
     fn try_into(self) -> Result<&'a ImplStmt, Self::Error> {
         match self {
             Stmt::Impl(impl_stmt) => Ok(impl_stmt),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectStmt("impl".to_string()),
             ))),
         }
@@ -157,7 +157,7 @@ impl<'a> TryInto<&'a ImplTraitStmt> for &'a Stmt {
     fn try_into(self) -> Result<&'a ImplTraitStmt, Self::Error> {
         match self {
             Stmt::ImplTrait(impl_trait_stmt) => Ok(impl_trait_stmt),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectStmt("impl trait".to_string()),
             ))),
         }
@@ -169,7 +169,7 @@ impl<'a> TryInto<&'a TraitStmt> for &'a Stmt {
     fn try_into(self) -> Result<&'a TraitStmt, Self::Error> {
         match self {
             Stmt::Trait(trait_stmt) => Ok(trait_stmt),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectStmt("trait".to_string()),
             ))),
         }
@@ -181,7 +181,7 @@ impl<'a> TryInto<&'a StructStmt> for &'a Stmt {
     fn try_into(self) -> Result<&'a StructStmt, Self::Error> {
         match self {
             Stmt::Struct(struct_stmt) => Ok(struct_stmt),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectStmt("struct".to_string()),
             ))),
         }

@@ -66,13 +66,13 @@ impl<'a> Resolver<'a> {
         assert!(!self.scopes.is_empty());
         // Our scopes are a stack, check the last element for the token being declared
         self.scopes.last_mut().map_or(
-            Err(LangError::new_iie_error(
+            Err(LangErrorType::new_iie_error(
                 "Tried to declare with no scopes 🤔".to_string(),
             )),
             |last| {
                 if last.contains_key(&name.lexeme) {
                     // See TODO above!
-                    /*                     Err(LangError::new_iie_error(format!(
+                    /*                     Err(LangErrorType::new_iie_error(format!(
                         "Variable with the name '{}' already declared in this scope",
                         name.lexeme
                     ))) */
@@ -193,7 +193,7 @@ impl<'a> Visitor for Resolver<'a> {
         if let Some(last) = self.scopes.last() {
             if let Some(value) = last.get(&variable.name.lexeme) {
                 if !(*value) {
-                    return Err(LangError::new_iie_error(format!(
+                    return Err(LangErrorType::new_iie_error(format!(
                         "the value with identifier {} was not in scope",
                         variable.name.lexeme
                     )));

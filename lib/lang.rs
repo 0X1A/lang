@@ -100,7 +100,7 @@ impl<'a> Lang<'a> {
     }
 
     pub fn report(line: u64, ware: &str, message: &str) -> LangError {
-        LangError::new_runtime_error(RuntimeErrorType::GenericError {
+        LangErrorType::new_runtime_error(RuntimeErrorType::GenericError {
             reason: format!("[line {}] Error {}: {}", line, ware, message),
         })
     }

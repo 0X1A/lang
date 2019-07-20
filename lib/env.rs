@@ -82,7 +82,7 @@ impl Environment {
 
     pub fn get_at(&mut self, index: usize, name: &str) -> Result<TypedValue, LangError> {
         self.entries.get(index).map_or(
-            Err(LangError::new_runtime_error(
+            Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
                     reason: format!(
                         "tried to index an environment with lenght {} at index {}",
@@ -93,7 +93,7 @@ impl Environment {
             )),
             |env_entry| {
                 env_entry.values.get(name).map_or(
-                    Err(LangError::new_runtime_error(
+                    Err(LangErrorType::new_runtime_error(
                         RuntimeErrorType::UndefinedVariable {
                             reason: format!(
                                 "tried to get an undefined variable: '{}' at index {}",
@@ -114,7 +114,7 @@ impl Environment {
             return Ok(self.get(&enclosing, name)?);
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
-        Err(LangError::new_runtime_error(
+        Err(LangErrorType::new_runtime_error(
             RuntimeErrorType::UndefinedVariable {
                 reason: format!("Tried to get a variable: '{}'", name),
             },
@@ -160,7 +160,7 @@ impl Environment {
             return Ok(());
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
-        Err(LangError::new_runtime_error(
+        Err(LangErrorType::new_runtime_error(
             RuntimeErrorType::UndefinedVariable {
                 reason: format!("tried to assign an undefined variable: '{}'", name),
             },

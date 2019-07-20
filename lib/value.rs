@@ -99,7 +99,7 @@ impl<'a> TryInto<&'a StructInstanceTrait> for &'a Value {
     fn try_into(self) -> Result<&'a StructInstanceTrait, Self::Error> {
         match self {
             Value::Struct(struct_value) => Ok(&**struct_value),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("struct".to_string()),
             ))),
         }
@@ -111,7 +111,7 @@ impl<'a> TryInto<&'a mut StructInstanceTrait> for &'a mut Value {
     fn try_into(self) -> Result<&'a mut StructInstanceTrait, Self::Error> {
         match self {
             Value::Struct(struct_value) => Ok(&mut **struct_value),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("struct".to_string()),
             ))),
         }
@@ -123,7 +123,7 @@ impl<'a> TryInto<&'a CallableTrait> for &'a Value {
     fn try_into(self) -> Result<&'a CallableTrait, Self::Error> {
         match self {
             Value::Callable(struct_value) => Ok(&**struct_value),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("callable".to_string()),
             ))),
         }
@@ -135,7 +135,7 @@ impl<'a> TryInto<&'a TraitValue> for &'a Value {
     fn try_into(self) -> Result<&'a TraitValue, Self::Error> {
         match self {
             Value::Trait(struct_value) => Ok(&**struct_value),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("trait".to_string()),
             ))),
         }
@@ -147,7 +147,7 @@ impl TryInto<TraitFunctionValue> for Value {
     fn try_into(self) -> Result<TraitFunctionValue, Self::Error> {
         match self {
             Value::TraitFunction(trait_function) => Ok(*trait_function),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("trait function".to_string()),
             ))),
         }
@@ -196,7 +196,7 @@ impl Value {
             Value::Int64(i) => Ok(*i as usize),
             Value::Float64(f) => Ok(f.inner as usize),
             Value::Boolean(b) => Ok(*b as usize),
-            _ => Err(LangError::new_runtime_error(
+            _ => Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
                     reason: error_message(&ErrMessage::IncorrectIndexType(self.to_string())),
                 },
@@ -560,7 +560,7 @@ impl TypedValue {
             Value::Int64(i) => Ok(i as usize),
             Value::Float64(f) => Ok(f.inner as usize),
             Value::Boolean(b) => Ok(b as usize),
-            _ => Err(LangError::new_runtime_error(
+            _ => Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
                     reason: format!(
                         "Tried to index an array with incorrect type '{}'",
@@ -665,7 +665,7 @@ impl StructTrait for StructValue {
                 if let Ok(method) = self.get_method(name, interpreter) {
                     return Ok(method);
                 }
-                Err(LangError::new_runtime_error(
+                Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::UndefinedVariable {
                         reason: format!("get_field tried to get an undefined variable: '{}'", name),
                     },
@@ -686,7 +686,7 @@ impl StructTrait for StructValue {
         interpreter: &mut Interpreter,
     ) -> Result<TypedValue, LangError> {
         self.methods.get(name).map_or(
-            Err(LangError::new_runtime_error(
+            Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::UndefinedVariable {
                     reason: format!("tried to get an undefined method: '{}'", name),
                 },
@@ -704,7 +704,7 @@ impl StructTrait for StructValue {
 
     fn set_field(&mut self, name: &Token, value: &TypedValue) -> Result<(), LangError> {
         self.fields.get_mut(&name.lexeme).map_or(
-            Err(LangError::new_runtime_error(
+            Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::UndefinedVariable {
                     reason: format!("tried to set an undefined variable: '{}'", name),
                 },
@@ -833,7 +833,7 @@ impl CallableTrait for Callable {
         let env_id = interpreter.env_entries.entry_from(&self.closure);
 
         if args.len() != self.arity() {
-            return Err(LangError::new_runtime_error(
+            return Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::FnArityError {
                     reason: format!(
                         "Function {} requires {} arg(s), passed {}",
@@ -846,7 +846,7 @@ impl CallableTrait for Callable {
         }
         for it in self.function.params.iter().zip(args.iter()) {
             if it.0.type_annotation != it.1.value_type {
-                return Err(LangError::new_runtime_error(
+                return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidFunctionArgumentType {
                         reason: format!(
                             "Tried pass an argument of type {:?} for function which takes type {:?}",
@@ -863,7 +863,7 @@ impl CallableTrait for Callable {
         let return_value = interpreter.execute_block(&self.function.body, env_id)?;
         if let Some(function_return_type) = self.get_return_type() {
             if function_return_type != return_value.value_type {
-                return Err(LangError::new_runtime_error(
+                return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidFunctionReturnType {
                         reason: format!(
                             "Tried to return value of {:?} for function which returns type {:?}",

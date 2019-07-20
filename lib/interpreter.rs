@@ -71,7 +71,7 @@ impl Interpreter {
 
     fn pop(&mut self) -> Result<TypedValue, LangError> {
         self.stack.pop().ok_or_else(|| {
-            LangError::new_iie_error("the interpreter's stack pop failed!".to_string())
+            LangErrorType::new_iie_error("the interpreter's stack pop failed!".to_string())
         })
     }
 
@@ -114,9 +114,11 @@ impl Interpreter {
                 self.stack.push(value);
                 Ok(())
             }
-            _ => Err(LangError::new_runtime_error(RuntimeErrorType::CallError {
-                reason: "Can only call functions and structs".to_string(),
-            })),
+            _ => Err(LangErrorType::new_runtime_error(
+                RuntimeErrorType::CallError {
+                    reason: "Can only call functions and structs".to_string(),
+                },
+            )),
         }
     }
 
@@ -175,7 +177,7 @@ impl Interpreter {
                 Value::Boolean(left.value == right.value),
                 TypeAnnotation::Bool,
             )),
-            _ => Err(LangError::new_iie_error(
+            _ => Err(LangErrorType::new_iie_error(
                 "attempted to execute a binary operation with an incorrect token".to_string(),
             )),
         }
@@ -383,7 +385,7 @@ impl Interpreter {
         match object.value {
             Value::Struct(ref mut struct_value) => {
                 if !struct_value.field_exists(&set_expr.name.lexeme) {
-                    return Err(LangError::new_runtime_error(
+                    return Err(LangErrorType::new_runtime_error(
                         RuntimeErrorType::UndefinedVariable {
                             reason: "Tried to set an undefined struct field".to_string(),
                         },
@@ -404,7 +406,7 @@ impl Interpreter {
                 let nvalue = self.env_entries.get(&s.env_id, &s.name)?;
                 let struct_value: &StructInstanceTrait = (&nvalue.value).try_into()?;
                 if !struct_value.field_exists(&set_expr.name.lexeme) {
-                    return Err(LangError::new_runtime_error(
+                    return Err(LangErrorType::new_runtime_error(
                         RuntimeErrorType::UndefinedVariable {
                             reason: "Tried to set an undefined struct field".to_string(),
                         },
@@ -425,7 +427,7 @@ impl Interpreter {
                 }
             }
             _ => {
-                return Err(LangError::new_runtime_error(
+                return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::UndefinedVariable {
                         reason: "Tried to do a set on an invalid value type".to_string(),
                     },
@@ -492,14 +494,14 @@ impl Interpreter {
                     self.stack.push(arr[index].clone());
                     Ok(())
                 } else {
-                    Err(LangError::new_runtime_error(
+                    Err(LangErrorType::new_runtime_error(
                                 RuntimeErrorType::GenericError {
                                     reason: format!("Index out of bounds. Tried to index at {} for an array of length {}", index, arr.len()),
                                 },
                             ))
                 }
             }
-            _ => Err(LangError::new_runtime_error(
+            _ => Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
                     reason: "Tried to index a non-array value. This should never happen"
                         .to_string(),
@@ -600,7 +602,7 @@ impl Interpreter {
             if return_type
                 != TypeAnnotation::from_token_type(&trait_function.function.return_type.token_type)?
             {
-                return Err(LangError::new_runtime_error(
+                return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidTypeAssignmentError {
                         reason: format!(
                             "trait impl {} doesn't match trait return type {}",
@@ -619,7 +621,7 @@ impl Interpreter {
         trait_function: &TraitFunctionValue,
     ) -> Result<(), LangError> {
         if callable.arity() != trait_function.function.params.len() {
-            return Err(LangError::new_runtime_error(
+            return Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::InvalidTypeAssignmentError {
                     reason: format!(
                         "trait impl expected {} arguments, found {}",
@@ -644,7 +646,7 @@ impl Interpreter {
             .zip(callable.get_params().iter())
         {
             if params.0.type_annotation != params.1.type_annotation {
-                return Err(LangError::new_runtime_error(
+                return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidTypeAssignmentError {
                         reason: format!(
                             "trait impl expected parameter of type {}, found type {}",
@@ -746,9 +748,9 @@ impl Visitor for Interpreter {
 
     // stmt
     fn visit_break(&mut self) -> Result<(), LangError> {
-        Err(LangError::ControlFlow {
+        Err(LangError::from(LangErrorType::ControlFlow {
             subtype: ControlFlow::Break,
-        })
+        }))
     }
     fn visit_enum(&mut self, _: &EnumStmt) -> Result<(), LangError> {
         unimplemented!()
@@ -834,7 +836,7 @@ impl Visitor for Interpreter {
             .to_type_annotation()
             .unwrap();
         if var_type_annotation != value.value_type {
-            return Err(LangError::new_runtime_error(
+            return Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::InvalidTypeAssignmentError {
                     reason: format!(
                         "Tried to assign a variable of type {} with an initializer of type {}",
@@ -858,12 +860,12 @@ impl Visitor for Interpreter {
         let mut while_condition = self.pop()?;
         while self.is_truthy(&while_condition.value) {
             if let Err(error) = self.execute(&while_stmt.body) {
-                match error {
-                    LangError::ControlFlow { .. } => {
+                match error.context.get_context() {
+                    LangErrorType::ControlFlow { .. } => {
                         break;
                     }
                     other => {
-                        return Err(other);
+                        return Err(LangError::from((*other).clone()));
                     }
                 }
             }
