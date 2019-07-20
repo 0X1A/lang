@@ -80,9 +80,9 @@ impl Environment {
         EnvironmentId { index: env_id }
     }
 
-    pub fn get_at(&mut self, index: usize, name: &str) -> Result<TypedValue, LangErrorTwo> {
+    pub fn get_at(&mut self, index: usize, name: &str) -> Result<TypedValue, LangError> {
         self.entries.get(index).map_or(
-            Err(LangError::new_runtime_error(
+            Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
                     reason: format!(
                         "tried to index an environment with lenght {} at index {}",
@@ -93,7 +93,7 @@ impl Environment {
             )),
             |env_entry| {
                 env_entry.values.get(name).map_or(
-                    Err(LangError::new_runtime_error(
+                    Err(LangErrorType::new_runtime_error(
                         RuntimeErrorType::UndefinedVariable {
                             reason: format!(
                                 "tried to get an undefined variable: '{}' at index {}",
@@ -107,14 +107,14 @@ impl Environment {
         )
     }
 
-    pub fn get(&self, env_id: &EnvironmentId, name: &str) -> Result<TypedValue, LangErrorTwo> {
+    pub fn get(&self, env_id: &EnvironmentId, name: &str) -> Result<TypedValue, LangError> {
         if self[env_id].values.contains_key(name) {
             return Ok(self[env_id].values[name].clone());
         } else if let Some(enclosing) = self[env_id].enclosing.clone() {
             return Ok(self.get(&enclosing, name)?);
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
-        Err(LangError::new_runtime_error(
+        Err(LangErrorType::new_runtime_error(
             RuntimeErrorType::UndefinedVariable {
                 reason: format!("Tried to get a variable: '{}'", name),
             },
@@ -138,7 +138,7 @@ impl Environment {
         env_id: &EnvironmentId,
         name: &str,
         value: TypedValue,
-    ) -> Result<(), LangErrorTwo> {
+    ) -> Result<(), LangError> {
         debug!(
             "{}:{} Assigning '{}' with value '{:?}' at index '{}'",
             file!(),
@@ -160,7 +160,7 @@ impl Environment {
             return Ok(());
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
-        Err(LangError::new_runtime_error(
+        Err(LangErrorType::new_runtime_error(
             RuntimeErrorType::UndefinedVariable {
                 reason: format!("tried to assign an undefined variable: '{}'", name),
             },
@@ -173,7 +173,7 @@ impl Environment {
         name: &Token,
         value: &TypedValue,
         index: usize,
-    ) -> Result<(), LangErrorTwo> {
+    ) -> Result<(), LangError> {
         if let Some(arr_value) = self[env_id].values.get_mut(&name.lexeme) {
             match arr_value.value {
                 Value::Array(ref mut arr) => {
@@ -232,11 +232,7 @@ impl Environment {
         false
     }
 
-    pub fn get_ref(
-        &self,
-        env_id: &EnvironmentId,
-        name: &Token,
-    ) -> Result<&TypedValue, LangErrorTwo> {
+    pub fn get_ref(&self, env_id: &EnvironmentId, name: &Token) -> Result<&TypedValue, LangError> {
         debug!(
             "{}:{} Looking for token with lexeme '{}' at index '{}' env: {:?}",
             file!(),
@@ -265,9 +261,9 @@ impl Environment {
         env_id: &EnvironmentId,
         name: &str,
         closure: Closure,
-    ) -> Result<(), LangErrorTwo>
+    ) -> Result<(), LangError>
     where
-        Closure: FnOnce(&mut TypedValue) -> Result<(), LangErrorTwo>,
+        Closure: FnOnce(&mut TypedValue) -> Result<(), LangError>,
     {
         if let Some(value) = self[env_id].values.get_mut(name) {
             closure(value)?;

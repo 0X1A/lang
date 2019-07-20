@@ -95,11 +95,11 @@ pub enum Value {
 }
 
 impl<'a> TryInto<&'a StructInstanceTrait> for &'a Value {
-    type Error = LangErrorTwo;
+    type Error = LangError;
     fn try_into(self) -> Result<&'a StructInstanceTrait, Self::Error> {
         match self {
             Value::Struct(struct_value) => Ok(&**struct_value),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("struct".to_string()),
             ))),
         }
@@ -107,11 +107,11 @@ impl<'a> TryInto<&'a StructInstanceTrait> for &'a Value {
 }
 
 impl<'a> TryInto<&'a mut StructInstanceTrait> for &'a mut Value {
-    type Error = LangErrorTwo;
+    type Error = LangError;
     fn try_into(self) -> Result<&'a mut StructInstanceTrait, Self::Error> {
         match self {
             Value::Struct(struct_value) => Ok(&mut **struct_value),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("struct".to_string()),
             ))),
         }
@@ -119,11 +119,11 @@ impl<'a> TryInto<&'a mut StructInstanceTrait> for &'a mut Value {
 }
 
 impl<'a> TryInto<&'a CallableTrait> for &'a Value {
-    type Error = LangErrorTwo;
+    type Error = LangError;
     fn try_into(self) -> Result<&'a CallableTrait, Self::Error> {
         match self {
             Value::Callable(struct_value) => Ok(&**struct_value),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("callable".to_string()),
             ))),
         }
@@ -131,11 +131,11 @@ impl<'a> TryInto<&'a CallableTrait> for &'a Value {
 }
 
 impl<'a> TryInto<&'a TraitValue> for &'a Value {
-    type Error = LangErrorTwo;
+    type Error = LangError;
     fn try_into(self) -> Result<&'a TraitValue, Self::Error> {
         match self {
             Value::Trait(struct_value) => Ok(&**struct_value),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("trait".to_string()),
             ))),
         }
@@ -143,11 +143,11 @@ impl<'a> TryInto<&'a TraitValue> for &'a Value {
 }
 
 impl TryInto<TraitFunctionValue> for Value {
-    type Error = LangErrorTwo;
+    type Error = LangError;
     fn try_into(self) -> Result<TraitFunctionValue, Self::Error> {
         match self {
             Value::TraitFunction(trait_function) => Ok(*trait_function),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectValueType("trait function".to_string()),
             ))),
         }
@@ -191,12 +191,12 @@ impl Value {
         }
     }
 
-    pub fn as_array_index(&self) -> Result<usize, LangErrorTwo> {
+    pub fn as_array_index(&self) -> Result<usize, LangError> {
         match self {
             Value::Int64(i) => Ok(*i as usize),
             Value::Float64(f) => Ok(f.inner as usize),
             Value::Boolean(b) => Ok(*b as usize),
-            _ => Err(LangError::new_runtime_error(
+            _ => Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
                     reason: error_message(&ErrMessage::IncorrectIndexType(self.to_string())),
                 },
@@ -547,7 +547,7 @@ impl Eq for TypedValue {}
 impl TypedValue {
     /// Checks the type annotation of `other`, returning `Err` if it does not match that of `self`.
     /// Clones the value
-    pub fn assign_checked(&mut self, other: &TypedValue) -> Result<(), LangErrorTwo> {
+    pub fn assign_checked(&mut self, other: &TypedValue) -> Result<(), LangError> {
         if !TypeChecker::can_convert_implicitly(self, other) {
             TypeChecker::check_type(self, other)?;
         }
@@ -555,12 +555,12 @@ impl TypedValue {
         Ok(())
     }
 
-    pub fn as_array_index(&self) -> Result<usize, LangErrorTwo> {
+    pub fn as_array_index(&self) -> Result<usize, LangError> {
         match self.value {
             Value::Int64(i) => Ok(i as usize),
             Value::Float64(f) => Ok(f.inner as usize),
             Value::Boolean(b) => Ok(b as usize),
-            _ => Err(LangError::new_runtime_error(
+            _ => Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
                     reason: format!(
                         "Tried to index an array with incorrect type '{}'",
@@ -620,7 +620,7 @@ impl CallableTrait for StructValue {
         Some(TypeAnnotation::User(self.struct_stmt.name.lexeme.clone()))
     }
 
-    fn bind(&self, _: &StructInstanceTrait, _: &mut Interpreter) -> Result<(), LangErrorTwo> {
+    fn bind(&self, _: &StructInstanceTrait, _: &mut Interpreter) -> Result<(), LangError> {
         unimplemented!()
     }
 
@@ -629,7 +629,7 @@ impl CallableTrait for StructValue {
     }
 
     // TODO: This should take constructor args
-    fn call(&self, _: &mut Interpreter, _: Vec<TypedValue>) -> Result<TypedValue, LangErrorTwo> {
+    fn call(&self, _: &mut Interpreter, _: Vec<TypedValue>) -> Result<TypedValue, LangError> {
         Ok(TypedValue::new(
             Value::Struct(Box::new(self.clone())),
             TypeAnnotation::User(CallableTrait::get_name(self)),
@@ -659,13 +659,13 @@ impl StructTrait for StructValue {
         &self,
         name: &str,
         interpreter: &mut Interpreter,
-    ) -> Result<TypedValue, LangErrorTwo> {
+    ) -> Result<TypedValue, LangError> {
         self.fields.get(name).map_or(
             {
                 if let Ok(method) = self.get_method(name, interpreter) {
                     return Ok(method);
                 }
-                Err(LangError::new_runtime_error(
+                Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::UndefinedVariable {
                         reason: format!("get_field tried to get an undefined variable: '{}'", name),
                     },
@@ -675,7 +675,7 @@ impl StructTrait for StructValue {
         )
     }
 
-    fn define_method(&mut self, name: &Token, value: TypedValue) -> Result<(), LangErrorTwo> {
+    fn define_method(&mut self, name: &Token, value: TypedValue) -> Result<(), LangError> {
         self.methods.insert(name.lexeme.clone(), value);
         Ok(())
     }
@@ -684,9 +684,9 @@ impl StructTrait for StructValue {
         &self,
         name: &str,
         interpreter: &mut Interpreter,
-    ) -> Result<TypedValue, LangErrorTwo> {
+    ) -> Result<TypedValue, LangError> {
         self.methods.get(name).map_or(
-            Err(LangError::new_runtime_error(
+            Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::UndefinedVariable {
                     reason: format!("tried to get an undefined method: '{}'", name),
                 },
@@ -702,9 +702,9 @@ impl StructTrait for StructValue {
         )
     }
 
-    fn set_field(&mut self, name: &Token, value: &TypedValue) -> Result<(), LangErrorTwo> {
+    fn set_field(&mut self, name: &Token, value: &TypedValue) -> Result<(), LangError> {
         self.fields.get_mut(&name.lexeme).map_or(
-            Err(LangError::new_runtime_error(
+            Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::UndefinedVariable {
                     reason: format!("tried to set an undefined variable: '{}'", name),
                 },
@@ -800,7 +800,7 @@ impl CallableTrait for Callable {
         &self,
         struct_instance: &StructInstanceTrait,
         interpreter: &mut Interpreter,
-    ) -> Result<(), LangErrorTwo> {
+    ) -> Result<(), LangError> {
         let value = TypedValue::new(
             Value::SelfIndex(SelfIndex {
                 name: struct_instance.get_instance_name(),
@@ -829,11 +829,11 @@ impl CallableTrait for Callable {
         &self,
         interpreter: &mut Interpreter,
         args: Vec<TypedValue>,
-    ) -> Result<TypedValue, LangErrorTwo> {
+    ) -> Result<TypedValue, LangError> {
         let env_id = interpreter.env_entries.entry_from(&self.closure);
 
         if args.len() != self.arity() {
-            return Err(LangError::new_runtime_error(
+            return Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::FnArityError {
                     reason: format!(
                         "Function {} requires {} arg(s), passed {}",
@@ -846,7 +846,7 @@ impl CallableTrait for Callable {
         }
         for it in self.function.params.iter().zip(args.iter()) {
             if it.0.type_annotation != it.1.value_type {
-                return Err(LangError::new_runtime_error(
+                return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidFunctionArgumentType {
                         reason: format!(
                             "Tried pass an argument of type {:?} for function which takes type {:?}",
@@ -863,7 +863,7 @@ impl CallableTrait for Callable {
         let return_value = interpreter.execute_block(&self.function.body, env_id)?;
         if let Some(function_return_type) = self.get_return_type() {
             if function_return_type != return_value.value_type {
-                return Err(LangError::new_runtime_error(
+                return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidFunctionReturnType {
                         reason: format!(
                             "Tried to return value of {:?} for function which returns type {:?}",

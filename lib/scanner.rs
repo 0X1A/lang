@@ -73,25 +73,25 @@ impl<'a> Scanner<'a> {
     }
 
     /// Advances the `current` position, and returns the character at the previous `current` position
-    pub fn pop(&mut self) -> Result<char, LangErrorTwo> {
+    pub fn pop(&mut self) -> Result<char, LangError> {
         self.current += 1;
         if let Some(next) = self.source.chars().nth(self.current - 1) {
             return Ok(next);
         } else {
-            Err(LangError::new_parser_error(
+            Err(LangErrorType::new_parser_error(
                 "Reached end of source at advance()".to_string(),
             ))
         }
     }
 
     /// Adds a token to the scanner with token type `token` and lexeme `value`
-    pub fn add_token_value(&mut self, token: TokenType, value: &str) -> Result<(), LangErrorTwo> {
+    pub fn add_token_value(&mut self, token: TokenType, value: &str) -> Result<(), LangError> {
         self.tokens.push(Token::from(token, &value, self.line)?);
         Ok(())
     }
 
     /// Checks the type annotation string and returns its corresponding `TypeAnnotation`
-    pub fn match_type_annotation(&mut self, value: &str) -> Result<TypeAnnotation, LangErrorTwo> {
+    pub fn match_type_annotation(&mut self, value: &str) -> Result<TypeAnnotation, LangError> {
         match value {
             "i32" => Ok(TypeAnnotation::I32),
             "i64" => Ok(TypeAnnotation::I64),
@@ -110,9 +110,9 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn at_index(&self, index: usize) -> Result<TokenType, LangErrorTwo> {
+    pub fn at_index(&self, index: usize) -> Result<TokenType, LangError> {
         self.tokens.get(index).map_or(
-            Err(LangError::new_parser_error(
+            Err(LangErrorType::new_parser_error(
                 "Tried to peek token when empty".to_string(),
             )),
             |token| Ok(token.token_type.clone()),
@@ -120,9 +120,9 @@ impl<'a> Scanner<'a> {
     }
 
     /// Returns the last token within `tokens`, errors when the token vector is empty
-    pub fn prev_token(&self) -> Result<TokenType, LangErrorTwo> {
+    pub fn prev_token(&self) -> Result<TokenType, LangError> {
         self.tokens.last().map_or(
-            Err(LangError::new_parser_error(
+            Err(LangErrorType::new_parser_error(
                 "Tried to peek token when empty".to_string(),
             )),
             |token| Ok(token.token_type.clone()),
@@ -131,7 +131,7 @@ impl<'a> Scanner<'a> {
 
     /// Creates and adds TokenType `token` to `tokens`. The Token is created
     /// using `Token::from`
-    pub fn add_token(&mut self, token: TokenType) -> Result<(), LangErrorTwo> {
+    pub fn add_token(&mut self, token: TokenType) -> Result<(), LangError> {
         self.tokens.push(Token::from(
             token,
             &self.source.substr(self.start, self.current),
@@ -177,7 +177,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Pops the character at `current` and matches its representation in Token
-    pub fn scan_token(&mut self) -> Result<(), LangErrorTwo> {
+    pub fn scan_token(&mut self) -> Result<(), LangError> {
         let c: char = self.pop()?;
         match c {
             '(' => {
@@ -283,7 +283,7 @@ impl<'a> Scanner<'a> {
                 } else if c.is_alphanumeric() || c == '_' {
                     self.identifier()?;
                 } else {
-                    return Err(LangError::new_parser_error(format!(
+                    return Err(LangErrorType::new_parser_error(format!(
                         "Unexpected character '{}'",
                         c
                     )));
@@ -294,7 +294,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Parses a string delimited by the character '"'
-    fn string(&mut self) -> Result<(), LangErrorTwo> {
+    fn string(&mut self) -> Result<(), LangError> {
         loop {
             if self.peek() == '"' || self.is_at_end() {
                 break;
@@ -305,7 +305,7 @@ impl<'a> Scanner<'a> {
             self.pop()?;
         }
         if self.is_at_end() {
-            return Err(LangError::new_parser_error(
+            return Err(LangErrorType::new_parser_error(
                 "Unterminated string".to_string(),
             ));
         }
@@ -316,10 +316,10 @@ impl<'a> Scanner<'a> {
     }
 
     /// Parses a template type parameter between angle brackets
-    fn template_type(&mut self) -> Result<TypeAnnotation, LangErrorTwo> {
+    fn template_type(&mut self) -> Result<TypeAnnotation, LangError> {
         let less = self.pop()?;
         if less != '<' {
-            return Err(LangError::new_parser_error(
+            return Err(LangErrorType::new_parser_error(
                 "Expected '<' after template type".to_string(),
             ));
         }
@@ -332,7 +332,7 @@ impl<'a> Scanner<'a> {
         }
         let greater = self.pop()?;
         if greater != '>' {
-            return Err(LangError::new_parser_error(
+            return Err(LangErrorType::new_parser_error(
                 "Expected '>' after template type".to_string(),
             ));
         }
@@ -342,7 +342,7 @@ impl<'a> Scanner<'a> {
     }
 
     /// Parses an integer or float
-    fn number(&mut self) -> Result<(), LangErrorTwo> {
+    fn number(&mut self) -> Result<(), LangError> {
         let mut is_float = false;
         loop {
             if !self.peek().is_digit(10) {
@@ -381,7 +381,7 @@ impl<'a> Scanner<'a> {
     /// 1. a keyword if they match a keyword
     /// 2. a type annotation if the previously parsed token was a colon
     /// 3. or a plain identifier if none of those criterion are met
-    fn identifier(&mut self) -> Result<(), LangErrorTwo> {
+    fn identifier(&mut self) -> Result<(), LangError> {
         loop {
             if !self.peek().is_alphanumeric() && self.peek() != '_' {
                 break;
@@ -402,7 +402,7 @@ impl<'a> Scanner<'a> {
         Ok(())
     }
 
-    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, LangErrorTwo> {
+    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, LangError> {
         loop {
             if self.is_at_end() {
                 break;

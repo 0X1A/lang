@@ -31,26 +31,26 @@ impl TypeAnnotation {
         return false;
     }
 
-    pub fn get_array_element_type(array: &TypeAnnotation) -> Result<TypeAnnotation, LangErrorTwo> {
+    pub fn get_array_element_type(array: &TypeAnnotation) -> Result<TypeAnnotation, LangError> {
         if let TypeAnnotation::Array(element_type) = array {
             return Ok(*element_type.clone());
         }
-        Err(LangError::new_iie_error(
+        Err(LangErrorType::new_iie_error(
             "failed to get array element type".to_string(),
         ))
     }
 
-    pub fn from_token_type(token_type: &TokenType) -> Result<TypeAnnotation, LangErrorTwo> {
+    pub fn from_token_type(token_type: &TokenType) -> Result<TypeAnnotation, LangError> {
         match token_type {
             TokenType::Type(type_annotation) => Ok(type_annotation.clone()),
-            _ => Err(LangError::new_parser_error(
+            _ => Err(LangErrorType::new_parser_error(
                 "failed type annotation extraction".to_string(),
             )),
         }
     }
 
     /// Checks `token`'s `token_type` to ensure that it has been lexed as a type annotation
-    pub fn check_token_type(token: &Token) -> Result<(), LangErrorTwo> {
+    pub fn check_token_type(token: &Token) -> Result<(), LangError> {
         match token.token_type {
             TokenType::Type(_) => Ok(()),
             _ => Err(Lang::error(
@@ -209,10 +209,10 @@ pub enum TokenType {
 }
 
 impl TokenType {
-    pub fn to_type_annotation(&self) -> Result<TypeAnnotation, LangErrorTwo> {
+    pub fn to_type_annotation(&self) -> Result<TypeAnnotation, LangError> {
         match self {
             TokenType::Type(type_annotation) => Ok(type_annotation.clone()),
-            _ => Err(LangError::new_parser_error(
+            _ => Err(LangErrorType::new_parser_error(
                 "Failed type annotation extraction".to_string(),
             )),
         }
@@ -287,7 +287,7 @@ pub struct Token {
 
 impl Token {
     /// Takes the toke type `token_type` and creates a Token with lexeme `lexeme` and line `line`
-    pub fn from(token_type: TokenType, lexeme: &str, line: u64) -> Result<Token, LangErrorTwo> {
+    pub fn from(token_type: TokenType, lexeme: &str, line: u64) -> Result<Token, LangError> {
         let value = match token_type {
             TokenType::String => Value::String(lexeme.to_string()),
             TokenType::Integer => {

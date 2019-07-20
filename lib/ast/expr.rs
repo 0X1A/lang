@@ -123,12 +123,12 @@ impl LiteralExpr {
 }
 
 impl<'a> TryInto<&'a AssignExpr> for &'a Expr {
-    type Error = LangErrorTwo;
+    type Error = LangError;
 
     fn try_into(self) -> Result<&'a AssignExpr, Self::Error> {
         match self {
             Expr::Assign(assign_expr) => Ok(assign_expr),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectExpr("assignment".to_string()),
             ))),
         }
@@ -142,12 +142,12 @@ impl<'a> Into<Expr> for &'a AssignExpr {
 }
 
 impl<'a> TryInto<&'a CallExpr> for &'a Expr {
-    type Error = LangErrorTwo;
+    type Error = LangError;
 
     fn try_into(self) -> Result<&'a CallExpr, Self::Error> {
         match self {
             Expr::Call(call_expr) => Ok(call_expr),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectExpr("call".to_string()),
             ))),
         }
@@ -155,12 +155,12 @@ impl<'a> TryInto<&'a CallExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a GetExpr> for &'a Expr {
-    type Error = LangErrorTwo;
+    type Error = LangError;
 
     fn try_into(self) -> Result<&'a GetExpr, Self::Error> {
         match self {
             Expr::Get(get_expr) => Ok(get_expr),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectExpr("get".to_string()),
             ))),
         }
@@ -168,12 +168,12 @@ impl<'a> TryInto<&'a GetExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a UnaryExpr> for &'a Expr {
-    type Error = LangErrorTwo;
+    type Error = LangError;
 
     fn try_into(self) -> Result<&'a UnaryExpr, Self::Error> {
         match self {
             Expr::Unary(unary_expr) => Ok(unary_expr),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectExpr("unary".to_string()),
             ))),
         }
@@ -181,12 +181,12 @@ impl<'a> TryInto<&'a UnaryExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a LogicalExpr> for &'a Expr {
-    type Error = LangErrorTwo;
+    type Error = LangError;
 
     fn try_into(self) -> Result<&'a LogicalExpr, Self::Error> {
         match self {
             Expr::Logical(logical_expr) => Ok(logical_expr),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectExpr("logical".to_string()),
             ))),
         }
@@ -194,12 +194,12 @@ impl<'a> TryInto<&'a LogicalExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a SetExpr> for &'a Expr {
-    type Error = LangErrorTwo;
+    type Error = LangError;
 
     fn try_into(self) -> Result<&'a SetExpr, Self::Error> {
         match self {
             Expr::Set(set_expr) => Ok(set_expr),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectExpr("set".to_string()),
             ))),
         }
@@ -207,12 +207,12 @@ impl<'a> TryInto<&'a SetExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a SetArrayElementExpr> for &'a Expr {
-    type Error = LangErrorTwo;
+    type Error = LangError;
 
     fn try_into(self) -> Result<&'a SetArrayElementExpr, Self::Error> {
         match self {
             Expr::SetArrayElement(set_array_element_expr) => Ok(set_array_element_expr),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectExpr("set array element".to_string()),
             ))),
         }
@@ -220,12 +220,12 @@ impl<'a> TryInto<&'a SetArrayElementExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a ArrayExpr> for &'a Expr {
-    type Error = LangErrorTwo;
+    type Error = LangError;
 
     fn try_into(self) -> Result<&'a ArrayExpr, Self::Error> {
         match self {
             Expr::Array(array_expr) => Ok(array_expr),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectExpr("array".to_string()),
             ))),
         }
@@ -233,12 +233,12 @@ impl<'a> TryInto<&'a ArrayExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a IndexExpr> for &'a Expr {
-    type Error = LangErrorTwo;
+    type Error = LangError;
 
     fn try_into(self) -> Result<&'a IndexExpr, Self::Error> {
         match self {
             Expr::Index(index_expr) => Ok(index_expr),
-            _ => Err(LangError::new_iie_error(error_message(
+            _ => Err(LangErrorType::new_iie_error(error_message(
                 &ErrMessage::ExpectExpr("index".to_string()),
             ))),
         }

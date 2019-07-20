@@ -14,12 +14,12 @@ pub trait CallableTrait {
         &self,
         interpreter: &mut Interpreter,
         args: Vec<TypedValue>,
-    ) -> Result<TypedValue, LangErrorTwo>;
+    ) -> Result<TypedValue, LangError>;
     fn bind(
         &self,
         struct_instance: &StructInstanceTrait,
         interpreter: &mut Interpreter,
-    ) -> Result<(), LangErrorTwo>;
+    ) -> Result<(), LangError>;
     fn get_params(&self) -> Vec<VariableData>;
     fn box_clone(&self) -> Box<dyn CallableTrait>;
 }

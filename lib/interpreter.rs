@@ -64,14 +64,14 @@ impl Interpreter {
         );
     }
 
-    fn evaluate(&mut self, expr: &Expr) -> Result<(), LangErrorTwo> {
+    fn evaluate(&mut self, expr: &Expr) -> Result<(), LangError> {
         self.visit_expr(expr)?;
         Ok(())
     }
 
-    fn pop(&mut self) -> Result<TypedValue, LangErrorTwo> {
+    fn pop(&mut self) -> Result<TypedValue, LangError> {
         self.stack.pop().ok_or_else(|| {
-            LangError::new_iie_error("the interpreter's stack pop failed!".to_string())
+            LangErrorType::new_iie_error("the interpreter's stack pop failed!".to_string())
         })
     }
 
@@ -86,7 +86,7 @@ impl Interpreter {
         }
     }
 
-    fn visit_assign_expr(&mut self, assign: &AssignExpr) -> Result<(), LangErrorTwo> {
+    fn visit_assign_expr(&mut self, assign: &AssignExpr) -> Result<(), LangError> {
         self.evaluate(&assign.expr)?;
         let value = self.pop()?;
         self.env_entries
@@ -95,7 +95,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn visit_call_expr(&mut self, call: &CallExpr) -> Result<(), LangErrorTwo> {
+    fn visit_call_expr(&mut self, call: &CallExpr) -> Result<(), LangError> {
         self.evaluate(&call.callee)?;
         let callee = self.pop()?;
         let mut args = Vec::new();
@@ -114,13 +114,15 @@ impl Interpreter {
                 self.stack.push(value);
                 Ok(())
             }
-            _ => Err(LangError::new_runtime_error(RuntimeErrorType::CallError {
-                reason: "Can only call functions and structs".to_string(),
-            })),
+            _ => Err(LangErrorType::new_runtime_error(
+                RuntimeErrorType::CallError {
+                    reason: "Can only call functions and structs".to_string(),
+                },
+            )),
         }
     }
 
-    fn visit_get_expr(&mut self, get_expr: &GetExpr) -> Result<(), LangErrorTwo> {
+    fn visit_get_expr(&mut self, get_expr: &GetExpr) -> Result<(), LangError> {
         self.evaluate(&get_expr.object)?;
         let value = self.pop()?;
         match value.value {
@@ -145,7 +147,7 @@ impl Interpreter {
         op: &Token,
         left: TypedValue,
         right: TypedValue,
-    ) -> Result<TypedValue, LangErrorTwo> {
+    ) -> Result<TypedValue, LangError> {
         match op.token_type {
             TokenType::Plus => Ok(TypedValue::new(left.value + right.value, left.value_type)),
             TokenType::Minus => Ok(TypedValue::new(left.value - right.value, left.value_type)),
@@ -175,16 +177,13 @@ impl Interpreter {
                 Value::Boolean(left.value == right.value),
                 TypeAnnotation::Bool,
             )),
-            _ => Err(LangError::new_iie_error(
+            _ => Err(LangErrorType::new_iie_error(
                 "attempted to execute a binary operation with an incorrect token".to_string(),
             )),
         }
     }
 
-    fn visit_impl_trait_stmt(
-        &mut self,
-        impl_trait_stmt: &ImplTraitStmt,
-    ) -> Result<(), LangErrorTwo> {
+    fn visit_impl_trait_stmt(&mut self, impl_trait_stmt: &ImplTraitStmt) -> Result<(), LangError> {
         for fn_impl in impl_trait_stmt.fn_declarations.iter() {
             if let Stmt::Function(function_statement) = fn_impl {
                 let function = Value::Callable(Box::new(Callable::new(
@@ -196,16 +195,15 @@ impl Interpreter {
                     &function,
                     &impl_trait_stmt.trait_name,
                 )?;
-                let update_struct_decl =
-                    |struct_value: &mut TypedValue| -> Result<(), LangErrorTwo> {
-                        let struct_value: &mut StructInstanceTrait =
-                            (&mut struct_value.value).try_into()?;
-                        struct_value.define_method(
-                            &function_statement.name,
-                            TypedValue::new(function.clone(), TypeAnnotation::Fn),
-                        )?;
-                        Ok(())
-                    };
+                let update_struct_decl = |struct_value: &mut TypedValue| -> Result<(), LangError> {
+                    let struct_value: &mut StructInstanceTrait =
+                        (&mut struct_value.value).try_into()?;
+                    struct_value.define_method(
+                        &function_statement.name,
+                        TypedValue::new(function.clone(), TypeAnnotation::Fn),
+                    )?;
+                    Ok(())
+                };
                 self.env_entries.update_value(
                     &self.env_id,
                     &impl_trait_stmt.impl_name.lexeme,
@@ -216,7 +214,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn visit_trait_stmt(&mut self, trait_stmt: &TraitStmt) -> Result<(), LangErrorTwo> {
+    fn visit_trait_stmt(&mut self, trait_stmt: &TraitStmt) -> Result<(), LangError> {
         self.env_entries.define(
             &self.env_id,
             &trait_stmt.name.lexeme,
@@ -250,14 +248,14 @@ impl Interpreter {
         Ok(())
     }
 
-    fn visit_impl_stmt(&mut self, impl_stmt: &ImplStmt) -> Result<(), LangErrorTwo> {
+    fn visit_impl_stmt(&mut self, impl_stmt: &ImplStmt) -> Result<(), LangError> {
         for fn_decl in &impl_stmt.fn_declarations {
             if let Stmt::Function(function_statement) = fn_decl {
                 let function = Value::Callable(Box::new(Callable::new(
                     *function_statement.clone(),
                     &self.env_id,
                 )));
-                let update_struct = |struct_value: &mut TypedValue| -> Result<(), LangErrorTwo> {
+                let update_struct = |struct_value: &mut TypedValue| -> Result<(), LangError> {
                     let struct_value: &mut StructInstanceTrait =
                         (&mut struct_value.value).try_into()?;
                     struct_value.define_method(
@@ -276,7 +274,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn visit_struct_stmt(&mut self, struct_stmt: &StructStmt) -> Result<(), LangErrorTwo> {
+    fn visit_struct_stmt(&mut self, struct_stmt: &StructStmt) -> Result<(), LangError> {
         self.env_entries.define(
             &self.env_id,
             &struct_stmt.name.lexeme,
@@ -310,7 +308,7 @@ impl Interpreter {
 
     // Visit Expr stuff
 
-    fn visit_binary_expr(&mut self, expr: &BinaryExpr) -> Result<(), LangErrorTwo> {
+    fn visit_binary_expr(&mut self, expr: &BinaryExpr) -> Result<(), LangError> {
         self.evaluate(&expr.left)?;
         let left = self.pop()?;
         self.evaluate(&expr.right)?;
@@ -320,7 +318,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) -> Result<(), LangErrorTwo> {
+    fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) -> Result<(), LangError> {
         self.evaluate(&unary_expr.right)?;
         let right = self.pop()?;
         match unary_expr.operator.token_type {
@@ -362,7 +360,7 @@ impl Interpreter {
         }
     }
 
-    fn visit_logical_expr(&mut self, logical_expr: &LogicalExpr) -> Result<(), LangErrorTwo> {
+    fn visit_logical_expr(&mut self, logical_expr: &LogicalExpr) -> Result<(), LangError> {
         self.evaluate(&logical_expr.left)?;
         let left = self.pop()?;
         if logical_expr.operator.token_type == TokenType::Or {
@@ -378,7 +376,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn visit_set_expr(&mut self, set_expr: &SetExpr) -> Result<(), LangErrorTwo> {
+    fn visit_set_expr(&mut self, set_expr: &SetExpr) -> Result<(), LangError> {
         self.evaluate(&set_expr.object)?;
         let mut object = self.pop()?;
         // check value
@@ -387,13 +385,13 @@ impl Interpreter {
         match object.value {
             Value::Struct(ref mut struct_value) => {
                 if !struct_value.field_exists(&set_expr.name.lexeme) {
-                    return Err(LangError::new_runtime_error(
+                    return Err(LangErrorType::new_runtime_error(
                         RuntimeErrorType::UndefinedVariable {
                             reason: "Tried to set an undefined struct field".to_string(),
                         },
                     ));
                 }
-                let update_struct = |struct_value: &mut TypedValue| -> Result<(), LangErrorTwo> {
+                let update_struct = |struct_value: &mut TypedValue| -> Result<(), LangError> {
                     let struct_value: &mut StructInstanceTrait =
                         (&mut struct_value.value).try_into()?;
                     struct_value.set_field(&set_expr.name, &value)?;
@@ -408,13 +406,13 @@ impl Interpreter {
                 let nvalue = self.env_entries.get(&s.env_id, &s.name)?;
                 let struct_value: &StructInstanceTrait = (&nvalue.value).try_into()?;
                 if !struct_value.field_exists(&set_expr.name.lexeme) {
-                    return Err(LangError::new_runtime_error(
+                    return Err(LangErrorType::new_runtime_error(
                         RuntimeErrorType::UndefinedVariable {
                             reason: "Tried to set an undefined struct field".to_string(),
                         },
                     ));
                 }
-                let update_struct = |typed_value: &mut TypedValue| -> Result<(), LangErrorTwo> {
+                let update_struct = |typed_value: &mut TypedValue| -> Result<(), LangError> {
                     let struct_value: &mut StructInstanceTrait =
                         (&mut typed_value.value).try_into()?;
                     struct_value.set_field(&set_expr.name, &value)?;
@@ -429,7 +427,7 @@ impl Interpreter {
                 }
             }
             _ => {
-                return Err(LangError::new_runtime_error(
+                return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::UndefinedVariable {
                         reason: "Tried to do a set on an invalid value type".to_string(),
                     },
@@ -442,7 +440,7 @@ impl Interpreter {
     fn visit_set_array_element_expr(
         &mut self,
         set_array_element_expr: &SetArrayElementExpr,
-    ) -> Result<(), LangErrorTwo> {
+    ) -> Result<(), LangError> {
         self.evaluate(&set_array_element_expr.value)?;
         let value = self.pop()?;
         self.evaluate(&set_array_element_expr.index)?;
@@ -456,7 +454,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn visit_array_expr(&mut self, array_expr: &ArrayExpr) -> Result<(), LangErrorTwo> {
+    fn visit_array_expr(&mut self, array_expr: &ArrayExpr) -> Result<(), LangError> {
         let mut elements = Vec::new();
         let mut type_annotation = TypeAnnotation::Unit;
         let mut array_element_type = TypeAnnotation::Unit;
@@ -484,7 +482,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn visit_index_expr(&mut self, index_expr: &IndexExpr) -> Result<(), LangErrorTwo> {
+    fn visit_index_expr(&mut self, index_expr: &IndexExpr) -> Result<(), LangError> {
         self.evaluate(&index_expr.index)?;
         let index = self.pop()?.as_array_index()?;
         let value = self
@@ -496,14 +494,14 @@ impl Interpreter {
                     self.stack.push(arr[index].clone());
                     Ok(())
                 } else {
-                    Err(LangError::new_runtime_error(
+                    Err(LangErrorType::new_runtime_error(
                                 RuntimeErrorType::GenericError {
                                     reason: format!("Index out of bounds. Tried to index at {} for an array of length {}", index, arr.len()),
                                 },
                             ))
                 }
             }
-            _ => Err(LangError::new_runtime_error(
+            _ => Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
                     reason: "Tried to index a non-array value. This should never happen"
                         .to_string(),
@@ -513,7 +511,7 @@ impl Interpreter {
     }
 
     #[inline(always)]
-    pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<(), LangErrorTwo> {
+    pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<(), LangError> {
         for stmt in stmts {
             self.execute(&stmt)?;
         }
@@ -523,12 +521,12 @@ impl Interpreter {
     }
 
     #[inline(always)]
-    fn execute(&mut self, stmt: &Stmt) -> Result<(), LangErrorTwo> {
+    fn execute(&mut self, stmt: &Stmt) -> Result<(), LangError> {
         self.visit_stmt(stmt)?;
         Ok(())
     }
 
-    fn look_up_variable(&mut self, token: &Token) -> Result<(), LangErrorTwo> {
+    fn look_up_variable(&mut self, token: &Token) -> Result<(), LangError> {
         debug!(
             "{}:{} Looking for token '{:?}' within env '{:?}' and locals\n'{}'",
             file!(),
@@ -573,7 +571,7 @@ impl Interpreter {
         &mut self,
         stmts: &[Stmt],
         env_id: EnvironmentId,
-    ) -> Result<TypedValue, LangErrorTwo> {
+    ) -> Result<TypedValue, LangError> {
         let previous = self.env_id.clone();
         self.env_id = env_id;
         let mut value = TypedValue::new(Value::Unit, TypeAnnotation::Unit);
@@ -599,12 +597,12 @@ impl Interpreter {
         &self,
         callable: &CallableTrait,
         trait_function: &TraitFunctionValue,
-    ) -> Result<(), LangErrorTwo> {
+    ) -> Result<(), LangError> {
         if let Some(return_type) = callable.get_return_type() {
             if return_type
                 != TypeAnnotation::from_token_type(&trait_function.function.return_type.token_type)?
             {
-                return Err(LangError::new_runtime_error(
+                return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidTypeAssignmentError {
                         reason: format!(
                             "trait impl {} doesn't match trait return type {}",
@@ -621,9 +619,9 @@ impl Interpreter {
         &self,
         callable: &CallableTrait,
         trait_function: &TraitFunctionValue,
-    ) -> Result<(), LangErrorTwo> {
+    ) -> Result<(), LangError> {
         if callable.arity() != trait_function.function.params.len() {
-            return Err(LangError::new_runtime_error(
+            return Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::InvalidTypeAssignmentError {
                     reason: format!(
                         "trait impl expected {} arguments, found {}",
@@ -640,7 +638,7 @@ impl Interpreter {
         &self,
         callable: &CallableTrait,
         trait_function: &TraitFunctionValue,
-    ) -> Result<(), LangErrorTwo> {
+    ) -> Result<(), LangError> {
         for params in trait_function
             .function
             .params
@@ -648,7 +646,7 @@ impl Interpreter {
             .zip(callable.get_params().iter())
         {
             if params.0.type_annotation != params.1.type_annotation {
-                return Err(LangError::new_runtime_error(
+                return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidTypeAssignmentError {
                         reason: format!(
                             "trait impl expected parameter of type {}, found type {}",
@@ -666,7 +664,7 @@ impl Interpreter {
         impl_trait: &Token,
         fn_value: &Value,
         trait_token: &Token,
-    ) -> Result<bool, LangErrorTwo> {
+    ) -> Result<bool, LangError> {
         let typed_trait_value = self.env_entries.get_ref(&self.env_id, trait_token)?;
         let trait_value_type: &TraitValue = (&typed_trait_value.value).try_into()?;
         if let Some(trait_fn_decl) = trait_value_type.fn_declarations.get(&impl_trait.lexeme) {
@@ -682,32 +680,32 @@ impl Interpreter {
 }
 
 impl Visitor for Interpreter {
-    fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangErrorTwo> {
+    fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
         Ok(noop_expr(self, expr)?)
     }
-    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), LangErrorTwo> {
+    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), LangError> {
         Ok(noop_stmt(self, stmt)?)
     }
 
-    fn visit_assign(&mut self, assign: &AssignExpr) -> Result<(), LangErrorTwo> {
+    fn visit_assign(&mut self, assign: &AssignExpr) -> Result<(), LangError> {
         Ok(self.visit_assign_expr(assign)?)
     }
-    fn visit_binary(&mut self, binary: &BinaryExpr) -> Result<(), LangErrorTwo> {
+    fn visit_binary(&mut self, binary: &BinaryExpr) -> Result<(), LangError> {
         Ok(self.visit_binary_expr(binary)?)
     }
-    fn visit_call(&mut self, call: &CallExpr) -> Result<(), LangErrorTwo> {
+    fn visit_call(&mut self, call: &CallExpr) -> Result<(), LangError> {
         Ok(self.visit_call_expr(call)?)
     }
-    fn visit_get(&mut self, get: &GetExpr) -> Result<(), LangErrorTwo> {
+    fn visit_get(&mut self, get: &GetExpr) -> Result<(), LangError> {
         Ok(self.visit_get_expr(get)?)
     }
-    fn visit_enum_path(&mut self, _: &EnumPathExpr) -> Result<(), LangErrorTwo> {
+    fn visit_enum_path(&mut self, _: &EnumPathExpr) -> Result<(), LangError> {
         Ok(())
     }
-    fn visit_grouping(&mut self, _: &GroupingExpr) -> Result<(), LangErrorTwo> {
+    fn visit_grouping(&mut self, _: &GroupingExpr) -> Result<(), LangError> {
         Ok(())
     }
-    fn visit_literal(&mut self, literal: &LiteralExpr) -> Result<(), LangErrorTwo> {
+    fn visit_literal(&mut self, literal: &LiteralExpr) -> Result<(), LangError> {
         match literal.value.value_type {
             TypeAnnotation::User(ref user_type) => {
                 let value = self.env_entries.get(&self.env_id, &user_type).unwrap();
@@ -719,68 +717,65 @@ impl Visitor for Interpreter {
         }
         Ok(())
     }
-    fn visit_logical(&mut self, logical: &LogicalExpr) -> Result<(), LangErrorTwo> {
+    fn visit_logical(&mut self, logical: &LogicalExpr) -> Result<(), LangError> {
         Ok(self.visit_logical_expr(logical)?)
     }
-    fn visit_set(&mut self, set: &SetExpr) -> Result<(), LangErrorTwo> {
+    fn visit_set(&mut self, set: &SetExpr) -> Result<(), LangError> {
         Ok(self.visit_set_expr(set)?)
     }
-    fn visit_unary(&mut self, unary: &UnaryExpr) -> Result<(), LangErrorTwo> {
+    fn visit_unary(&mut self, unary: &UnaryExpr) -> Result<(), LangError> {
         Ok(self.visit_unary_expr(unary)?)
     }
-    fn visit_array(&mut self, array: &ArrayExpr) -> Result<(), LangErrorTwo> {
+    fn visit_array(&mut self, array: &ArrayExpr) -> Result<(), LangError> {
         Ok(self.visit_array_expr(array)?)
     }
-    fn visit_index(&mut self, index: &IndexExpr) -> Result<(), LangErrorTwo> {
+    fn visit_index(&mut self, index: &IndexExpr) -> Result<(), LangError> {
         Ok(self.visit_index_expr(index)?)
     }
     fn visit_set_array_element(
         &mut self,
         set_array_element: &SetArrayElementExpr,
-    ) -> Result<(), LangErrorTwo> {
+    ) -> Result<(), LangError> {
         Ok(self.visit_set_array_element_expr(set_array_element)?)
     }
-    fn visit_variable(&mut self, variable: &VariableExpr) -> Result<(), LangErrorTwo> {
+    fn visit_variable(&mut self, variable: &VariableExpr) -> Result<(), LangError> {
         Ok(self.look_up_variable(&variable.name)?)
     }
-    fn visit_self_ident(&mut self, self_ident: &SelfIdentExpr) -> Result<(), LangErrorTwo> {
+    fn visit_self_ident(&mut self, self_ident: &SelfIdentExpr) -> Result<(), LangError> {
         self.look_up_variable(&self_ident.keyword)?;
         Ok(())
     }
 
     // stmt
-    fn visit_break(&mut self) -> Result<(), LangErrorTwo> {
-        Err(LangErrorTwo::from(LangError::ControlFlow {
+    fn visit_break(&mut self) -> Result<(), LangError> {
+        Err(LangError::from(LangErrorType::ControlFlow {
             subtype: ControlFlow::Break,
         }))
     }
-    fn visit_enum(&mut self, _: &EnumStmt) -> Result<(), LangErrorTwo> {
+    fn visit_enum(&mut self, _: &EnumStmt) -> Result<(), LangError> {
         unimplemented!()
     }
-    fn visit_impl(&mut self, impl_stmt: &ImplStmt) -> Result<(), LangErrorTwo> {
+    fn visit_impl(&mut self, impl_stmt: &ImplStmt) -> Result<(), LangError> {
         Ok(self.visit_impl_stmt(impl_stmt)?)
     }
-    fn visit_impl_trait(&mut self, impl_trait: &ImplTraitStmt) -> Result<(), LangErrorTwo> {
+    fn visit_impl_trait(&mut self, impl_trait: &ImplTraitStmt) -> Result<(), LangError> {
         Ok(self.visit_impl_trait_stmt(impl_trait)?)
     }
-    fn visit_block(&mut self, block: &BlockStmt) -> Result<(), LangErrorTwo> {
+    fn visit_block(&mut self, block: &BlockStmt) -> Result<(), LangError> {
         let env = self.env_entries.entry_from(&self.env_id);
         self.execute_block(&block.statements, env)?;
         Ok(())
     }
-    fn visit_struct(&mut self, block: &StructStmt) -> Result<(), LangErrorTwo> {
+    fn visit_struct(&mut self, block: &StructStmt) -> Result<(), LangError> {
         Ok(self.visit_struct_stmt(block)?)
     }
-    fn visit_expression(&mut self, block: &ExpressionStmt) -> Result<(), LangErrorTwo> {
+    fn visit_expression(&mut self, block: &ExpressionStmt) -> Result<(), LangError> {
         Ok(self.visit_expr(&block.expression)?)
     }
-    fn visit_trait(&mut self, block: &TraitStmt) -> Result<(), LangErrorTwo> {
+    fn visit_trait(&mut self, block: &TraitStmt) -> Result<(), LangError> {
         Ok(self.visit_trait_stmt(block)?)
     }
-    fn visit_trait_function(
-        &mut self,
-        trait_fn_stmt: &TraitFunctionStmt,
-    ) -> Result<(), LangErrorTwo> {
+    fn visit_trait_function(&mut self, trait_fn_stmt: &TraitFunctionStmt) -> Result<(), LangError> {
         let trait_fn = Value::TraitFunction(Box::new(TraitFunctionValue {
             function: trait_fn_stmt.clone(),
         }));
@@ -788,7 +783,7 @@ impl Visitor for Interpreter {
             .push(TypedValue::new(trait_fn, TypeAnnotation::Fn));
         Ok(())
     }
-    fn visit_function(&mut self, function_stmt: &FunctionStmt) -> Result<(), LangErrorTwo> {
+    fn visit_function(&mut self, function_stmt: &FunctionStmt) -> Result<(), LangError> {
         let function =
             Value::Callable(Box::new(Callable::new(function_stmt.clone(), &self.env_id)));
         self.env_entries.define(
@@ -798,7 +793,7 @@ impl Visitor for Interpreter {
         );
         Ok(())
     }
-    fn visit_if(&mut self, if_stmt: &IfStmt) -> Result<(), LangErrorTwo> {
+    fn visit_if(&mut self, if_stmt: &IfStmt) -> Result<(), LangError> {
         self.evaluate(&if_stmt.condition)?;
         let eval = self.pop()?;
         if self.is_truthy(&eval.value) {
@@ -809,13 +804,13 @@ impl Visitor for Interpreter {
         }
         Ok(())
     }
-    fn visit_print(&mut self, print_stmt: &PrintStmt) -> Result<(), LangErrorTwo> {
+    fn visit_print(&mut self, print_stmt: &PrintStmt) -> Result<(), LangError> {
         self.evaluate(&print_stmt.expression)?;
         let value = self.pop()?;
         println!("{}", value.value);
         Ok(())
     }
-    fn visit_return(&mut self, return_stmt: &ReturnStmt) -> Result<(), LangErrorTwo> {
+    fn visit_return(&mut self, return_stmt: &ReturnStmt) -> Result<(), LangError> {
         let value = Expr::Literal(Box::new(LiteralExpr::new(TypedValue::new(
             Value::Unit,
             TypeAnnotation::Unit,
@@ -829,7 +824,7 @@ impl Visitor for Interpreter {
         self.stack.push(return_value);
         Ok(())
     }
-    fn visit_var(&mut self, var_stmt: &VarStmt) -> Result<(), LangErrorTwo> {
+    fn visit_var(&mut self, var_stmt: &VarStmt) -> Result<(), LangError> {
         let mut value = TypedValue::new(Value::Unit, TypeAnnotation::Unit);
         if let Some(ref initializer) = var_stmt.initializer {
             self.evaluate(&initializer)?;
@@ -841,7 +836,7 @@ impl Visitor for Interpreter {
             .to_type_annotation()
             .unwrap();
         if var_type_annotation != value.value_type {
-            return Err(LangError::new_runtime_error(
+            return Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::InvalidTypeAssignmentError {
                     reason: format!(
                         "Tried to assign a variable of type {} with an initializer of type {}",
@@ -860,17 +855,17 @@ impl Visitor for Interpreter {
             .push(TypedValue::new(Value::Unit, TypeAnnotation::Unit));
         Ok(())
     }
-    fn visit_while(&mut self, while_stmt: &WhileStmt) -> Result<(), LangErrorTwo> {
+    fn visit_while(&mut self, while_stmt: &WhileStmt) -> Result<(), LangError> {
         self.evaluate(&while_stmt.condition)?;
         let mut while_condition = self.pop()?;
         while self.is_truthy(&while_condition.value) {
             if let Err(error) = self.execute(&while_stmt.body) {
                 match error.context.get_context() {
-                    LangError::ControlFlow { .. } => {
+                    LangErrorType::ControlFlow { .. } => {
                         break;
                     }
                     other => {
-                        return Err(LangErrorTwo::from((*other).clone()));
+                        return Err(LangError::from((*other).clone()));
                     }
                 }
             }
