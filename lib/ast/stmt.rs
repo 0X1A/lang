@@ -131,7 +131,7 @@ pub struct WhileStmt {
 }
 
 impl TryInto<ImplStmt> for Stmt {
-    type Error = LangError;
+    type Error = LangErrorTwo;
     fn try_into(self) -> Result<ImplStmt, Self::Error> {
         match self {
             Stmt::Impl(impl_stmt) => Ok(*impl_stmt.clone()),
@@ -141,7 +141,7 @@ impl TryInto<ImplStmt> for Stmt {
 }
 
 impl<'a> TryInto<&'a ImplStmt> for &'a Stmt {
-    type Error = LangError;
+    type Error = LangErrorTwo;
     fn try_into(self) -> Result<&'a ImplStmt, Self::Error> {
         match self {
             Stmt::Impl(impl_stmt) => Ok(impl_stmt),
@@ -153,7 +153,7 @@ impl<'a> TryInto<&'a ImplStmt> for &'a Stmt {
 }
 
 impl<'a> TryInto<&'a ImplTraitStmt> for &'a Stmt {
-    type Error = LangError;
+    type Error = LangErrorTwo;
     fn try_into(self) -> Result<&'a ImplTraitStmt, Self::Error> {
         match self {
             Stmt::ImplTrait(impl_trait_stmt) => Ok(impl_trait_stmt),
@@ -165,7 +165,7 @@ impl<'a> TryInto<&'a ImplTraitStmt> for &'a Stmt {
 }
 
 impl<'a> TryInto<&'a TraitStmt> for &'a Stmt {
-    type Error = LangError;
+    type Error = LangErrorTwo;
     fn try_into(self) -> Result<&'a TraitStmt, Self::Error> {
         match self {
             Stmt::Trait(trait_stmt) => Ok(trait_stmt),
@@ -177,7 +177,7 @@ impl<'a> TryInto<&'a TraitStmt> for &'a Stmt {
 }
 
 impl<'a> TryInto<&'a StructStmt> for &'a Stmt {
-    type Error = LangError;
+    type Error = LangErrorTwo;
     fn try_into(self) -> Result<&'a StructStmt, Self::Error> {
         match self {
             Stmt::Struct(struct_stmt) => Ok(struct_stmt),

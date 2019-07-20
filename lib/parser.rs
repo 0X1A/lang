@@ -15,11 +15,11 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    fn expression(&mut self) -> Result<Expr, LangError> {
+    fn expression(&mut self) -> Result<Expr, LangErrorTwo> {
         Ok(self.assignment()?)
     }
 
-    fn and(&mut self) -> Result<Expr, LangError> {
+    fn and(&mut self) -> Result<Expr, LangErrorTwo> {
         let mut expr = self.equality()?;
         while self.matches(&[TokenType::And]) {
             let operator = self.previous();
@@ -33,7 +33,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn or(&mut self) -> Result<Expr, LangError> {
+    fn or(&mut self) -> Result<Expr, LangErrorTwo> {
         let mut expr = self.and()?;
         while self.matches(&[TokenType::Or]) {
             let operator = self.previous();
@@ -47,7 +47,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn assignment(&mut self) -> Result<Expr, LangError> {
+    fn assignment(&mut self) -> Result<Expr, LangErrorTwo> {
         let expr = self.or()?;
         if self.matches(&[TokenType::Equal]) {
             // Use equals for errors!
@@ -82,7 +82,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn equality(&mut self) -> Result<Expr, LangError> {
+    fn equality(&mut self) -> Result<Expr, LangErrorTwo> {
         let mut expression = self.comparison()?;
 
         while self.matches(&[TokenType::BangEqual, TokenType::EqualEqual]) {
@@ -97,7 +97,7 @@ impl Parser {
         Ok(expression)
     }
 
-    fn comparison(&mut self) -> Result<Expr, LangError> {
+    fn comparison(&mut self) -> Result<Expr, LangErrorTwo> {
         let mut expr = self.addition()?;
         while self.matches(&[
             TokenType::Greater,
@@ -116,7 +116,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn addition(&mut self) -> Result<Expr, LangError> {
+    fn addition(&mut self) -> Result<Expr, LangErrorTwo> {
         let mut expr = self.multiplication()?;
         while self.matches(&[TokenType::Minus, TokenType::Plus]) {
             let operator = self.previous();
@@ -130,7 +130,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn multiplication(&mut self) -> Result<Expr, LangError> {
+    fn multiplication(&mut self) -> Result<Expr, LangErrorTwo> {
         let mut expr = self.unary()?;
         while self.matches(&[TokenType::Slash, TokenType::Star]) {
             let operator = self.previous();
@@ -144,7 +144,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn unary(&mut self) -> Result<Expr, LangError> {
+    fn unary(&mut self) -> Result<Expr, LangErrorTwo> {
         if self.matches(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous();
             let right = self.unary()?;
@@ -153,7 +153,7 @@ impl Parser {
         Ok(self.call()?)
     }
 
-    fn call(&mut self) -> Result<Expr, LangError> {
+    fn call(&mut self) -> Result<Expr, LangErrorTwo> {
         let mut expr = self.primary()?;
         loop {
             if self.matches(&[TokenType::LeftParen]) {
@@ -169,7 +169,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn finish_call(&mut self, expr: &Expr) -> Result<Expr, LangError> {
+    fn finish_call(&mut self, expr: &Expr) -> Result<Expr, LangErrorTwo> {
         let mut arguments = Vec::new();
         if !self.check(&TokenType::RightParen) {
             loop {
@@ -190,7 +190,7 @@ impl Parser {
         })))
     }
 
-    fn primary(&mut self) -> Result<Expr, LangError> {
+    fn primary(&mut self) -> Result<Expr, LangErrorTwo> {
         if self.matches(&[TokenType::SelfIdent]) {
             return Ok(Expr::SelfIdent(Box::new(SelfIdentExpr {
                 keyword: self.previous(),
@@ -342,7 +342,7 @@ impl Parser {
 
     /// Checks if the current token in source matches `token_type`, errors using the string `string`
     /// on failure.
-    fn pop_expect(&mut self, token_type: &TokenType, string: &str) -> Result<Token, LangError> {
+    fn pop_expect(&mut self, token_type: &TokenType, string: &str) -> Result<Token, LangErrorTwo> {
         if self.check(&token_type) {
             return Ok(self.advance());
         }
@@ -426,13 +426,13 @@ impl Parser {
         }
     }
 
-    fn print_statement(&mut self) -> Result<Stmt, LangError> {
+    fn print_statement(&mut self) -> Result<Stmt, LangErrorTwo> {
         let value = self.expression()?;
         self.pop_expect(&TokenType::SemiColon, "Expect ';' after value.")?;
         Ok(Stmt::Print(Box::new(PrintStmt { expression: value })))
     }
 
-    fn expression_statement(&mut self) -> Result<Stmt, LangError> {
+    fn expression_statement(&mut self) -> Result<Stmt, LangErrorTwo> {
         let expr = self.expression()?;
         self.pop_expect(&TokenType::SemiColon, "Expect ';' after expression.")?;
         Ok(Stmt::Expression(Box::new(ExpressionStmt {
@@ -440,7 +440,7 @@ impl Parser {
         })))
     }
 
-    fn if_statement(&mut self) -> Result<Stmt, LangError> {
+    fn if_statement(&mut self) -> Result<Stmt, LangErrorTwo> {
         self.pop_expect(&TokenType::LeftParen, "Expect '(' after an 'if'.")?;
         let condition = self.expression()?;
         self.pop_expect(&TokenType::RightParen, "Expect ')' after 'if' condition.")?;
@@ -458,7 +458,7 @@ impl Parser {
         })))
     }
 
-    fn while_statement(&mut self) -> Result<Stmt, LangError> {
+    fn while_statement(&mut self) -> Result<Stmt, LangErrorTwo> {
         self.pop_expect(&TokenType::LeftParen, "Expect '(' after 'while'")?;
         let condition = self.expression()?;
         self.pop_expect(&TokenType::RightParen, "Expect ')' after condition")?;
@@ -466,7 +466,7 @@ impl Parser {
         Ok(Stmt::While(Box::new(WhileStmt { body, condition })))
     }
 
-    fn for_statement(&mut self) -> Result<Stmt, LangError> {
+    fn for_statement(&mut self) -> Result<Stmt, LangErrorTwo> {
         self.pop_expect(&TokenType::LeftParen, "Expect '(' after 'for'")?;
         let initializer;
         if self.matches(&[TokenType::SemiColon]) {
@@ -520,7 +520,7 @@ impl Parser {
         Ok(body)
     }
 
-    fn return_statement(&mut self) -> Result<Stmt, LangError> {
+    fn return_statement(&mut self) -> Result<Stmt, LangErrorTwo> {
         let keyword = self.previous();
         let value = if !self.check(&TokenType::SemiColon) {
             self.expression()?
@@ -534,7 +534,7 @@ impl Parser {
         Ok(Stmt::Return(Box::new(ReturnStmt { keyword, value })))
     }
 
-    fn statement(&mut self) -> Result<Stmt, LangError> {
+    fn statement(&mut self) -> Result<Stmt, LangErrorTwo> {
         if self.matches(&[TokenType::Break]) {
             return Ok(self.break_statement()?);
         }
@@ -561,12 +561,12 @@ impl Parser {
         Ok(self.expression_statement()?)
     }
 
-    fn break_statement(&mut self) -> Result<Stmt, LangError> {
+    fn break_statement(&mut self) -> Result<Stmt, LangErrorTwo> {
         self.pop_expect(&TokenType::SemiColon, "expected ';' after 'break'")?;
         Ok(Stmt::Break)
     }
 
-    fn block(&mut self) -> Result<Vec<Stmt>, LangError> {
+    fn block(&mut self) -> Result<Vec<Stmt>, LangErrorTwo> {
         let mut statements = Vec::new();
         while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
             statements.push(self.declaration()?);
@@ -576,7 +576,7 @@ impl Parser {
         Ok(statements)
     }
 
-    fn let_declaration(&mut self) -> Result<Stmt, LangError> {
+    fn let_declaration(&mut self) -> Result<Stmt, LangErrorTwo> {
         let name = self.pop_expect(&TokenType::Identifier, "Expected variable name")?;
         self.pop_expect(&TokenType::Colon, "Expected colon after variable name")?;
         let type_annotation_token = self.advance();
@@ -600,7 +600,7 @@ impl Parser {
         })))
     }
 
-    fn enum_declaration(&mut self) -> Result<Stmt, LangError> {
+    fn enum_declaration(&mut self) -> Result<Stmt, LangErrorTwo> {
         let name = self.pop_expect(&TokenType::Identifier, "expected identifier")?;
         self.pop_expect(&TokenType::LeftBrace, "expected left brace")?;
         let mut item_list = Vec::new();
@@ -631,7 +631,7 @@ impl Parser {
         Ok(Stmt::Enum(Box::new(EnumStmt { name, item_list })))
     }
 
-    fn trait_impl_declaration(&mut self, trait_name: Token) -> Result<Stmt, LangError> {
+    fn trait_impl_declaration(&mut self, trait_name: Token) -> Result<Stmt, LangErrorTwo> {
         let impl_trait_name =
             self.pop_expect(&TokenType::Identifier, "expected identifier after for")?;
         let mut trait_fn_declarations = Vec::new();
@@ -660,7 +660,7 @@ impl Parser {
         })))
     }
 
-    fn trait_declaration(&mut self) -> Result<Stmt, LangError> {
+    fn trait_declaration(&mut self) -> Result<Stmt, LangErrorTwo> {
         let trait_name =
             self.pop_expect(&TokenType::Identifier, "expected identifier for trait")?;
         let mut trait_fn_declarations = Vec::new();
@@ -689,7 +689,7 @@ impl Parser {
         })))
     }
 
-    fn impl_declaration(&mut self) -> Result<Stmt, LangError> {
+    fn impl_declaration(&mut self) -> Result<Stmt, LangErrorTwo> {
         let name = self.pop_expect(&TokenType::Identifier, "expected identifier")?;
         if self.matches(&[TokenType::For]) {
             Ok(self.trait_impl_declaration(name)?)
@@ -698,7 +698,7 @@ impl Parser {
         }
     }
 
-    fn method_impl_declaration(&mut self, name: Token) -> Result<Stmt, LangError> {
+    fn method_impl_declaration(&mut self, name: Token) -> Result<Stmt, LangErrorTwo> {
         let mut fn_declarations = Vec::new();
         self.pop_expect(
             &TokenType::LeftBrace,
@@ -724,7 +724,7 @@ impl Parser {
         })))
     }
 
-    fn trait_function_declaration(&mut self) -> Result<Stmt, LangError> {
+    fn trait_function_declaration(&mut self) -> Result<Stmt, LangErrorTwo> {
         let name = self.pop_expect(&TokenType::Identifier, "function: Expect function name")?;
 
         self.pop_expect(&TokenType::LeftParen, "Expect '(' after function name.")?;
@@ -758,7 +758,7 @@ impl Parser {
         })))
     }
 
-    fn function(&mut self, kind: &str) -> Result<Stmt, LangError> {
+    fn function(&mut self, kind: &str) -> Result<Stmt, LangErrorTwo> {
         let name = self.pop_expect(
             &TokenType::Identifier,
             &format!("function: Expect {} name", kind),
@@ -804,7 +804,7 @@ impl Parser {
         })))
     }
 
-    fn struct_declaration(&mut self) -> Result<Stmt, LangError> {
+    fn struct_declaration(&mut self) -> Result<Stmt, LangErrorTwo> {
         let name = self.pop_expect(&TokenType::Identifier, "Expected struct name")?;
         self.pop_expect(&TokenType::LeftBrace, "Expected '{' before struct body")?;
 
@@ -837,7 +837,7 @@ impl Parser {
         Ok(Stmt::Struct(Box::new(StructStmt { fields, name })))
     }
 
-    fn declaration(&mut self) -> Result<Stmt, LangError> {
+    fn declaration(&mut self) -> Result<Stmt, LangErrorTwo> {
         if self.matches(&[TokenType::Struct]) {
             match self.struct_declaration() {
                 Ok(decl) => {
@@ -881,7 +881,7 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Stmt>, LangError> {
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, LangErrorTwo> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
             statements.push(self.declaration()?)

@@ -4,7 +4,7 @@ extern crate clap;
 use clap::App;
 use lang::{error::*, lang::*};
 
-fn main() -> Result<(), LangError> {
+fn main() -> Result<(), LangErrorTwo> {
     let clap_config = load_yaml!("../lang.yaml");
     let arg_matches = App::from_yaml(clap_config).get_matches();
     if let Some(file_path) = arg_matches.value_of("run_file") {

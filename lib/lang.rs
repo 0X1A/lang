@@ -31,12 +31,12 @@ impl<'a> Lang<'a> {
 }
 
 impl<'a> Lang<'a> {
-    pub fn setup_logging(_: u64) -> Result<(), LangError> {
+    pub fn setup_logging(_: u64) -> Result<(), LangErrorTwo> {
         env_logger::builder().default_format_timestamp(false).init();
         Ok(())
     }
 
-    pub fn build_statements(&mut self) -> Result<Vec<Stmt>, LangError> {
+    pub fn build_statements(&mut self) -> Result<Vec<Stmt>, LangErrorTwo> {
         if let Some(ref mut scanner) = self.scanner {
             let tokens: Vec<Token> = scanner.scan_tokens()?;
             debug!("{:?}", tokens);
@@ -48,7 +48,7 @@ impl<'a> Lang<'a> {
         }
     }
 
-    pub fn run(&mut self) -> Result<(), LangError> {
+    pub fn run(&mut self) -> Result<(), LangErrorTwo> {
         let statements = self.build_statements();
         let mut resolver = Resolver::new(&mut self.interpreter);
         match statements {
@@ -63,7 +63,7 @@ impl<'a> Lang<'a> {
         Ok(())
     }
 
-    pub fn build_and_run_statements(&mut self, script: &str) -> Result<(), LangError> {
+    pub fn build_and_run_statements(&mut self, script: &str) -> Result<(), LangErrorTwo> {
         let mut scanner = Scanner::new(script);
         let tokens: Vec<Token> = scanner.scan_tokens()?;
         let mut resolver = Resolver::new(&mut self.interpreter);
@@ -74,24 +74,24 @@ impl<'a> Lang<'a> {
         Ok(())
     }
 
-    pub fn print_ast(&mut self) -> Result<(), LangError> {
+    pub fn print_ast(&mut self) -> Result<(), LangErrorTwo> {
         unimplemented!()
     }
 
-    pub fn error(token: &Token, message: &str) -> LangError {
+    pub fn error(token: &Token, message: &str) -> LangErrorTwo {
         if token.token_type == TokenType::Eof {
             return Lang::report(token.line, "at end ", message);
         }
         Lang::report(token.line, &format!("at '{}'", token.lexeme), message)
     }
 
-    pub fn report(line: u64, ware: &str, message: &str) -> LangError {
+    pub fn report(line: u64, ware: &str, message: &str) -> LangErrorTwo {
         LangError::new_runtime_error(RuntimeErrorType::GenericError {
             reason: format!("[line {}] Error {}: {}", line, ware, message),
         })
     }
 
-    pub fn run_prompt(&mut self) -> Result<(), LangError> {
+    pub fn run_prompt(&mut self) -> Result<(), LangErrorTwo> {
         let mut input = String::new();
         loop {
             print!("> ");
@@ -101,7 +101,7 @@ impl<'a> Lang<'a> {
         }
     }
 
-    pub fn read_file(file_path: String) -> Result<String, LangError> {
+    pub fn read_file(file_path: String) -> Result<String, LangErrorTwo> {
         let mut file = File::open(file_path)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;

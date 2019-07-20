@@ -123,7 +123,7 @@ impl LiteralExpr {
 }
 
 impl<'a> TryInto<&'a AssignExpr> for &'a Expr {
-    type Error = LangError;
+    type Error = LangErrorTwo;
 
     fn try_into(self) -> Result<&'a AssignExpr, Self::Error> {
         match self {
@@ -142,7 +142,7 @@ impl<'a> Into<Expr> for &'a AssignExpr {
 }
 
 impl<'a> TryInto<&'a CallExpr> for &'a Expr {
-    type Error = LangError;
+    type Error = LangErrorTwo;
 
     fn try_into(self) -> Result<&'a CallExpr, Self::Error> {
         match self {
@@ -155,7 +155,7 @@ impl<'a> TryInto<&'a CallExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a GetExpr> for &'a Expr {
-    type Error = LangError;
+    type Error = LangErrorTwo;
 
     fn try_into(self) -> Result<&'a GetExpr, Self::Error> {
         match self {
@@ -168,7 +168,7 @@ impl<'a> TryInto<&'a GetExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a UnaryExpr> for &'a Expr {
-    type Error = LangError;
+    type Error = LangErrorTwo;
 
     fn try_into(self) -> Result<&'a UnaryExpr, Self::Error> {
         match self {
@@ -181,7 +181,7 @@ impl<'a> TryInto<&'a UnaryExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a LogicalExpr> for &'a Expr {
-    type Error = LangError;
+    type Error = LangErrorTwo;
 
     fn try_into(self) -> Result<&'a LogicalExpr, Self::Error> {
         match self {
@@ -194,7 +194,7 @@ impl<'a> TryInto<&'a LogicalExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a SetExpr> for &'a Expr {
-    type Error = LangError;
+    type Error = LangErrorTwo;
 
     fn try_into(self) -> Result<&'a SetExpr, Self::Error> {
         match self {
@@ -207,7 +207,7 @@ impl<'a> TryInto<&'a SetExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a SetArrayElementExpr> for &'a Expr {
-    type Error = LangError;
+    type Error = LangErrorTwo;
 
     fn try_into(self) -> Result<&'a SetArrayElementExpr, Self::Error> {
         match self {
@@ -220,7 +220,7 @@ impl<'a> TryInto<&'a SetArrayElementExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a ArrayExpr> for &'a Expr {
-    type Error = LangError;
+    type Error = LangErrorTwo;
 
     fn try_into(self) -> Result<&'a ArrayExpr, Self::Error> {
         match self {
@@ -233,7 +233,7 @@ impl<'a> TryInto<&'a ArrayExpr> for &'a Expr {
 }
 
 impl<'a> TryInto<&'a IndexExpr> for &'a Expr {
-    type Error = LangError;
+    type Error = LangErrorTwo;
 
     fn try_into(self) -> Result<&'a IndexExpr, Self::Error> {
         match self {

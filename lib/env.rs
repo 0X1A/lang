@@ -80,7 +80,7 @@ impl Environment {
         EnvironmentId { index: env_id }
     }
 
-    pub fn get_at(&mut self, index: usize, name: &str) -> Result<TypedValue, LangError> {
+    pub fn get_at(&mut self, index: usize, name: &str) -> Result<TypedValue, LangErrorTwo> {
         self.entries.get(index).map_or(
             Err(LangError::new_runtime_error(
                 RuntimeErrorType::GenericError {
@@ -107,7 +107,7 @@ impl Environment {
         )
     }
 
-    pub fn get(&self, env_id: &EnvironmentId, name: &str) -> Result<TypedValue, LangError> {
+    pub fn get(&self, env_id: &EnvironmentId, name: &str) -> Result<TypedValue, LangErrorTwo> {
         if self[env_id].values.contains_key(name) {
             return Ok(self[env_id].values[name].clone());
         } else if let Some(enclosing) = self[env_id].enclosing.clone() {
@@ -138,7 +138,7 @@ impl Environment {
         env_id: &EnvironmentId,
         name: &str,
         value: TypedValue,
-    ) -> Result<(), LangError> {
+    ) -> Result<(), LangErrorTwo> {
         debug!(
             "{}:{} Assigning '{}' with value '{:?}' at index '{}'",
             file!(),
@@ -173,7 +173,7 @@ impl Environment {
         name: &Token,
         value: &TypedValue,
         index: usize,
-    ) -> Result<(), LangError> {
+    ) -> Result<(), LangErrorTwo> {
         if let Some(arr_value) = self[env_id].values.get_mut(&name.lexeme) {
             match arr_value.value {
                 Value::Array(ref mut arr) => {
@@ -232,7 +232,11 @@ impl Environment {
         false
     }
 
-    pub fn get_ref(&self, env_id: &EnvironmentId, name: &Token) -> Result<&TypedValue, LangError> {
+    pub fn get_ref(
+        &self,
+        env_id: &EnvironmentId,
+        name: &Token,
+    ) -> Result<&TypedValue, LangErrorTwo> {
         debug!(
             "{}:{} Looking for token with lexeme '{}' at index '{}' env: {:?}",
             file!(),
@@ -261,9 +265,9 @@ impl Environment {
         env_id: &EnvironmentId,
         name: &str,
         closure: Closure,
-    ) -> Result<(), LangError>
+    ) -> Result<(), LangErrorTwo>
     where
-        Closure: FnOnce(&mut TypedValue) -> Result<(), LangError>,
+        Closure: FnOnce(&mut TypedValue) -> Result<(), LangErrorTwo>,
     {
         if let Some(value) = self[env_id].values.get_mut(name) {
             closure(value)?;

@@ -4,6 +4,7 @@ use std::{
     io, num, str, time,
 };
 
+use failure::{Backtrace, Context, Fail};
 const ISSUES_URL: &str = "https://github.com/0X1A/lang/issues";
 
 #[derive(Hash, PartialEq, Eq)]
@@ -28,7 +29,7 @@ pub fn error_message(msg_type: &ErrMessage) -> String {
     }
 }
 
-#[derive(Fail)]
+#[derive(Fail, Clone)]
 pub enum RuntimeErrorType {
     #[fail(display = "Undefined variable: {}", reason)]
     UndefinedVariable { reason: String },
@@ -52,7 +53,7 @@ pub enum RuntimeErrorType {
     GenericError { reason: String },
 }
 
-#[derive(Fail, Debug)]
+#[derive(Fail, Debug, Clone)]
 pub enum ControlFlow {
     #[fail(display = "Break")]
     Break,
@@ -75,7 +76,7 @@ impl Debug for RuntimeErrorType {
     }
 }
 
-#[derive(Fail)]
+#[derive(Fail, Clone)]
 pub enum LangError {
     #[fail(display = "Parser error: {}", reason)]
     ParserError { reason: String },
@@ -104,70 +105,65 @@ impl Debug for LangError {
     }
 }
 
-pub enum LangErrorType {
-    ParserError,
-    RuntimeError,
-}
-
 impl LangError {
-    pub fn new_parser_error(reason: String) -> LangError {
-        LangError::ParserError { reason }
+    pub fn new_parser_error(reason: String) -> LangErrorTwo {
+        LangErrorTwo::from(LangError::ParserError { reason })
     }
 
-    pub fn new_iie_error(reason: String) -> LangError {
-        LangError::InternalError { reason }
+    pub fn new_iie_error(reason: String) -> LangErrorTwo {
+        LangErrorTwo::from(LangError::InternalError { reason })
     }
 
-    pub fn new_runtime_error(subtype: RuntimeErrorType) -> LangError {
-        LangError::RuntimeError { subtype }
+    pub fn new_runtime_error(subtype: RuntimeErrorType) -> LangErrorTwo {
+        LangErrorTwo::from(LangError::RuntimeError { subtype })
     }
 }
 
-impl From<io::Error> for LangError {
-    fn from(err: io::Error) -> LangError {
-        LangError::RuntimeError {
+impl From<io::Error> for LangErrorTwo {
+    fn from(err: io::Error) -> LangErrorTwo {
+        LangErrorTwo::from(LangError::RuntimeError {
             subtype: {
                 RuntimeErrorType::IoError {
                     reason: err.description().to_string(),
                 }
             },
-        }
+        })
     }
 }
 
-impl From<log::SetLoggerError> for LangError {
-    fn from(err: log::SetLoggerError) -> LangError {
-        LangError::RuntimeError {
+impl From<log::SetLoggerError> for LangErrorTwo {
+    fn from(err: log::SetLoggerError) -> LangErrorTwo {
+        LangErrorTwo::from(LangError::RuntimeError {
             subtype: {
                 RuntimeErrorType::LogError {
                     reason: err.description().to_string(),
                 }
             },
-        }
+        })
     }
 }
 
-impl From<num::ParseFloatError> for LangError {
-    fn from(err: num::ParseFloatError) -> LangError {
-        LangError::ParserError {
+impl From<num::ParseFloatError> for LangErrorTwo {
+    fn from(err: num::ParseFloatError) -> LangErrorTwo {
+        LangErrorTwo::from(LangError::ParserError {
             reason: err.description().to_string(),
-        }
+        })
     }
 }
 
-impl From<num::ParseIntError> for LangError {
-    fn from(err: num::ParseIntError) -> LangError {
-        LangError::ParserError {
+impl From<num::ParseIntError> for LangErrorTwo {
+    fn from(err: num::ParseIntError) -> LangErrorTwo {
+        LangErrorTwo::from(LangError::ParserError {
             reason: err.description().to_string(),
-        }
+        })
     }
 }
 
-impl From<str::ParseBoolError> for LangError {
-    fn from(err: str::ParseBoolError) -> LangError {
-        LangError::ParserError {
+impl From<str::ParseBoolError> for LangErrorTwo {
+    fn from(err: str::ParseBoolError) -> LangErrorTwo {
+        LangErrorTwo::from(LangError::ParserError {
             reason: err.description().to_string(),
-        }
+        })
     }
 }
 
@@ -180,5 +176,34 @@ impl From<time::SystemTimeError> for LangError {
                 }
             },
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct LangErrorTwo {
+    pub context: Context<LangError>,
+}
+
+impl fmt::Display for LangErrorTwo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.context.get_context(), f)
+    }
+}
+
+impl LangErrorTwo {
+    pub fn from(e: LangError) -> LangErrorTwo {
+        LangErrorTwo {
+            context: Context::new(e),
+        }
+    }
+}
+
+impl Fail for LangErrorTwo {
+    fn cause(&self) -> Option<&Fail> {
+        self.context.cause()
+    }
+
+    fn backtrace(&self) -> Option<&Backtrace> {
+        self.context.backtrace()
     }
 }
