@@ -6,7 +6,8 @@ use crate::error::*;
 use crate::syntax::span::*;
 use crate::syntax::token::*;
 
-use nom::{character::complete::one_of, character::complete::char, IResult};
+use nom::bytes::complete::tag;
+use nom::{character::complete::char, character::complete::one_of, IResult};
 
 trait SubStr {
     fn substr(&self, beg: usize, end: usize) -> String;
@@ -83,7 +84,7 @@ impl<'a> ScannerTwo<'a> {
         if let Some(next) = self.source.chars().nth(self.current - 1) {
             return Ok(next);
         } else {
-            Err(LangError::new_parser_error(
+            Err(LangErrorType::new_parser_error(
                 "Reached end of source at advance()".to_string(),
             ))
         }
@@ -117,7 +118,7 @@ impl<'a> ScannerTwo<'a> {
 
     pub fn at_index(&self, index: usize) -> Result<TokenType, LangError> {
         self.tokens.get(index).map_or(
-            Err(LangError::new_parser_error(
+            Err(LangErrorType::new_parser_error(
                 "Tried to peek token when empty".to_string(),
             )),
             |token| Ok(token.token_type.clone()),
@@ -127,7 +128,7 @@ impl<'a> ScannerTwo<'a> {
     /// Returns the last token within `tokens`, errors when the token vector is empty
     pub fn prev_token(&self) -> Result<TokenType, LangError> {
         self.tokens.last().map_or(
-            Err(LangError::new_parser_error(
+            Err(LangErrorType::new_parser_error(
                 "Tried to peek token when empty".to_string(),
             )),
             |token| Ok(token.token_type.clone()),
@@ -286,7 +287,7 @@ impl<'a> ScannerTwo<'a> {
                 } else if c.is_alphanumeric() || c == '_' {
                     self.identifier()?;
                 } else {
-                    return Err(LangError::new_parser_error(format!(
+                    return Err(LangErrorType::new_parser_error(format!(
                         "Unexpected character '{}'",
                         c
                     )));
@@ -308,7 +309,7 @@ impl<'a> ScannerTwo<'a> {
             self.pop()?;
         }
         if self.is_at_end() {
-            return Err(LangError::new_parser_error(
+            return Err(LangErrorType::new_parser_error(
                 "Unterminated string".to_string(),
             ));
         }
@@ -322,7 +323,7 @@ impl<'a> ScannerTwo<'a> {
     fn template_type(&mut self) -> Result<TypeAnnotation, LangError> {
         let less = self.pop()?;
         if less != '<' {
-            return Err(LangError::new_parser_error(
+            return Err(LangErrorType::new_parser_error(
                 "Expected '<' after template type".to_string(),
             ));
         }
@@ -335,7 +336,7 @@ impl<'a> ScannerTwo<'a> {
         }
         let greater = self.pop()?;
         if greater != '>' {
-            return Err(LangError::new_parser_error(
+            return Err(LangErrorType::new_parser_error(
                 "Expected '>' after template type".to_string(),
             ));
         }

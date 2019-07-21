@@ -36,7 +36,7 @@ impl TypeAnnotation {
         if let TypeAnnotation::Array(element_type) = array {
             return Ok(*element_type.clone());
         }
-        Err(LangError::new_iie_error(
+        Err(LangErrorType::new_iie_error(
             "failed to get array element type".to_string(),
         ))
     }
@@ -44,7 +44,7 @@ impl TypeAnnotation {
     pub fn from_token_type(token_type: &TokenType) -> Result<TypeAnnotation, LangError> {
         match token_type {
             TokenType::Type(type_annotation) => Ok(type_annotation.clone()),
-            _ => Err(LangError::new_parser_error(
+            _ => Err(LangErrorType::new_parser_error(
                 "failed type annotation extraction".to_string(),
             )),
         }
@@ -204,7 +204,7 @@ impl TokenType {
     pub fn to_type_annotation(&self) -> Result<TypeAnnotation, LangError> {
         match self {
             TokenType::Type(type_annotation) => Ok(type_annotation.clone()),
-            _ => Err(LangError::new_parser_error(
+            _ => Err(LangErrorType::new_parser_error(
                 "Failed type annotation extraction".to_string(),
             )),
         }

@@ -621,7 +621,7 @@ impl Parser {
                 comma_count += 1;
             }
             if comma_count < item_list.len() - 1 && !item_list.is_empty() {
-                return Err(LangError::new_parser_error(
+                return Err(LangErrorType::new_parser_error(
                     "need comma after enum item".to_string(),
                 ));
             }
@@ -826,7 +826,7 @@ impl Parser {
                 type_annotation.token_type.to_type_annotation()?,
             ));
             if comma_count < fields.len() - 1 && !fields.is_empty() {
-                return Err(LangError::new_parser_error(
+                return Err(LangErrorType::new_parser_error(
                     "need comma after field declaration".to_string(),
                 ));
             }

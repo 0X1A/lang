@@ -5,9 +5,8 @@ use std::slice::Iter;
 use std::str::{CharIndices, Chars};
 
 use nom::{
-    AsBytes, Compare, CompareResult, FindSubstring, FindToken, InputIter, InputLength, InputTake,
-    InputTakeAtPosition, Offset, Slice,
-    error::ParseError, error::ErrorKind
+    error::ErrorKind, error::ParseError, AsBytes, Compare, CompareResult, FindSubstring, FindToken,
+    InputIter, InputLength, InputTake, InputTakeAtPosition, Offset, Slice,
 };
 
 #[derive(Debug, Clone)]
@@ -133,7 +132,10 @@ gen_slice_impl!(&'a [u8], RangeFrom<usize>, |range: &RangeFrom<usize>| range
     == 0);
 gen_slice_impl!(&'a [u8], RangeFull, |_| true);
 
-impl<T> InputTake for Span<T> where Self: Slice<RangeFrom<usize>> + Slice<RangeTo<usize>> {
+impl<T> InputTake for Span<T>
+where
+    Self: Slice<RangeFrom<usize>> + Slice<RangeTo<usize>>,
+{
     fn take(&self, count: usize) -> Self {
         self.slice(..count)
     }
@@ -155,7 +157,7 @@ macro_rules! gen_compare_impl {
                 self.input.compare_no_case(t)
             }
         }
-    }
+    };
 }
 
 gen_compare_impl!(&'b str, &'a str);
