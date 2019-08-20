@@ -21,11 +21,6 @@ pub struct Lang<'a> {
 
 impl<'a> Lang<'a> {
     pub fn new(script: Option<&'a str>) -> Lang<'a> {
-        let scanner = if let Some(give_script) = script {
-            Some(Scanner::new(give_script))
-        } else {
-            None
-        };
         let scanner_two = if let Some(give_script) = script {
             Some(ScannerTwo::new(give_script))
         } else {
@@ -33,7 +28,7 @@ impl<'a> Lang<'a> {
         };
         Lang {
             interpreter: Interpreter::new(),
-            scanner,
+            scanner: None,
             scanner_two,
         }
     }
@@ -48,7 +43,9 @@ impl<'a> Lang<'a> {
     pub fn build_statements(&mut self) -> Result<Vec<Stmt>, LangError> {
         if let Some(ref mut scanner) = self.scanner_two {
             let tokens: Vec<TokenTwo> = scanner.scan_tokens()?;
-            debug!("scanner_two {:?}", tokens);
+            for token in tokens {
+                debug!("{:?}", token);
+            }
         }
         if let Some(ref mut scanner) = self.scanner {
             let tokens: Vec<Token> = scanner.scan_tokens()?;
@@ -92,11 +89,10 @@ impl<'a> Lang<'a> {
     }
 
     pub fn error(token: &Token, message: &str) -> LangError {
-        unimplemented!()
-        /*         if token.token_type == TokenType::Eof {
+        /*         if token.token_type == syntax::TokenType::Eof {
             return Lang::report(token.line, "at end ", message);
-        }
-        Lang::report(token.line, &format!("at '{}'", token.lexeme), message) */
+        } */
+        Lang::report(token.line, &format!("at '{}'", token.lexeme), message)
     }
 
     pub fn report(line: u64, ware: &str, message: &str) -> LangError {

@@ -17,7 +17,7 @@ pub trait CallableTrait {
     ) -> Result<TypedValue, LangError>;
     fn bind(
         &self,
-        struct_instance: &StructInstanceTrait,
+        struct_instance: &dyn StructInstanceTrait,
         interpreter: &mut Interpreter,
     ) -> Result<(), LangError>;
     fn get_params(&self) -> Vec<VariableData>;
@@ -32,14 +32,14 @@ impl Clone for Box<dyn CallableTrait> {
 
 // TODO (?)
 // Don't think any functions should ever be equal
-impl PartialEq for CallableTrait {
+impl PartialEq for dyn CallableTrait {
     #[inline(always)]
-    fn eq(&self, _: &CallableTrait) -> bool {
+    fn eq(&self, _: &dyn CallableTrait) -> bool {
         false
     }
 }
 
-impl Debug for CallableTrait {
+impl Debug for dyn CallableTrait {
     #[inline(always)]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.get_name())

@@ -94,9 +94,9 @@ pub enum Value {
     Unit,
 }
 
-impl<'a> TryInto<&'a StructInstanceTrait> for &'a Value {
+impl<'a> TryInto<&'a dyn StructInstanceTrait> for &'a Value {
     type Error = LangError;
-    fn try_into(self) -> Result<&'a StructInstanceTrait, Self::Error> {
+    fn try_into(self) -> Result<&'a dyn StructInstanceTrait, Self::Error> {
         match self {
             Value::Struct(struct_value) => Ok(&**struct_value),
             _ => Err(LangErrorType::new_iie_error(error_message(
@@ -106,9 +106,9 @@ impl<'a> TryInto<&'a StructInstanceTrait> for &'a Value {
     }
 }
 
-impl<'a> TryInto<&'a mut StructInstanceTrait> for &'a mut Value {
+impl<'a> TryInto<&'a mut dyn StructInstanceTrait> for &'a mut Value {
     type Error = LangError;
-    fn try_into(self) -> Result<&'a mut StructInstanceTrait, Self::Error> {
+    fn try_into(self) -> Result<&'a mut dyn StructInstanceTrait, Self::Error> {
         match self {
             Value::Struct(struct_value) => Ok(&mut **struct_value),
             _ => Err(LangErrorType::new_iie_error(error_message(
@@ -118,9 +118,9 @@ impl<'a> TryInto<&'a mut StructInstanceTrait> for &'a mut Value {
     }
 }
 
-impl<'a> TryInto<&'a CallableTrait> for &'a Value {
+impl<'a> TryInto<&'a dyn CallableTrait> for &'a Value {
     type Error = LangError;
-    fn try_into(self) -> Result<&'a CallableTrait, Self::Error> {
+    fn try_into(self) -> Result<&'a dyn CallableTrait, Self::Error> {
         match self {
             Value::Callable(struct_value) => Ok(&**struct_value),
             _ => Err(LangErrorType::new_iie_error(error_message(
@@ -358,16 +358,16 @@ impl PartialOrd for Value {
 }
 
 pub trait StructInstanceTrait: CallableTrait + StructTrait + Debug {
-    fn box_clone(&self) -> Box<StructInstanceTrait>;
+    fn box_clone(&self) -> Box<dyn StructInstanceTrait>;
     // For constructors
-    fn callable_trait(&self) -> &CallableTrait;
-    fn struct_trait(&self) -> &StructTrait;
+    fn callable_trait(&self) -> &dyn CallableTrait;
+    fn struct_trait(&self) -> &dyn StructTrait;
     fn set_instance_name(&mut self, name: String);
     fn get_instance_name(&self) -> String;
 }
 
 impl StructInstanceTrait for StructValue {
-    fn box_clone(&self) -> Box<StructInstanceTrait> {
+    fn box_clone(&self) -> Box<dyn StructInstanceTrait> {
         Box::new((*self).clone())
     }
 
@@ -379,17 +379,17 @@ impl StructInstanceTrait for StructValue {
         self.instance_name.clone()
     }
 
-    fn struct_trait(&self) -> &StructTrait {
+    fn struct_trait(&self) -> &dyn StructTrait {
         self
     }
 
-    fn callable_trait(&self) -> &CallableTrait {
+    fn callable_trait(&self) -> &dyn CallableTrait {
         self
     }
 }
 
-impl Clone for Box<StructInstanceTrait> {
-    fn clone(&self) -> Box<StructInstanceTrait> {
+impl Clone for Box<dyn StructInstanceTrait> {
+    fn clone(&self) -> Box<dyn StructInstanceTrait> {
         StructInstanceTrait::box_clone(&**self)
     }
 }
@@ -620,7 +620,7 @@ impl CallableTrait for StructValue {
         Some(TypeAnnotation::User(self.struct_stmt.name.lexeme.clone()))
     }
 
-    fn bind(&self, _: &StructInstanceTrait, _: &mut Interpreter) -> Result<(), LangError> {
+    fn bind(&self, _: &dyn StructInstanceTrait, _: &mut Interpreter) -> Result<(), LangError> {
         unimplemented!()
     }
 
@@ -694,7 +694,7 @@ impl StructTrait for StructValue {
             |value| {
                 let callable_value = value.clone();
                 {
-                    let callable: &CallableTrait = (&callable_value.value).try_into()?;
+                    let callable: &dyn CallableTrait = (&callable_value.value).try_into()?;
                     callable.bind(self, interpreter)?;
                 }
                 Ok(callable_value)
@@ -798,7 +798,7 @@ impl CallableTrait for Callable {
 
     fn bind(
         &self,
-        struct_instance: &StructInstanceTrait,
+        struct_instance: &dyn StructInstanceTrait,
         interpreter: &mut Interpreter,
     ) -> Result<(), LangError> {
         let value = TypedValue::new(

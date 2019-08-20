@@ -6,8 +6,192 @@ use crate::error::*;
 use crate::syntax::span::*;
 use crate::syntax::token::*;
 
-use nom::bytes::complete::tag;
-use nom::{character::complete::char, character::complete::one_of, IResult};
+use nom::branch::*;
+use nom::bytes::complete::*;
+use nom::multi::many1;
+use nom::{
+    bytes::complete::take_while1, character::complete::multispace0, character::is_alphanumeric,
+    character::is_digit, sequence::preceded, IResult,
+};
+
+macro_rules! gen_lex_token {
+    ($token_name:ident, $t:tt, $token_type:expr) => {
+        fn $token_name<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+            let (input, begin) = preceded(multispace0, position)(input)?;
+            let (input, output) = preceded(multispace0, tag($t))(input)?;
+            let (input, end) = preceded(multispace0, position)(input)?;
+            let t = TokenTwo::from($token_type, output.input);
+            Ok((
+                input,
+                TokenTwo {
+                    token_type: $token_type,
+                    span: SourceSpan::new(begin, end),
+                    value: t.unwrap(),
+                },
+            ))
+        }
+    };
+}
+
+// Keyword lexrs
+gen_lex_token!(lex_let, "let", TokenType::Let);
+gen_lex_token!(lex_struct, "struct", TokenType::Struct);
+gen_lex_token!(lex_if, "if", TokenType::If);
+gen_lex_token!(lex_else, "else", TokenType::Else);
+gen_lex_token!(lex_break, "break", TokenType::Break);
+gen_lex_token!(lex_enum, "enum", TokenType::Enum);
+gen_lex_token!(lex_for, "for", TokenType::For);
+gen_lex_token!(lex_while, "while", TokenType::While);
+gen_lex_token!(lex_fn, "fn", TokenType::Enum);
+gen_lex_token!(lex_or, "or", TokenType::Or);
+gen_lex_token!(lex_impl, "impl", TokenType::Impl);
+gen_lex_token!(lex_trait, "trait", TokenType::Trait);
+gen_lex_token!(lex_true, "true", TokenType::True);
+gen_lex_token!(lex_false, "false", TokenType::False);
+gen_lex_token!(lex_self, "self", TokenType::SelfIdent);
+
+// Symbol lexrs
+gen_lex_token!(lex_left_brace, "{", TokenType::LeftBrace);
+gen_lex_token!(lex_right_brace, "}", TokenType::RightBrace);
+gen_lex_token!(lex_left_bracket, "[", TokenType::LeftBracket);
+gen_lex_token!(lex_right_bracket, "]", TokenType::LeftBracket);
+gen_lex_token!(lex_right_paren, ")", TokenType::RightParen);
+gen_lex_token!(lex_left_paren, "(", TokenType::LeftParen);
+gen_lex_token!(lex_comma, ",", TokenType::Comma);
+gen_lex_token!(lex_dot, ".", TokenType::Dot);
+gen_lex_token!(lex_minus, "-", TokenType::Minus);
+gen_lex_token!(lex_plus, "+", TokenType::Plus);
+gen_lex_token!(lex_semi_colon, ";", TokenType::SemiColon);
+gen_lex_token!(lex_colon, ":", TokenType::Colon);
+gen_lex_token!(lex_star, "*", TokenType::Star);
+gen_lex_token!(lex_bang, "!", TokenType::Bang);
+gen_lex_token!(lex_equal, "=", TokenType::Equal);
+gen_lex_token!(lex_less_than, "<", TokenType::Less);
+gen_lex_token!(lex_greater_than, ">", TokenType::Greater);
+gen_lex_token!(lex_slash, "/", TokenType::Slash);
+gen_lex_token!(lex_double_quote, "\"", TokenType::DoubleQuote);
+
+fn entry<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+    let (input, result) = alt((lex_type, lex_keyword, lex_digit, lex_ident, lex_symbol))(input)?;
+    Ok((input, result))
+}
+
+fn lex_program<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Vec<TokenTwo>, LangError> {
+    let (input, output) = dbg_dmp(many1(entry), "lex_program")(input)?;
+    Ok((input, output))
+}
+
+fn lex_keyword<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+    let (input, token) = alt((
+        lex_let, lex_struct, lex_if, lex_else, lex_break, lex_enum, lex_fn, lex_for, lex_while,
+        lex_or, lex_impl, lex_trait, lex_true, lex_false, lex_self,
+    ))(input)?;
+    Ok((input, token))
+}
+
+fn lex_symbol<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+    let (input, token) = alt((
+        lex_left_brace,
+        lex_right_brace,
+        lex_right_paren,
+        lex_left_paren,
+        lex_left_bracket,
+        lex_right_bracket,
+        lex_comma,
+        lex_dot,
+        lex_minus,
+        lex_plus,
+        lex_colon,
+        lex_semi_colon,
+        lex_star,
+        lex_bang,
+        lex_equal,
+        lex_less_than,
+        lex_greater_than,
+        lex_slash,
+        lex_double_quote,
+    ))(input)?;
+    Ok((input, token))
+}
+
+fn allowable_ident_char(input: char) -> bool {
+    return is_alphanumeric(input as u8) || input == '_';
+}
+
+// TODO: Revisit, allow non-ascii identifiers. This isn't something I want to bite off right now
+fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, idientifier) = preceded(multispace0, take_while1(allowable_ident_char))(input)?;
+    let (input, end) = preceded(multispace0, position)(input)?;
+    let t = TokenTwo::from2(TokenType::Identifier, idientifier.input)?;
+    Ok((
+        input,
+        TokenTwo {
+            token_type: TokenType::Identifier,
+            span: SourceSpan::new(begin, end),
+            value: t,
+        },
+    ))
+}
+
+fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, type_str) = preceded(
+        multispace0,
+        alt((
+            tag("i32"),
+            tag("i64"),
+            tag("f32"),
+            tag("f64"),
+            tag("bool"),
+            tag("()"),
+            tag("fn"),
+            tag("String"),
+            tag("Array"),
+            take_while1(allowable_ident_char),
+        )),
+    )(input)?;
+    let (input, end) = position(input)?;
+    let type_annotation = match type_str.input {
+        "i32" => TypeAnnotation::I32,
+        "i64" => TypeAnnotation::I64,
+        "f32" => TypeAnnotation::F32,
+        "f64" => TypeAnnotation::F64,
+        "bool" => TypeAnnotation::Bool,
+        "String" => TypeAnnotation::String,
+        "()" => TypeAnnotation::Unit,
+        "fn" => TypeAnnotation::Fn,
+        other @ _ => TypeAnnotation::User(other.to_string()),
+    };
+    let t = TokenTwo::from(TokenType::Identifier, type_str.input);
+    Ok((
+        input,
+        TokenTwo {
+            token_type: TokenType::Type(type_annotation),
+            span: SourceSpan::new(begin, end),
+            value: t.unwrap(),
+        },
+    ))
+}
+
+fn lis_digit(i: char) -> bool {
+    is_digit(i as u8)
+}
+
+fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, digit) = preceded(multispace0, take_while1(lis_digit))(input)?;
+    let (input, end) = preceded(multispace0, position)(input)?;
+    let t = TokenTwo::from(TokenType::Integer, digit.input);
+    Ok((
+        input,
+        TokenTwo {
+            token_type: TokenType::Integer,
+            span: SourceSpan::new(begin, end),
+            value: t.unwrap(),
+        },
+    ))
+}
 
 trait SubStr {
     fn substr(&self, beg: usize, end: usize) -> String;
@@ -29,10 +213,7 @@ impl SubStr for str {
 
 pub struct ScannerTwo<'a> {
     source: &'a str,
-    pub tokens: Vec<TokenTwo>,
-    start: usize,
-    current: usize,
-    line: u64,
+    pub tokens: Vec<TokenTwo<'a>>,
     keywords: HashMap<&'a str, TokenType>,
 }
 
@@ -61,384 +242,48 @@ impl<'a> ScannerTwo<'a> {
         ScannerTwo {
             source: script_content,
             tokens: Vec::new(),
-            start: 0,
-            current: 0,
-            line: 1,
             keywords,
         }
     }
 
-    /// Returns true when the current position has reached the end of the source's string
-    pub fn is_at_end(&self) -> bool {
-        self.current >= self.source.len()
-    }
-
-    fn clear(&mut self) {
-        self.source = "";
-        self.tokens = Vec::with_capacity(0);
-    }
-
-    /// Advances the `current` position, and returns the character at the previous `current` position
-    pub fn pop(&mut self) -> Result<char, LangError> {
-        self.current += 1;
-        if let Some(next) = self.source.chars().nth(self.current - 1) {
-            return Ok(next);
-        } else {
-            Err(LangErrorType::new_parser_error(
-                "Reached end of source at advance()".to_string(),
-            ))
-        }
-    }
-
-    /// Adds a token to the scanner with token type `token` and lexeme `value`
-    pub fn add_token_value(&mut self, token: TokenType, value: &str) -> Result<(), LangError> {
-        self.tokens.push(TokenTwo::new(token, &value)?);
-        Ok(())
-    }
-
-    /// Checks the type annotation string and returns its corresponding `TypeAnnotation`
-    pub fn match_type_annotation(&mut self, value: &str) -> Result<TypeAnnotation, LangError> {
-        match value {
-            "i32" => Ok(TypeAnnotation::I32),
-            "i64" => Ok(TypeAnnotation::I64),
-            "f32" => Ok(TypeAnnotation::F32),
-            "f64" => Ok(TypeAnnotation::F64),
-            "bool" => Ok(TypeAnnotation::Bool),
-            "String" => Ok(TypeAnnotation::String),
-            "fn" => Ok(TypeAnnotation::Fn),
-            "()" => Ok(TypeAnnotation::Unit),
-            "Array" => {
-                self.start = self.current;
-                let type_annotation = self.template_type()?;
-                Ok(TypeAnnotation::Array(Box::new(type_annotation)))
-            }
-            _ => Ok(TypeAnnotation::User(value.to_string())),
-        }
-    }
-
-    pub fn at_index(&self, index: usize) -> Result<TokenType, LangError> {
-        self.tokens.get(index).map_or(
-            Err(LangErrorType::new_parser_error(
-                "Tried to peek token when empty".to_string(),
-            )),
-            |token| Ok(token.token_type.clone()),
-        )
-    }
-
-    /// Returns the last token within `tokens`, errors when the token vector is empty
-    pub fn prev_token(&self) -> Result<TokenType, LangError> {
-        self.tokens.last().map_or(
-            Err(LangErrorType::new_parser_error(
-                "Tried to peek token when empty".to_string(),
-            )),
-            |token| Ok(token.token_type.clone()),
-        )
-    }
-
-    /// Creates and adds TokenType `token` to `tokens`. The Token is created
-    /// using `Token::from`
-    pub fn add_token(&mut self, token: TokenType) -> Result<(), LangError> {
-        self.tokens.push(TokenTwo::new(
-            token,
-            &self.source.substr(self.start, self.current),
-        )?);
-        Ok(())
-    }
-
-    /// Checks if the character at `current` matches `expected`
-    pub fn match_next(&mut self, expected: char) -> bool {
-        if self.is_at_end() {
-            return false;
-        }
-        if let Some(next) = self.source.chars().nth(self.current) {
-            if next != expected {
-                return false;
-            }
-        }
-        self.current += 1;
-        true
-    }
-
-    /// Returns the character in the `current` position. Does not move the position forward
-    pub fn peek(&self) -> char {
-        if self.is_at_end() {
-            return '\0';
-        }
-        if let Some(next) = self.source.chars().nth(self.current) {
-            return next;
-        }
-        '\0'
-    }
-
-    /// Returns the character in the position ahead of `current`. Does not move the position forward
-    pub fn peek_next(&self) -> char {
-        if self.current + 1 >= self.source.len() {
-            return '\0';
-        }
-        if let Some(next) = self.source.chars().nth(self.current + 1) {
-            return next;
-        }
-        '\0'
-    }
-
-    /// Pops the character at `current` and matches its representation in Token
-    pub fn scan_token(&mut self) -> Result<(), LangError> {
-        let c: char = self.pop()?;
-        match c {
-            '(' => {
-                let prev_token = self.prev_token()?;
-                let right_paren = self.peek() == ')';
-                if right_paren {
-                    if prev_token == TokenType::Colon || prev_token == TokenType::ReturnType {
-                        self.current += 1;
-                        self.add_token(TokenType::Type(TypeAnnotation::Unit))?;
-                    } else if prev_token == TokenType::Equal {
-                        self.current += 1;
-                        self.add_token(TokenType::Unit)?;
-                    } else if prev_token == TokenType::Identifier {
-                        self.add_token(TokenType::LeftParen)?;
-                    }
-                } else {
-                    self.add_token(TokenType::LeftParen)?;
-                }
-            }
-            ')' => self.add_token(TokenType::RightParen)?,
-            '{' => self.add_token(TokenType::LeftBrace)?,
-            '}' => self.add_token(TokenType::RightBrace)?,
-            '[' => self.add_token(TokenType::LeftBracket)?,
-            ']' => self.add_token(TokenType::RightBracket)?,
-            ',' => self.add_token(TokenType::Comma)?,
-            '.' => self.add_token(TokenType::Dot)?,
-            '-' => {
-                if self.match_next('>') {
-                    self.add_token(TokenType::ReturnType)?;
-                } else {
-                    self.add_token(TokenType::Minus)?
-                }
-            }
-            '+' => self.add_token(TokenType::Plus)?,
-            ';' => self.add_token(TokenType::SemiColon)?,
-            '*' => self.add_token(TokenType::Star)?,
-            '!' => {
-                let bang_eq = self.match_next('=');
-                self.add_token(if bang_eq {
-                    TokenType::BangEqual
-                } else {
-                    TokenType::Bang
-                })?;
-            }
-            '=' => {
-                let eq_eq = self.match_next('=');
-                self.add_token(if eq_eq {
-                    TokenType::EqualEqual
-                } else {
-                    TokenType::Equal
-                })?;
-            }
-            '<' => {
-                let bang_eq = self.match_next('=');
-                self.add_token(if bang_eq {
-                    TokenType::LessEqual
-                } else {
-                    TokenType::Less
-                })?;
-            }
-            '>' => {
-                let bang_eq = self.match_next('=');
-                self.add_token(if bang_eq {
-                    TokenType::GreaterEqual
-                } else {
-                    TokenType::Greater
-                })?;
-            }
-            '/' => {
-                if self.match_next('/') {
-                    loop {
-                        if self.peek() == '\n' || self.is_at_end() {
-                            break;
-                        }
-                        self.pop()?;
-                    }
-                } else {
-                    self.add_token(TokenType::Slash)?;
-                }
-            }
-            ' ' | '\r' | '\t' => {}
-            '\n' => {
-                self.line += 1;
-            }
-            '"' => {
-                self.string()?;
-            }
-            ':' => {
-                if self.prev_token()? == TokenType::Colon {
-                    self.tokens.pop();
-                    self.tokens.push(TokenTwo::new(
-                        TokenType::PathSeparator,
-                        &self.source.substr(self.start - 1, self.current),
-                    )?);
-                } else {
-                    self.add_token(TokenType::Colon)?;
-                }
-            }
-            _ => {
-                if c.is_digit(10) {
-                    self.number()?;
-                } else if c.is_alphanumeric() || c == '_' {
-                    self.identifier()?;
-                } else {
-                    return Err(LangErrorType::new_parser_error(format!(
-                        "Unexpected character '{}'",
-                        c
-                    )));
-                }
-            }
-        };
-        Ok(())
-    }
-
-    /// Parses a string delimited by the character '"'
-    fn string(&mut self) -> Result<(), LangError> {
-        loop {
-            if self.peek() == '"' || self.is_at_end() {
-                break;
-            }
-            if self.peek() == '\n' {
-                self.line += 1;
-            }
-            self.pop()?;
-        }
-        if self.is_at_end() {
-            return Err(LangErrorType::new_parser_error(
-                "Unterminated string".to_string(),
-            ));
-        }
-        self.pop()?;
-        let value = self.source.substr(self.start + 1, self.current - 1);
-        self.add_token_value(TokenType::String, &value)?;
-        Ok(())
-    }
-
-    /// Parses a template type parameter between angle brackets
-    fn template_type(&mut self) -> Result<TypeAnnotation, LangError> {
-        let less = self.pop()?;
-        if less != '<' {
-            return Err(LangErrorType::new_parser_error(
-                "Expected '<' after template type".to_string(),
-            ));
-        }
-        // self.add_token(TokenType::Less)?;
-        loop {
-            if !self.peek().is_alphanumeric() && self.peek() != '_' {
-                break;
-            }
-            self.pop()?;
-        }
-        let greater = self.pop()?;
-        if greater != '>' {
-            return Err(LangErrorType::new_parser_error(
-                "Expected '>' after template type".to_string(),
-            ));
-        }
-        //self.add_token(TokenType::Greater)?;
-        let value: String = self.source.substr(self.start + 1, self.current - 1);
-        Ok(self.match_type_annotation(&value)?)
-    }
-
-    /// Parses an integer or float
-    fn number(&mut self) -> Result<(), LangError> {
-        let mut is_float = false;
-        loop {
-            if !self.peek().is_digit(10) {
-                break;
-            }
-            self.pop()?;
-        }
-        if self.peek() == '.' && self.peek_next().is_digit(10) {
-            self.pop()?;
-            loop {
-                if !self.peek().is_digit(10) {
-                    break;
-                }
-                self.pop()?;
-            }
-            is_float = true;
-        }
-        let value = self.source.substr(self.start, self.current);
-        if is_float {
-            self.add_token_value(TokenType::Float, &value)?;
-        } else {
-            self.add_token_value(TokenType::Integer, &value)?;
-        }
-        Ok(())
-    }
-
-    /// Gets the keyword token corresponding to lexeme `lexeme`
-    fn get_keyword(&self, lexeme: &str) -> Option<TokenType> {
-        self.keywords
-            .get(lexeme)
-            .and_then(|token| Some(token.clone()))
-    }
-
-    /// TODO: name is misleading
-    /// Parses strings of type `([a-zA-Z0-9]|'_')*`, adds them as
-    /// 1. a keyword if they match a keyword
-    /// 2. a type annotation if the previously parsed token was a colon
-    /// 3. or a plain identifier if none of those criterion are met
-    fn identifier(&mut self) -> Result<(), LangError> {
-        loop {
-            if !self.peek().is_alphanumeric() && self.peek() != '_' {
-                break;
-            }
-            self.pop()?;
-        }
-        let value: String = self.source.substr(self.start, self.current);
-        if let Some(token) = self.get_keyword(value.as_str()) {
-            self.add_token(token)?;
-        } else if self.prev_token()? == TokenType::Colon
-            || self.prev_token()? == TokenType::ReturnType
-        {
-            let type_annotation = self.match_type_annotation(&value)?;
-            self.add_token(TokenType::Type(type_annotation))?;
-        } else {
-            self.add_token(TokenType::Identifier)?;
-        }
-        Ok(())
-    }
-
     pub fn scan_tokens(&mut self) -> Result<Vec<TokenTwo>, LangError> {
-        loop {
-            if self.is_at_end() {
-                break;
+        let root_span: Span<&str> = Span::new(self.source, 0, 1, 0);
+        println!("root span: {:?}", root_span);
+        println!("root span: {:?}", root_span.input);
+        match lex_program(root_span) {
+            Ok(t) => {
+                println!("{:?}", t);
+                Ok(t.1)
             }
-            self.start = self.current;
-            self.scan_token()?;
+            Err(e) => {
+                match e {
+                    nom::Err::Error(err) => {
+                        println!("Error: {:?}", err);
+                    }
+                    nom::Err::Failure(err) => {
+                        println!("Failure: {:?}", err);
+                    }
+                    _ => println!("Incomplete: {:?}", e),
+                }
+                Ok(vec![])
+            }
         }
-        self.tokens
-            .push(TokenTwo::new(TokenType::Eof, &"EoF".to_string())?);
-        let tokens = self.tokens.clone();
-        self.clear();
-        Ok(tokens)
     }
 }
 
 #[cfg(test)]
-mod scanner_tests {
+mod scanner_two_tests {
     use super::*;
-    #[test]
-    fn test_subtr() {
-        let string = "ChangeToSubstring".to_string();
-        assert_eq!(string.substr(0, 6), "Change".to_string());
-        assert_eq!(string.substr(6, 8), "To".to_string());
-    }
 
     #[test]
-    fn test_scanner_new() {
-        let script_content = "let n = 100; let string = 100; print n;".to_string();
-        let mut scanner = ScannerTwo::new(&script_content);
-        assert_eq!(scanner.tokens.len(), 0);
-        let tokens = scanner.scan_tokens().unwrap();
-        assert_eq!(TokenType::Let, tokens[0].token_type);
-        assert_eq!(TokenType::Eof, tokens[tokens.len() - 1].token_type);
+    fn test_lex_ident() {
+        let test_string = "   \nvalid_ident\n;\ntest\n;;";
+        let string = Span::new(test_string, 0, 1, 0);
+        let string2 = Span::new(test_string, 0, 1, 0);
+        let result = lex_ident(string);
+        let result2 = lex_ident(string2);
+        //assert_eq!(result.is_ok(), true);
+        println!("{:?}", result);
+        println!("{:?}", result2);
     }
 }

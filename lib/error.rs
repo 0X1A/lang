@@ -4,6 +4,11 @@ use std::{
     io, num, str, time,
 };
 
+use crate::syntax::span::Span;
+use nom::error::ErrorKind;
+use nom::error::ParseError;
+use nom::Err;
+
 use failure::{Backtrace, Context, Fail};
 const ISSUES_URL: &str = "https://github.com/0X1A/lang/issues";
 
@@ -179,6 +184,12 @@ impl From<time::SystemTimeError> for LangErrorType {
     }
 }
 
+/* impl<'a> From<LangError> for Err<(Span<&'a str>, ErrorKind)> {
+    fn from(err: LangError) -> nom::Err<(Span<&'a str>, ErrorKind)> {
+        Err::Failure((Span::new("t", 0, 0, 0),ErrorKind::Tag))
+    }
+} */
+
 #[derive(Debug)]
 pub struct LangError {
     pub context: Context<LangErrorType>,
@@ -199,11 +210,33 @@ impl LangError {
 }
 
 impl Fail for LangError {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.context.cause()
     }
 
     fn backtrace(&self) -> Option<&Backtrace> {
         self.context.backtrace()
+    }
+}
+
+impl<I> ParseError<I> for LangError {
+    fn from_error_kind(input: I, kind: ErrorKind) -> Self {
+        unimplemented!()
+    }
+
+    fn append(input: I, kind: ErrorKind, other: Self) -> Self {
+        unimplemented!()
+    }
+
+    fn from_char(input: I, _: char) -> Self {
+        Self::from_error_kind(input, ErrorKind::Char)
+    }
+
+    fn or(self, other: Self) -> Self {
+        unimplemented!()
+    }
+
+    fn add_context(_input: I, _ctx: &'static str, other: Self) -> Self {
+        unimplemented!()
     }
 }

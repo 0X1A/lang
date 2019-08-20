@@ -127,13 +127,13 @@ impl Interpreter {
         let value = self.pop()?;
         match value.value {
             Value::Struct(_) => {
-                let struct_value: &StructInstanceTrait = (&value.value).try_into()?;
+                let struct_value: &dyn StructInstanceTrait = (&value.value).try_into()?;
                 let field = struct_value.get_field(&get_expr.name.lexeme, self)?;
                 self.stack.push(field);
             }
             Value::SelfIndex(s) => {
                 let nvalue = self.env_entries.get(&s.env_id, &s.name)?;
-                let struct_value: &StructInstanceTrait = (&nvalue.value).try_into()?;
+                let struct_value: &dyn StructInstanceTrait = (&nvalue.value).try_into()?;
                 let field = struct_value.get_field(&get_expr.name.lexeme, self)?;
                 self.stack.push(field);
             }
@@ -196,7 +196,7 @@ impl Interpreter {
                     &impl_trait_stmt.trait_name,
                 )?;
                 let update_struct_decl = |struct_value: &mut TypedValue| -> Result<(), LangError> {
-                    let struct_value: &mut StructInstanceTrait =
+                    let struct_value: &mut dyn StructInstanceTrait =
                         (&mut struct_value.value).try_into()?;
                     struct_value.define_method(
                         &function_statement.name,
@@ -256,7 +256,7 @@ impl Interpreter {
                     &self.env_id,
                 )));
                 let update_struct = |struct_value: &mut TypedValue| -> Result<(), LangError> {
-                    let struct_value: &mut StructInstanceTrait =
+                    let struct_value: &mut dyn StructInstanceTrait =
                         (&mut struct_value.value).try_into()?;
                     struct_value.define_method(
                         &function_statement.name,
@@ -392,7 +392,7 @@ impl Interpreter {
                     ));
                 }
                 let update_struct = |struct_value: &mut TypedValue| -> Result<(), LangError> {
-                    let struct_value: &mut StructInstanceTrait =
+                    let struct_value: &mut dyn StructInstanceTrait =
                         (&mut struct_value.value).try_into()?;
                     struct_value.set_field(&set_expr.name, &value)?;
                     Ok(())
@@ -404,7 +404,7 @@ impl Interpreter {
             }
             Value::SelfIndex(s) => {
                 let nvalue = self.env_entries.get(&s.env_id, &s.name)?;
-                let struct_value: &StructInstanceTrait = (&nvalue.value).try_into()?;
+                let struct_value: &dyn StructInstanceTrait = (&nvalue.value).try_into()?;
                 if !struct_value.field_exists(&set_expr.name.lexeme) {
                     return Err(LangErrorType::new_runtime_error(
                         RuntimeErrorType::UndefinedVariable {
@@ -413,7 +413,7 @@ impl Interpreter {
                     ));
                 }
                 let update_struct = |typed_value: &mut TypedValue| -> Result<(), LangError> {
-                    let struct_value: &mut StructInstanceTrait =
+                    let struct_value: &mut dyn StructInstanceTrait =
                         (&mut typed_value.value).try_into()?;
                     struct_value.set_field(&set_expr.name, &value)?;
                     Ok(())
@@ -595,7 +595,7 @@ impl Interpreter {
 
     fn check_impl_trait_return_type(
         &self,
-        callable: &CallableTrait,
+        callable: &dyn CallableTrait,
         trait_function: &TraitFunctionValue,
     ) -> Result<(), LangError> {
         if let Some(return_type) = callable.get_return_type() {
@@ -617,7 +617,7 @@ impl Interpreter {
 
     fn check_impl_trait_arity(
         &self,
-        callable: &CallableTrait,
+        callable: &dyn CallableTrait,
         trait_function: &TraitFunctionValue,
     ) -> Result<(), LangError> {
         if callable.arity() != trait_function.function.params.len() {
@@ -636,7 +636,7 @@ impl Interpreter {
 
     fn check_impl_trait_param_types(
         &self,
-        callable: &CallableTrait,
+        callable: &dyn CallableTrait,
         trait_function: &TraitFunctionValue,
     ) -> Result<(), LangError> {
         for params in trait_function
@@ -669,7 +669,7 @@ impl Interpreter {
         let trait_value_type: &TraitValue = (&typed_trait_value.value).try_into()?;
         if let Some(trait_fn_decl) = trait_value_type.fn_declarations.get(&impl_trait.lexeme) {
             if let Value::TraitFunction(ref trait_function) = trait_fn_decl.value {
-                let callable_value: &CallableTrait = fn_value.try_into()?;
+                let callable_value: &dyn CallableTrait = fn_value.try_into()?;
                 self.check_impl_trait_return_type(callable_value, trait_function)?;
                 self.check_impl_trait_arity(callable_value, trait_function)?;
                 self.check_impl_trait_param_types(callable_value, trait_function)?;

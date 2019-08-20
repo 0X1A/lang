@@ -1,20 +1,76 @@
+use std::fmt;
 use std::iter::{Enumerate, Iterator, Map};
 use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
-use std::slice;
 use std::slice::Iter;
 use std::str::{CharIndices, Chars};
 
+use crate::error::LangError;
+
 use nom::{
-    error::ErrorKind, error::ParseError, AsBytes, Compare, CompareResult, FindSubstring, FindToken,
-    InputIter, InputLength, InputTake, InputTakeAtPosition, Offset, Slice,
+    error::ErrorKind, error::ParseError, AsBytes, Compare, CompareResult, Err, FindSubstring,
+    FindToken, HexDisplay, IResult, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset,
+    Slice,
 };
 
-#[derive(Debug, Clone)]
+pub fn ___dbg_dmp<'a, F, O, E: std::fmt::Debug>(
+    f: F,
+    context: &'static str,
+) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], O, E>
+where
+    F: Fn(&'a [u8]) -> IResult<&'a [u8], O, E>,
+{
+    move |i: &'a [u8]| match f(i) {
+        Err(e) => {
+            println!("{}: Error({:?}) at:\n{}", context, e, i.to_hex(8));
+            Err(e)
+        }
+        a => a,
+    }
+}
+
+pub fn dbg_dmp<'a, F, O, E: std::fmt::Debug>(
+    f: F,
+    context: &'static str,
+) -> impl Fn(Span<&'a str>) -> IResult<Span<&'a str>, O, E>
+where
+    F: Fn(Span<&'a str>) -> IResult<Span<&'a str>, O, E>,
+{
+    move |i: Span<&'a str>| match f(i.clone()) {
+        Err(e) => {
+            println!("{}: Error({:?}) at:\n{}", context, e, i.input.to_hex(8));
+            Err(e)
+        }
+        a => a,
+    }
+}
+
+#[derive(PartialEq, Clone)]
 pub struct Span<T> {
     pub input: T,
     pub offset: usize,
     pub line: u32,
     pub column: u32,
+}
+
+impl<T> fmt::Debug for Span<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Span {{ offset: {}, line: {}, column: {} }}",
+            self.offset, self.line, self.column
+        )
+    }
+}
+
+impl<T> Span<T> {
+    pub fn new(input: T, offset: usize, line: u32, column: u32) -> Span<T> {
+        Span {
+            input,
+            offset,
+            line,
+            column,
+        }
+    }
 }
 
 impl<T: InputLength> InputLength for Span<T> {
@@ -92,12 +148,7 @@ macro_rules! gen_slice_impl {
                 let next_input = self.input.slice(range_type);
                 let offset = self.input.offset(&next_input);
                 if offset == 0 {
-                    return Span {
-                        line: self.line,
-                        offset: self.offset,
-                        column: self.column,
-                        input: next_input,
-                    };
+                    return Span::new(next_input, self.offset, self.line, self.column);
                 }
 
                 let slice = self.input.slice(..offset);
@@ -107,12 +158,7 @@ macro_rules! gen_slice_impl {
                 let number_of_lines = bytes.iter().filter(|&&c| c == b'\n').count() as u32;
                 let next_line = self.line + number_of_lines;
 
-                Span {
-                    line: next_line,
-                    offset: next_offset,
-                    input: next_input,
-                    column: 0,
-                }
+                Span::new(next_input, next_offset, next_line, 0)
             }
         }
     };
@@ -141,7 +187,7 @@ where
     }
 
     fn take_split(&self, count: usize) -> (Self, Self) {
-        (self.slice(..count), self.slice(..count))
+        (self.slice(count..), self.slice(..count))
     }
 }
 
@@ -162,3 +208,77 @@ macro_rules! gen_compare_impl {
 
 gen_compare_impl!(&'b str, &'a str);
 gen_compare_impl!(&'b [u8], &'a [u8]);
+
+pub fn position<T>(s: T) -> IResult<T, T, LangError>
+where
+    T: InputIter + InputTake,
+{
+    nom::bytes::complete::take(0usize)(s)
+}
+
+impl<T> InputTakeAtPosition for Span<T>
+where
+    T: InputTakeAtPosition + InputLength + InputIter,
+    Self: Slice<RangeFrom<usize>> + Slice<RangeTo<usize>> + Clone,
+{
+    type Item = <T as InputIter>::Item;
+
+    fn split_at_position<P, E: ParseError<Self>>(&self, predicate: P) -> IResult<Self, Self, E>
+    where
+        P: Fn(Self::Item) -> bool,
+    {
+        match self.input.position(predicate) {
+            Some(n) => Ok(self.take_split(n)),
+            None => Err(Err::Incomplete(nom::Needed::Size(1))),
+        }
+    }
+
+    fn split_at_position1<P, E: ParseError<Self>>(
+        &self,
+        predicate: P,
+        e: ErrorKind,
+    ) -> IResult<Self, Self, E>
+    where
+        P: Fn(Self::Item) -> bool,
+    {
+        match self.input.position(predicate) {
+            Some(0) => Err(Err::Error(E::from_error_kind(self.clone(), e))),
+            Some(n) => Ok(self.take_split(n)),
+            None => Err(Err::Incomplete(nom::Needed::Size(1))),
+        }
+    }
+
+    fn split_at_position_complete<P, E: ParseError<Self>>(
+        &self,
+        predicate: P,
+    ) -> IResult<Self, Self, E>
+    where
+        P: Fn(Self::Item) -> bool,
+    {
+        match self.split_at_position(predicate) {
+            Err(Err::Incomplete(_)) => Ok(self.take_split(self.input_len())),
+            result => result,
+        }
+    }
+
+    fn split_at_position1_complete<P, E: ParseError<Self>>(
+        &self,
+        predicate: P,
+        e: ErrorKind,
+    ) -> IResult<Self, Self, E>
+    where
+        P: Fn(Self::Item) -> bool,
+    {
+        match self.input.position(predicate) {
+            Some(0) => Err(Err::Error(E::from_error_kind(self.clone(), e))),
+            Some(n) => Ok(self.take_split(n)),
+            None => {
+                if self.input.input_len() == 0 {
+                    Err(Err::Error(E::from_error_kind(self.clone(), e)))
+                } else {
+                    Ok(self.take_split(self.input_len()))
+                }
+            }
+        }
+    }
+}

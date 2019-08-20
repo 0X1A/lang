@@ -1,8 +1,7 @@
 use crate::error::*;
-use crate::lang::*;
 use crate::syntax::span::Span;
 use crate::value::{Float64, Value};
-use std::fmt::{self, Debug, Display};
+use std::fmt::{self, Display};
 
 // TODO: Revisit hashing Token
 #[allow(clippy::derive_hash_xor_eq)]
@@ -194,6 +193,7 @@ pub enum TokenType {
     True,
     Let,
     While,
+    DoubleQuote,
     PathSeparator,
     Type(TypeAnnotation),
     SelfIdent,
@@ -253,6 +253,7 @@ impl Display for TokenType {
             TokenType::If => write!(f, "if"),
             TokenType::Unit => write!(f, "()"),
             TokenType::Or => write!(f, "or"),
+            TokenType::DoubleQuote => write!(f, "\""),
             TokenType::Print => write!(f, "print"),
             TokenType::Return => write!(f, "return"),
             TokenType::Ternary => write!(f, "?"),
@@ -268,14 +269,83 @@ impl Display for TokenType {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct SourceSpan<'a> {
+    begin: Span<&'a str>,
+    end: Span<&'a str>,
+}
+
+impl<'a> SourceSpan<'a> {
+    pub fn new(begin: Span<&'a str>, end: Span<&'a str>) -> SourceSpan<'a> {
+        SourceSpan { begin, end }
+    }
+}
+
 #[derive(Debug, Clone)]
-pub struct TokenTwo {
+pub struct TokenTwo<'a> {
     pub token_type: TokenType,
-    pub span: Span<String>,
+    pub span: SourceSpan<'a>,
     pub value: Value,
 }
 
-impl TokenTwo {
+impl<'a> TokenTwo<'a> {
+    pub fn from2(token_type: TokenType, lexeme: &str) -> Result<Value, nom::Err<LangError>> {
+        let value = match token_type {
+            TokenType::String => Value::String(lexeme.to_string()),
+            TokenType::Integer => {
+                let integer_value = match lexeme.to_string().parse::<i64>() {
+                    Ok(i) => i,
+                    Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+                };
+                if integer_value as i32 <= std::i32::MAX && integer_value as i32 >= std::i32::MIN {
+                    Value::Int32(integer_value as i32)
+                } else {
+                    Value::Int64(integer_value)
+                }
+            }
+            TokenType::Float => {
+                let value = match lexeme.to_string().parse::<f64>() {
+                    Ok(i) => i,
+                    Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+                };
+                Value::Float64(Float64 { inner: value })
+            }
+            TokenType::Identifier => Value::Ident(lexeme.to_string()),
+            TokenType::True | TokenType::False => {
+                let value = match lexeme.to_string().parse::<bool>() {
+                    Ok(i) => i,
+                    Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+                };
+                Value::Boolean(value)
+            }
+            _ => Value::String(token_type.to_string()),
+        };
+        Ok(value)
+    }
+
+    pub fn from(token_type: TokenType, lexeme: &str) -> Result<Value, LangError> {
+        let value = match token_type {
+            TokenType::String => Value::String(lexeme.to_string()),
+            TokenType::Integer => {
+                let integer_value = lexeme.to_string().parse::<i64>()?;
+                if integer_value as i32 <= std::i32::MAX && integer_value as i32 >= std::i32::MIN {
+                    Value::Int32(integer_value as i32)
+                } else {
+                    Value::Int64(integer_value)
+                }
+            }
+            TokenType::Float => Value::Float64(Float64 {
+                inner: lexeme.to_string().parse::<f64>()?,
+            }),
+            TokenType::Identifier => Value::Ident(lexeme.to_string()),
+            TokenType::True | TokenType::False => {
+                Value::Boolean(lexeme.to_string().parse::<bool>()?)
+            }
+            _ => Value::String(token_type.to_string()),
+        };
+        Ok(value)
+    }
+
     pub fn new(token_type: TokenType, lexeme: &str) -> Result<TokenTwo, LangError> {
         let value = match token_type {
             TokenType::String => Value::String(lexeme.to_string()),
@@ -296,15 +366,9 @@ impl TokenTwo {
             }
             _ => Value::String(token_type.to_string()),
         };
-        let span = Span {
-            input: lexeme.to_string(),
-            offset: 0,
-            line: 0,
-            column: 0,
-        };
         Ok(TokenTwo {
             token_type,
-            span: span,
+            span: SourceSpan::new(Span::new(lexeme, 0, 0, 0), Span::new(lexeme, 0, 0, 0)),
             value: value,
         })
     }

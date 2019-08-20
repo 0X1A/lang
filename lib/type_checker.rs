@@ -5,7 +5,10 @@ pub struct TypeChecker;
 
 impl TypeChecker {
     /// Checks if `lhs` and `rhs` are of the same type by comparing their type annotations.
-    pub fn check_type(lhs: &GetTypeAnnotation, rhs: &GetTypeAnnotation) -> Result<(), LangError> {
+    pub fn check_type(
+        lhs: &dyn GetTypeAnnotation,
+        rhs: &dyn GetTypeAnnotation,
+    ) -> Result<(), LangError> {
         if lhs.get_type_annotation() != rhs.get_type_annotation() {
             Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::InvalidTypeAssignmentError {
@@ -21,7 +24,10 @@ impl TypeChecker {
         }
     }
 
-    pub fn can_convert_implicitly(lhs: &GetTypeAnnotation, rhs: &GetTypeAnnotation) -> bool {
+    pub fn can_convert_implicitly(
+        lhs: &dyn GetTypeAnnotation,
+        rhs: &dyn GetTypeAnnotation,
+    ) -> bool {
         let lhs_type_annotation = lhs.get_type_annotation();
         let rhs_type_annotation = rhs.get_type_annotation();
         match lhs_type_annotation {

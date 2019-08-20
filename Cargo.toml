@@ -10,6 +10,7 @@ clap = { version = "2.32.0", features = ["yaml"] }
 log = "*"
 env_logger = "*"
 nom = "5.0.0"
+nom_locate = "0.4"
 
 [lib]
 name = "lang"
