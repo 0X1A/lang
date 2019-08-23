@@ -62,6 +62,16 @@ impl<T> fmt::Debug for Span<T> {
     }
 }
 
+impl<T: fmt::Display> fmt::Display for Span<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Span {{ offset: {}, line: {}, column: {} input: {} }}",
+            self.offset, self.line, self.column, self.input
+        )
+    }
+}
+
 impl<T> Span<T> {
     pub fn new(input: T, offset: usize, line: u32, column: u32) -> Span<T> {
         Span {
@@ -209,7 +219,7 @@ macro_rules! gen_compare_impl {
 gen_compare_impl!(&'b str, &'a str);
 gen_compare_impl!(&'b [u8], &'a [u8]);
 
-pub fn position<T>(s: T) -> IResult<T, T, LangError>
+pub fn position<T: fmt::Display>(s: T) -> IResult<T, T, LangError>
 where
     T: InputIter + InputTake,
 {

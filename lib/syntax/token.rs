@@ -1,6 +1,6 @@
 use crate::error::*;
 use crate::syntax::span::Span;
-use crate::value::{Float64, Value};
+use crate::value::{Float32, Float64, Value};
 use std::fmt::{self, Display};
 
 // TODO: Revisit hashing Token
@@ -308,7 +308,13 @@ impl<'a> TokenTwo<'a> {
                     Ok(i) => i,
                     Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
                 };
-                Value::Float64(Float64 { inner: value })
+                if value as f32 <= std::f32::MAX && value as f32 >= std::f32::MIN {
+                    Value::Float32(Float32 {
+                        inner: value as f32,
+                    })
+                } else {
+                    Value::Float64(Float64 { inner: value })
+                }
             }
             TokenType::Identifier => Value::Ident(lexeme.to_string()),
             TokenType::True | TokenType::False => {

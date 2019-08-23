@@ -34,7 +34,7 @@ pub fn error_message(msg_type: &ErrMessage) -> String {
     }
 }
 
-#[derive(Fail, Clone)]
+#[derive(Fail, Clone, PartialEq, PartialOrd)]
 pub enum RuntimeErrorType {
     #[fail(display = "Undefined variable: {}", reason)]
     UndefinedVariable { reason: String },
@@ -58,7 +58,7 @@ pub enum RuntimeErrorType {
     GenericError { reason: String },
 }
 
-#[derive(Fail, Debug, Clone)]
+#[derive(Fail, Debug, Clone, PartialEq, PartialOrd)]
 pub enum ControlFlow {
     #[fail(display = "Break")]
     Break,
@@ -81,7 +81,7 @@ impl Debug for RuntimeErrorType {
     }
 }
 
-#[derive(Fail, Clone)]
+#[derive(Fail, Clone, PartialEq, PartialOrd)]
 pub enum LangErrorType {
     #[fail(display = "Parser error: {}", reason)]
     ParserError { reason: String },
@@ -184,12 +184,6 @@ impl From<time::SystemTimeError> for LangErrorType {
     }
 }
 
-/* impl<'a> From<LangError> for Err<(Span<&'a str>, ErrorKind)> {
-    fn from(err: LangError) -> nom::Err<(Span<&'a str>, ErrorKind)> {
-        Err::Failure((Span::new("t", 0, 0, 0),ErrorKind::Tag))
-    }
-} */
-
 #[derive(Debug)]
 pub struct LangError {
     pub context: Context<LangErrorType>,
@@ -219,24 +213,27 @@ impl Fail for LangError {
     }
 }
 
-impl<I> ParseError<I> for LangError {
-    fn from_error_kind(input: I, kind: ErrorKind) -> Self {
-        unimplemented!()
+// TODO: Flesh this out for better errors
+impl<Span: fmt::Display> ParseError<Span> for LangError {
+    fn from_error_kind(input: Span, kind: ErrorKind) -> Self {
+        LangError::from(LangErrorType::ParserError {
+            reason: format!("{}", input),
+        })
     }
 
-    fn append(input: I, kind: ErrorKind, other: Self) -> Self {
-        unimplemented!()
+    fn append(input: Span, kind: ErrorKind, other: Self) -> Self {
+        other
     }
 
-    fn from_char(input: I, _: char) -> Self {
+    fn from_char(input: Span, _: char) -> Self {
         Self::from_error_kind(input, ErrorKind::Char)
     }
 
     fn or(self, other: Self) -> Self {
-        unimplemented!()
+        other
     }
 
-    fn add_context(_input: I, _ctx: &'static str, other: Self) -> Self {
-        unimplemented!()
+    fn add_context(_input: Span, _ctx: &'static str, other: Self) -> Self {
+        other
     }
 }

@@ -49,6 +49,7 @@ gen_lex_token!(lex_trait, "trait", TokenType::Trait);
 gen_lex_token!(lex_true, "true", TokenType::True);
 gen_lex_token!(lex_false, "false", TokenType::False);
 gen_lex_token!(lex_self, "self", TokenType::SelfIdent);
+gen_lex_token!(lex_print, "print", TokenType::Print);
 
 // Symbol lexrs
 gen_lex_token!(lex_left_brace, "{", TokenType::LeftBrace);
@@ -72,19 +73,19 @@ gen_lex_token!(lex_slash, "/", TokenType::Slash);
 gen_lex_token!(lex_double_quote, "\"", TokenType::DoubleQuote);
 
 fn entry<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
-    let (input, result) = alt((lex_type, lex_keyword, lex_digit, lex_ident, lex_symbol))(input)?;
+    let (input, result) = alt((lex_digit, lex_keyword, lex_type, lex_ident, lex_symbol))(input)?;
     Ok((input, result))
 }
 
 fn lex_program<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Vec<TokenTwo>, LangError> {
-    let (input, output) = dbg_dmp(many1(entry), "lex_program")(input)?;
+    let (input, output) = many1(entry)(input)?;
     Ok((input, output))
 }
 
 fn lex_keyword<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
     let (input, token) = alt((
         lex_let, lex_struct, lex_if, lex_else, lex_break, lex_enum, lex_fn, lex_for, lex_while,
-        lex_or, lex_impl, lex_trait, lex_true, lex_false, lex_self,
+        lex_or, lex_impl, lex_trait, lex_true, lex_false, lex_self, lex_print,
     ))(input)?;
     Ok((input, token))
 }
@@ -175,20 +176,26 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangEr
 }
 
 fn lis_digit(i: char) -> bool {
-    is_digit(i as u8)
+    is_digit(i as u8) || i == '.'
 }
 
 fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
     let (input, begin) = preceded(multispace0, position)(input)?;
     let (input, digit) = preceded(multispace0, take_while1(lis_digit))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
-    let t = TokenTwo::from(TokenType::Integer, digit.input);
+    let token_type;
+    if digit.input.contains('.') {
+        token_type = TokenType::Float;
+    } else {
+        token_type = TokenType::Integer
+    }
+    let t = TokenTwo::from2(token_type.clone(), digit.input)?;
     Ok((
         input,
         TokenTwo {
-            token_type: TokenType::Integer,
+            token_type: token_type,
             span: SourceSpan::new(begin, end),
-            value: t.unwrap(),
+            value: t,
         },
     ))
 }
