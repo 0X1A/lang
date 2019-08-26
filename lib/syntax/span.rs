@@ -43,7 +43,7 @@ where
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Eq, Clone, Hash)]
 pub struct Span<T> {
     pub input: T,
     pub offset: usize,

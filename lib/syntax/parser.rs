@@ -1,5 +1,5 @@
-use crate::ast::expr::*;
-use crate::ast::stmt::*;
+use crate::syntax::ast::expr::*;
+use crate::syntax::ast::stmt::*;
 use crate::error::*;
 use crate::lang::*;
 use crate::token::{TokenType, TypeAnnotation};
@@ -57,24 +57,7 @@ impl<'a> Parser<'a> {
     }
 
     fn finish_call(&mut self, expr: &Expr) -> Result<Expr, LangError> {
-        let mut arguments = Vec::new();
-        if !self.check(&TokenType::RightParen) {
-            loop {
-                arguments.push(self.expression()?);
-                if !self.matches(&[TokenType::Comma]) {
-                    break;
-                }
-            }
-        }
-        arguments.shrink_to_fit();
-        self.pop_expect(
-            &TokenType::RightParen,
-            "Expect ')' after function arguments",
-        )?;
-        Ok(Expr::Call(Box::new(CallExpr {
-            callee: expr.clone(),
-            arguments,
-        })))
+        unimplemented!()
     }
 
     fn primary(&mut self) -> Result<Expr, LangError> {
@@ -90,22 +73,13 @@ impl<'a> Parser<'a> {
     /// Checks if next sequence of tokens matches those of the slice `tokens`, in respective order,
     /// advancing the current position in source on first match
     fn matches(&mut self, tokens: &[TokenType]) -> bool {
-        for token in tokens {
-            if self.check(token) {
-                self.advance();
-                return true;
-            }
-        }
-        false
+        unimplemented!()
     }
 
     /// Checks the current token to see if it matches `token_type`. Returns false if
     /// the current token is EoF
     fn check(&self, token_type: &TokenType) -> bool {
-        if self.is_at_end() {
-            return false;
-        }
-        self.peek().token_type == *token_type
+        unimplemented!()
     }
 
     /// Checks the token in the current position
@@ -114,7 +88,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is_at_end(&self) -> bool {
-        self.peek().token_type == TokenType::Eof
+        unimplemented!()
     }
 
     /// Advances the current position in source, returning the token at the previously 'current'
@@ -137,31 +111,11 @@ impl<'a> Parser<'a> {
     }
 
     fn synchronize(&mut self) {
-        self.advance();
-        while !self.is_at_end() {
-            if self.previous().token_type == TokenType::SemiColon {
-                return;
-            }
-            match self.peek().token_type {
-                TokenType::Fn
-                | TokenType::Let
-                | TokenType::For
-                | TokenType::If
-                | TokenType::While
-                | TokenType::Print
-                | TokenType::Return => {
-                    return;
-                }
-                _ => {}
-            }
-            self.advance();
-        }
+        unimplemented!()
     }
 
     fn print_statement(&mut self) -> Result<Stmt, LangError> {
-        let value = self.expression()?;
-        self.pop_expect(&TokenType::SemiColon, "Expect ';' after value.")?;
-        Ok(Stmt::Print(Box::new(PrintStmt { expression: value })))
+        unimplemented!()
     }
 
     fn expression_statement(&mut self) -> Result<Stmt, LangError> {

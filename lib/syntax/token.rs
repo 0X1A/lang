@@ -3,7 +3,7 @@ use crate::syntax::span::Span;
 use crate::value::{Float32, Float64, Value};
 use crate::token::{TokenType};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SourceSpan<'a> {
     begin: Span<&'a str>,
     end: Span<&'a str>,
@@ -15,7 +15,7 @@ impl<'a> SourceSpan<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TokenTwo<'a> {
     pub token_type: TokenType,
     pub span: SourceSpan<'a>,
