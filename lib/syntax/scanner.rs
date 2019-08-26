@@ -3,6 +3,7 @@ extern crate nom;
 use crate::error::*;
 use crate::syntax::span::*;
 use crate::syntax::token::*;
+use crate::token::{TokenType, TypeAnnotation};
 
 use nom::branch::*;
 use nom::bytes::complete::*;
