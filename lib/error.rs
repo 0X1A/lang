@@ -4,10 +4,8 @@ use std::{
     io, num, str, time,
 };
 
-use crate::syntax::span::Span;
 use nom::error::ErrorKind;
 use nom::error::ParseError;
-use nom::Err;
 
 use failure::{Backtrace, Context, Fail};
 const ISSUES_URL: &str = "https://github.com/0X1A/lang/issues";
@@ -215,13 +213,13 @@ impl Fail for LangError {
 
 // TODO: Flesh this out for better errors
 impl<Span: fmt::Display> ParseError<Span> for LangError {
-    fn from_error_kind(input: Span, kind: ErrorKind) -> Self {
+    fn from_error_kind(input: Span, _: ErrorKind) -> Self {
         LangError::from(LangErrorType::ParserError {
             reason: format!("{}", input),
         })
     }
 
-    fn append(input: Span, kind: ErrorKind, other: Self) -> Self {
+    fn append(_: Span, _: ErrorKind, other: Self) -> Self {
         other
     }
 

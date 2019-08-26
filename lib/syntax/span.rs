@@ -8,7 +8,7 @@ use crate::error::LangError;
 
 use nom::{
     error::ErrorKind, error::ParseError, AsBytes, Compare, CompareResult, Err, FindSubstring,
-    FindToken, HexDisplay, IResult, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset,
+    HexDisplay, IResult, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset,
     Slice,
 };
 

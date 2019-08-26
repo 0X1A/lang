@@ -50,7 +50,7 @@ impl TypeAnnotation {
     }
 
     /// Checks `token`'s `token_type` to ensure that it has been lexed as a type annotation
-    pub fn check_token_type(token: &TokenTwo) -> Result<(), LangError> {
+    pub fn check_token_type(_: &TokenTwo) -> Result<(), LangError> {
         unimplemented!()
     }
 }

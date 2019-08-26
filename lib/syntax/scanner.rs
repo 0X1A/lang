@@ -1,6 +1,5 @@
 extern crate nom;
 
-use std::collections::HashMap;
 
 use crate::error::*;
 use crate::syntax::span::*;
@@ -221,35 +220,13 @@ impl SubStr for str {
 pub struct ScannerTwo<'a> {
     source: &'a str,
     pub tokens: Vec<TokenTwo<'a>>,
-    keywords: HashMap<&'a str, TokenType>,
 }
 
 impl<'a> ScannerTwo<'a> {
     pub fn new(script_content: &'a str) -> ScannerTwo<'a> {
-        let mut keywords = HashMap::new();
-        keywords.insert("break", TokenType::Break);
-        keywords.insert("enum", TokenType::Enum);
-        keywords.insert("and", TokenType::And);
-        keywords.insert("struct", TokenType::Struct);
-        keywords.insert("else", TokenType::Else);
-        keywords.insert("false", TokenType::False);
-        keywords.insert("for", TokenType::For);
-        keywords.insert("fn", TokenType::Fn);
-        keywords.insert("if", TokenType::If);
-        keywords.insert("unit", TokenType::Unit);
-        keywords.insert("or", TokenType::Or);
-        keywords.insert("impl", TokenType::Impl);
-        keywords.insert("trait", TokenType::Trait);
-        keywords.insert("print", TokenType::Print);
-        keywords.insert("return", TokenType::Return);
-        keywords.insert("true", TokenType::True);
-        keywords.insert("let", TokenType::Let);
-        keywords.insert("while", TokenType::While);
-        keywords.insert("self", TokenType::SelfIdent);
         ScannerTwo {
             source: script_content,
             tokens: Vec::new(),
-            keywords,
         }
     }
 
