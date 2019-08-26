@@ -1,6 +1,5 @@
 extern crate nom;
 
-
 use crate::error::*;
 use crate::syntax::span::*;
 use crate::syntax::token::*;
@@ -19,13 +18,13 @@ macro_rules! gen_lex_token {
             let (input, begin) = preceded(multispace0, position)(input)?;
             let (input, output) = preceded(multispace0, tag($t))(input)?;
             let (input, end) = preceded(multispace0, position)(input)?;
-            let t = TokenTwo::from($token_type, output.input);
+            let t = TokenTwo::get_value(ValueType::String, output.input)?;
             Ok((
                 input,
                 TokenTwo {
                     token_type: $token_type,
                     span: SourceSpan::new(begin, end),
-                    value: t.unwrap(),
+                    value: t,
                 },
             ))
         }
@@ -123,7 +122,7 @@ fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangE
     let (input, begin) = preceded(multispace0, position)(input)?;
     let (input, idientifier) = preceded(multispace0, take_while1(allowable_ident_char))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
-    let t = TokenTwo::from2(TokenType::Identifier, idientifier.input)?;
+    let t = TokenTwo::get_value(ValueType::String, idientifier.input)?;
     Ok((
         input,
         TokenTwo {
@@ -153,23 +152,23 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangEr
     )(input)?;
     let (input, end) = position(input)?;
     let type_annotation = match type_str.input {
-        "i32" => TypeAnnotation::I32,
-        "i64" => TypeAnnotation::I64,
-        "f32" => TypeAnnotation::F32,
-        "f64" => TypeAnnotation::F64,
-        "bool" => TypeAnnotation::Bool,
-        "String" => TypeAnnotation::String,
-        "()" => TypeAnnotation::Unit,
-        "fn" => TypeAnnotation::Fn,
-        other @ _ => TypeAnnotation::User(other.to_string()),
+        "i32" => TokenType::Type(TypeAnnotation::I32),
+        "i64" => TokenType::Type(TypeAnnotation::I64),
+        "f32" => TokenType::Type(TypeAnnotation::F32),
+        "f64" => TokenType::Type(TypeAnnotation::F64),
+        "bool" => TokenType::Type(TypeAnnotation::Bool),
+        "String" => TokenType::Type(TypeAnnotation::String),
+        "()" => TokenType::Type(TypeAnnotation::Unit),
+        "fn" => TokenType::Type(TypeAnnotation::Fn),
+        _ => TokenType::Identifier,
     };
-    let t = TokenTwo::from(TokenType::Identifier, type_str.input);
+    let t = TokenTwo::get_value(ValueType::String, type_str.input)?;
     Ok((
         input,
         TokenTwo {
-            token_type: TokenType::Type(type_annotation),
+            token_type: type_annotation,
             span: SourceSpan::new(begin, end),
-            value: t.unwrap(),
+            value: t,
         },
     ))
 }
@@ -182,13 +181,16 @@ fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangE
     let (input, begin) = preceded(multispace0, position)(input)?;
     let (input, digit) = preceded(multispace0, take_while1(lis_digit))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
+    let value_type;
     let token_type;
     if digit.input.contains('.') {
+        value_type = ValueType::Float;
         token_type = TokenType::Float;
     } else {
-        token_type = TokenType::Integer
+        value_type = ValueType::Integer;
+        token_type = TokenType::Integer;
     }
-    let t = TokenTwo::from2(token_type.clone(), digit.input)?;
+    let t = TokenTwo::get_value(value_type.clone(), digit.input)?;
     Ok((
         input,
         TokenTwo {

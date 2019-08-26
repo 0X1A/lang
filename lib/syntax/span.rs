@@ -8,8 +8,7 @@ use crate::error::LangError;
 
 use nom::{
     error::ErrorKind, error::ParseError, AsBytes, Compare, CompareResult, Err, FindSubstring,
-    HexDisplay, IResult, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset,
-    Slice,
+    HexDisplay, IResult, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset, Slice,
 };
 
 pub fn ___dbg_dmp<'a, F, O, E: std::fmt::Debug>(

@@ -288,11 +288,19 @@ pub struct TokenTwo<'a> {
     pub value: Value,
 }
 
+#[derive(Debug, Clone)]
+pub enum ValueType {
+    String,
+    Integer,
+    Float,
+    Boolean,
+}
+
 impl<'a> TokenTwo<'a> {
-    pub fn from2(token_type: TokenType, lexeme: &str) -> Result<Value, nom::Err<LangError>> {
-        let value = match token_type {
-            TokenType::String => Value::String(lexeme.to_string()),
-            TokenType::Integer => {
+    pub fn get_value(value_type: ValueType, lexeme: &str) -> Result<Value, nom::Err<LangError>> {
+        let value = match value_type {
+            ValueType::String => Value::String(lexeme.to_string()),
+            ValueType::Integer => {
                 let integer_value = match lexeme.to_string().parse::<i64>() {
                     Ok(i) => i,
                     Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
@@ -303,7 +311,7 @@ impl<'a> TokenTwo<'a> {
                     Value::Int64(integer_value)
                 }
             }
-            TokenType::Float => {
+            ValueType::Float => {
                 let value = match lexeme.to_string().parse::<f64>() {
                     Ok(i) => i,
                     Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
@@ -316,38 +324,13 @@ impl<'a> TokenTwo<'a> {
                     Value::Float64(Float64 { inner: value })
                 }
             }
-            TokenType::Identifier => Value::Ident(lexeme.to_string()),
-            TokenType::True | TokenType::False => {
+            ValueType::Boolean => {
                 let value = match lexeme.to_string().parse::<bool>() {
                     Ok(i) => i,
                     Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
                 };
                 Value::Boolean(value)
             }
-            _ => Value::String(token_type.to_string()),
-        };
-        Ok(value)
-    }
-
-    pub fn from(token_type: TokenType, lexeme: &str) -> Result<Value, LangError> {
-        let value = match token_type {
-            TokenType::String => Value::String(lexeme.to_string()),
-            TokenType::Integer => {
-                let integer_value = lexeme.to_string().parse::<i64>()?;
-                if integer_value as i32 <= std::i32::MAX && integer_value as i32 >= std::i32::MIN {
-                    Value::Int32(integer_value as i32)
-                } else {
-                    Value::Int64(integer_value)
-                }
-            }
-            TokenType::Float => Value::Float64(Float64 {
-                inner: lexeme.to_string().parse::<f64>()?,
-            }),
-            TokenType::Identifier => Value::Ident(lexeme.to_string()),
-            TokenType::True | TokenType::False => {
-                Value::Boolean(lexeme.to_string().parse::<bool>()?)
-            }
-            _ => Value::String(token_type.to_string()),
         };
         Ok(value)
     }
