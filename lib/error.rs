@@ -182,6 +182,24 @@ impl From<time::SystemTimeError> for LangErrorType {
     }
 }
 
+impl From<nom::Err<LangError>> for LangError {
+    fn from(err: nom::Err<LangError>) -> LangError {
+        match err {
+            nom::Err::Incomplete(e) => {
+                match e {
+                    nom::Needed::Size(s) =>
+                LangError::from(LangErrorType::ParserError {
+                    reason: format!("parser did not have enough data for parsing, required a buffer of size: {}", s)
+                }),
+                    nom::Needed::Unknown => LangError::from(LangErrorType::ParserError { reason: format!("parser did not have enough data for parsing, required a buffer of unknown size") }),
+                }
+            }
+            nom::Err::Error(e) => e,
+            nom::Err::Failure(e) => e,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct LangError {
     pub context: Context<LangErrorType>,

@@ -1,18 +1,21 @@
+use crate::ast::stmt::*;
 use crate::error::*;
 use crate::syntax::ast::expr::*;
-use crate::ast::stmt::*;
 use crate::syntax::token::TokenTwo;
 use crate::token::{TokenType, TypeAnnotation};
 use crate::value::{TypedValue, Value};
 
 pub struct Parser<'a> {
     tokens: Vec<TokenTwo<'a>>,
-    current: usize,
+    cursor_position: usize,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<TokenTwo<'a>>) -> Parser<'a> {
-        Parser { tokens, current: 0 }
+        Parser {
+            tokens,
+            cursor_position: 0,
+        }
     }
 
     fn expression(&mut self) -> Result<Expr, LangError> {
@@ -97,7 +100,7 @@ impl<'a> Parser<'a> {
     }
 
     fn get_previous_index(&self) -> usize {
-        self.current - 1
+        self.cursor_position - 1
     }
 
     fn token_at(&self, pos: usize) -> Option<TokenTwo> {

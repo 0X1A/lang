@@ -182,6 +182,12 @@ fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangE
     let (input, begin) = preceded(multispace0, position)(input)?;
     let (input, digit) = preceded(multispace0, take_while1(lis_digit))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
+    // TODO: Fix this parser function, we shouldn't have to waste cycles on goofy shit like this
+    if digit.input.len() == 1 && digit.input.contains('.') {
+        return Err(nom::Err::<LangError>::Error(LangError::from(
+            LangErrorType::ParserError { reason: "Attempted to lex a digit that was only '.'".into() },
+        )));
+    }
     let value_type;
     let token_type;
     if digit.input.contains('.') {
@@ -202,24 +208,6 @@ fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangE
     ))
 }
 
-trait SubStr {
-    fn substr(&self, beg: usize, end: usize) -> String;
-}
-
-impl SubStr for String {
-    /// Creates a substring from a string using indices `from` and `to`
-    fn substr(&self, from: usize, to: usize) -> String {
-        self.chars().skip(from).take(to - from).collect()
-    }
-}
-
-impl SubStr for str {
-    /// Creates a substring from a string using indices `from` and `to`
-    fn substr(&self, from: usize, to: usize) -> String {
-        self.chars().skip(from).take(to - from).collect()
-    }
-}
-
 pub struct ScannerTwo<'a> {
     source: &'a str,
     pub tokens: Vec<TokenTwo<'a>>,
@@ -235,25 +223,9 @@ impl<'a> ScannerTwo<'a> {
 
     pub fn scan_tokens(&mut self) -> Result<Vec<TokenTwo>, LangError> {
         let root_span: Span<&str> = Span::new(self.source, 0, 1, 0);
-        println!("root span: {:?}", root_span);
-        println!("root span: {:?}", root_span.input);
         match lex_program(root_span) {
-            Ok(t) => {
-                println!("{:?}", t);
-                Ok(t.1)
-            }
-            Err(e) => {
-                match e {
-                    nom::Err::Error(err) => {
-                        println!("Error: {:?}", err);
-                    }
-                    nom::Err::Failure(err) => {
-                        println!("Failure: {:?}", err);
-                    }
-                    _ => println!("Incomplete: {:?}", e),
-                }
-                Ok(vec![])
-            }
+            Ok(t) => Ok(t.1),
+            Err(e) => return Err(e.into()),
         }
     }
 }
