@@ -596,7 +596,7 @@ impl Parser {
         Ok(Stmt::Var(Box::new(VarStmt {
             initializer: Some(initializer),
             type_annotation: type_annotation_token,
-            name,
+            name: name.lexeme,
         })))
     }
 
@@ -610,7 +610,9 @@ impl Parser {
                 break;
             }
             let mut item = EnumItem {
-                identifier: self.pop_expect(&TokenType::Identifier, "expected identifier")?,
+                identifier: self
+                    .pop_expect(&TokenType::Identifier, "expected identifier")?
+                    .lexeme,
                 initializer: None,
             };
             if self.matches(&[TokenType::Equal]) {
@@ -628,7 +630,10 @@ impl Parser {
         }
         self.pop_expect(&TokenType::RightBrace, "expected right brace")?;
         item_list.shrink_to_fit();
-        Ok(Stmt::Enum(Box::new(EnumStmt { name, item_list })))
+        Ok(Stmt::Enum(Box::new(EnumStmt {
+            name: name.lexeme,
+            item_list,
+        })))
     }
 
     fn trait_impl_declaration(&mut self, trait_name: Token) -> Result<Stmt, LangError> {
@@ -654,8 +659,8 @@ impl Parser {
         )?;
         trait_fn_declarations.shrink_to_fit();
         Ok(Stmt::ImplTrait(Box::new(ImplTraitStmt {
-            impl_name: impl_trait_name,
-            trait_name,
+            impl_name: impl_trait_name.lexeme,
+            trait_name: trait_name.lexeme,
             fn_declarations: trait_fn_declarations,
         })))
     }
@@ -684,7 +689,7 @@ impl Parser {
         )?;
         trait_fn_declarations.shrink_to_fit();
         Ok(Stmt::Trait(Box::new(TraitStmt {
-            name: trait_name,
+            name: trait_name.lexeme,
             trait_fn_declarations,
         })))
     }
@@ -719,7 +724,7 @@ impl Parser {
         )?;
         fn_declarations.shrink_to_fit();
         Ok(Stmt::Impl(Box::new(ImplStmt {
-            name,
+            name: name.lexeme,
             fn_declarations,
         })))
     }
@@ -738,7 +743,7 @@ impl Parser {
                 TypeAnnotation::check_token_type(&type_annotation_token)?;
                 // We only pass down the type annotation
                 parameters.push(VariableData::new(
-                    identifier,
+                    identifier.lexeme,
                     type_annotation_token.token_type.to_type_annotation()?,
                 ));
                 if !self.matches(&[TokenType::Comma]) {
@@ -752,7 +757,7 @@ impl Parser {
         TypeAnnotation::check_token_type(&return_type_annotation_token)?;
         parameters.shrink_to_fit();
         Ok(Stmt::TraitFunction(Box::new(TraitFunctionStmt {
-            name,
+            name: name.lexeme,
             return_type: return_type_annotation_token,
             params: parameters,
         })))
@@ -778,7 +783,7 @@ impl Parser {
                 TypeAnnotation::check_token_type(&type_annotation_token)?;
                 // We only pass down the type annotation
                 parameters.push(VariableData::new(
-                    identifier,
+                    identifier.lexeme,
                     type_annotation_token.token_type.to_type_annotation()?,
                 ));
                 if !self.matches(&[TokenType::Comma]) {
@@ -797,7 +802,7 @@ impl Parser {
         let body = self.block()?;
         parameters.shrink_to_fit();
         Ok(Stmt::Function(Box::new(FunctionStmt {
-            name,
+            name: name.lexeme,
             return_type: return_type_annotation_token,
             params: parameters,
             body,
@@ -822,7 +827,7 @@ impl Parser {
                 comma_count += 1;
             }
             fields.push(VariableData::new(
-                field,
+                field.lexeme,
                 type_annotation.token_type.to_type_annotation()?,
             ));
             if comma_count < fields.len() - 1 && !fields.is_empty() {
@@ -834,7 +839,10 @@ impl Parser {
 
         self.pop_expect(&TokenType::RightBrace, "Expected '}' after struct body")?;
         fields.shrink_to_fit();
-        Ok(Stmt::Struct(Box::new(StructStmt { fields, name })))
+        Ok(Stmt::Struct(Box::new(StructStmt {
+            fields,
+            name: name.lexeme,
+        })))
     }
 
     fn declaration(&mut self) -> Result<Stmt, LangError> {

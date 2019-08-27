@@ -232,25 +232,25 @@ impl Environment {
         false
     }
 
-    pub fn get_ref(&self, env_id: &EnvironmentId, name: &Token) -> Result<&TypedValue, LangError> {
+    pub fn get_ref(&self, env_id: &EnvironmentId, name: &String) -> Result<&TypedValue, LangError> {
         debug!(
             "{}:{} Looking for token with lexeme '{}' at index '{}' env: {:?}",
             file!(),
             line!(),
-            name.lexeme,
+            name,
             env_id.index,
             self
         );
-        if let Some(value) = self[env_id].values.get(&name.lexeme) {
+        if let Some(value) = self[env_id].values.get(name) {
             return Ok(value);
         } else if let Some(enclosing) = self[env_id].enclosing.clone() {
             return Ok(self.get_ref(&enclosing, name)?);
         } else {
-            Err(Lang::error(
+            Err(Lang::error_s(
                 name,
                 &format!(
                     "(get) Tried to get an undefined variable: '{}'",
-                    name.lexeme.clone()
+                    name.clone()
                 ),
             ))
         }

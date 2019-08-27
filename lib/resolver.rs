@@ -62,7 +62,7 @@ impl<'a> Resolver<'a> {
 
     // TODO: Figure out how to handle trait implementations' declarations
     /// Declare token in latest scope
-    fn declare(&mut self, name: &Token) -> Result<(), LangError> {
+    fn declare(&mut self, name: &String) -> Result<(), LangError> {
         assert!(!self.scopes.is_empty());
         // Our scopes are a stack, check the last element for the token being declared
         self.scopes.last_mut().map_or(
@@ -70,7 +70,7 @@ impl<'a> Resolver<'a> {
                 "Tried to declare with no scopes 🤔".to_string(),
             )),
             |last| {
-                if last.contains_key(&name.lexeme) {
+                if last.contains_key(name) {
                     // See TODO above!
                     /*                     Err(LangErrorType::new_iie_error(format!(
                         "Variable with the name '{}' already declared in this scope",
@@ -78,7 +78,7 @@ impl<'a> Resolver<'a> {
                     ))) */
                     Ok(())
                 } else {
-                    last.insert(name.lexeme.clone(), false);
+                    last.insert(name.clone(), false);
                     Ok(())
                 }
             },
@@ -86,11 +86,11 @@ impl<'a> Resolver<'a> {
     }
 
     /// Defines `name` in current scope
-    fn define(&mut self, name: &Token) {
+    fn define(&mut self, name: &String) {
         debug!("{}:{} Defining {:?} as in scope", file!(), line!(), name);
         assert!(!self.scopes.is_empty());
         if let Some(ref mut last) = self.scopes.last_mut() {
-            last.insert(name.lexeme.clone(), true);
+            last.insert(name.clone(), true);
         }
     }
 

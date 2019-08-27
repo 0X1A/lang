@@ -4,6 +4,7 @@ use crate::interpreter::Interpreter;
 use crate::parser::*;
 use crate::resolver::*;
 use crate::scanner::*;
+use crate::syntax::parser;
 use crate::syntax::scanner::*;
 use crate::syntax::token::*;
 use crate::token::*;
@@ -43,9 +44,11 @@ impl<'a> Lang<'a> {
     pub fn build_statements(&mut self) -> Result<Vec<Stmt>, LangError> {
         if let Some(ref mut scanner) = self.scanner_two {
             let tokens: Vec<TokenTwo> = scanner.scan_tokens()?;
-            for token in tokens {
+            for token in tokens.iter() {
                 debug!("{:?}", token);
             }
+            //let mut parser = parser::Parser::new(tokens);
+            //let statements = parser.parse()?;
         }
         if let Some(ref mut scanner) = self.scanner {
             let tokens: Vec<Token> = scanner.scan_tokens()?;
@@ -93,6 +96,13 @@ impl<'a> Lang<'a> {
             return Lang::report(token.line, "at end ", message);
         } */
         Lang::report(token.line, &format!("at '{}'", token.lexeme), message)
+    }
+
+    pub fn error_s(token: &String, message: &str) -> LangError {
+        /*         if token.token_type == syntax::TokenType::Eof {
+            return Lang::report(token.line, "at end ", message);
+        } */
+        Lang::report(0, &format!("at '{}'", token), message)
     }
 
     pub fn report(line: u64, ware: &str, message: &str) -> LangError {

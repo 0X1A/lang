@@ -24,12 +24,12 @@ pub enum Stmt {
 
 #[derive(Clone, Debug)]
 pub struct VariableData {
-    pub identifier: Token,
+    pub identifier: String,
     pub type_annotation: TypeAnnotation,
 }
 
 impl VariableData {
-    pub fn new(identifier: Token, type_annotation: TypeAnnotation) -> VariableData {
+    pub fn new(identifier: String, type_annotation: TypeAnnotation) -> VariableData {
         VariableData {
             identifier,
             type_annotation,
@@ -39,26 +39,26 @@ impl VariableData {
 
 #[derive(Clone, Debug)]
 pub struct EnumItem {
-    pub identifier: Token,
+    pub identifier: String,
     pub initializer: Option<Expr>,
 }
 
 #[derive(Clone, Debug)]
 pub struct EnumStmt {
-    pub name: Token,
+    pub name: String,
     pub item_list: Vec<EnumItem>,
 }
 
 #[derive(Clone, Debug)]
 pub struct ImplStmt {
-    pub name: Token,
+    pub name: String,
     pub fn_declarations: Vec<Stmt>,
 }
 
 #[derive(Clone, Debug)]
 pub struct ImplTraitStmt {
-    pub trait_name: Token,
-    pub impl_name: Token,
+    pub trait_name: String,
+    pub impl_name: String,
     pub fn_declarations: Vec<Stmt>,
 }
 
@@ -70,7 +70,7 @@ pub struct BlockStmt {
 #[derive(Clone, Debug)]
 pub struct StructStmt {
     pub fields: Vec<VariableData>,
-    pub name: Token,
+    pub name: String,
 }
 
 #[derive(Clone, Debug)]
@@ -80,20 +80,20 @@ pub struct ExpressionStmt {
 
 #[derive(Clone, Debug)]
 pub struct TraitStmt {
-    pub name: Token,
+    pub name: String,
     pub trait_fn_declarations: Vec<Stmt>,
 }
 
 #[derive(Clone, Debug)]
 pub struct TraitFunctionStmt {
-    pub name: Token,
+    pub name: String,
     pub return_type: Token,
     pub params: Vec<VariableData>,
 }
 
 #[derive(Clone, Debug)]
 pub struct FunctionStmt {
-    pub name: Token,
+    pub name: String,
     pub return_type: Token,
     pub params: Vec<VariableData>,
     pub body: Vec<Stmt>,
@@ -121,7 +121,7 @@ pub struct ReturnStmt {
 pub struct VarStmt {
     pub initializer: Option<Expr>,
     pub type_annotation: Token,
-    pub name: Token,
+    pub name: String,
 }
 
 #[derive(Clone, Debug)]

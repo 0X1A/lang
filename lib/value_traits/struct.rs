@@ -9,7 +9,7 @@ pub trait StructTrait {
     fn get_field(&self, name: &str, interpreter: &mut Interpreter)
         -> Result<TypedValue, LangError>;
     fn field_exists(&self, name: &str) -> bool;
-    fn define_method(&mut self, name: &Token, value: TypedValue) -> Result<(), LangError>;
+    fn define_method(&mut self, name: &String, value: TypedValue) -> Result<(), LangError>;
     fn get_method(
         &self,
         name: &str,

@@ -1,7 +1,7 @@
 use crate::error::*;
 use crate::syntax::span::Span;
+use crate::token::TokenType;
 use crate::value::{Float32, Float64, Value};
-use crate::token::{TokenType};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SourceSpan<'a> {

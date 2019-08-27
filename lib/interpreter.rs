@@ -206,7 +206,7 @@ impl Interpreter {
                 };
                 self.env_entries.update_value(
                     &self.env_id,
-                    &impl_trait_stmt.impl_name.lexeme,
+                    &impl_trait_stmt.impl_name,
                     update_struct_decl,
                 )?;
             }
@@ -217,7 +217,7 @@ impl Interpreter {
     fn visit_trait_stmt(&mut self, trait_stmt: &TraitStmt) -> Result<(), LangError> {
         self.env_entries.define(
             &self.env_id,
-            &trait_stmt.name.lexeme,
+            &trait_stmt.name,
             TypedValue::new(Value::Unit, TypeAnnotation::Unit),
         );
         let mut trait_value = TraitValue {
@@ -230,12 +230,12 @@ impl Interpreter {
             if let Stmt::TraitFunction(trait_fn_decl) = fn_decl {
                 trait_value
                     .fn_declarations
-                    .insert(trait_fn_decl.name.lexeme.clone(), trait_fn);
+                    .insert(trait_fn_decl.name.clone(), trait_fn);
             }
         }
         self.env_entries.assign(
             &self.env_id,
-            &trait_stmt.name.lexeme,
+            &trait_stmt.name,
             TypedValue::new(
                 Value::Trait(Box::new(trait_value.clone())),
                 TypeAnnotation::Trait,
@@ -264,11 +264,8 @@ impl Interpreter {
                     )?;
                     Ok(())
                 };
-                self.env_entries.update_value(
-                    &self.env_id,
-                    &impl_stmt.name.lexeme,
-                    update_struct,
-                )?;
+                self.env_entries
+                    .update_value(&self.env_id, &impl_stmt.name, update_struct)?;
             }
         }
         Ok(())
@@ -277,13 +274,13 @@ impl Interpreter {
     fn visit_struct_stmt(&mut self, struct_stmt: &StructStmt) -> Result<(), LangError> {
         self.env_entries.define(
             &self.env_id,
-            &struct_stmt.name.lexeme,
+            &struct_stmt.name,
             TypedValue::new(Value::Unit, TypeAnnotation::Unit),
         );
         let mut fields = HashMap::new();
         for field in struct_stmt.fields.iter() {
             fields.insert(
-                field.identifier.lexeme.clone(),
+                field.identifier.clone(),
                 TypedValue::new(
                     Value::default_value(&field.type_annotation),
                     field.type_annotation.clone(),
@@ -293,14 +290,14 @@ impl Interpreter {
         let struct_value = Value::Struct(Box::new(StructValue::new(
             struct_stmt.clone(),
             fields,
-            struct_stmt.name.lexeme.clone(),
+            struct_stmt.name.clone(),
         )));
         self.env_entries.assign(
             &self.env_id,
-            &struct_stmt.name.lexeme,
+            &struct_stmt.name,
             TypedValue::new(
                 struct_value.clone(),
-                TypeAnnotation::User(struct_stmt.name.lexeme.clone()),
+                TypeAnnotation::User(struct_stmt.name.clone()),
             ),
         )?;
         Ok(())
@@ -661,13 +658,13 @@ impl Interpreter {
 
     fn check_impl_trait(
         &self,
-        impl_trait: &Token,
+        impl_trait: &String,
         fn_value: &Value,
-        trait_token: &Token,
+        trait_token: &String,
     ) -> Result<bool, LangError> {
         let typed_trait_value = self.env_entries.get_ref(&self.env_id, trait_token)?;
         let trait_value_type: &TraitValue = (&typed_trait_value.value).try_into()?;
-        if let Some(trait_fn_decl) = trait_value_type.fn_declarations.get(&impl_trait.lexeme) {
+        if let Some(trait_fn_decl) = trait_value_type.fn_declarations.get(impl_trait) {
             if let Value::TraitFunction(ref trait_function) = trait_fn_decl.value {
                 let callable_value: &dyn CallableTrait = fn_value.try_into()?;
                 self.check_impl_trait_return_type(callable_value, trait_function)?;
@@ -788,7 +785,7 @@ impl Visitor for Interpreter {
             Value::Callable(Box::new(Callable::new(function_stmt.clone(), &self.env_id)));
         self.env_entries.define(
             &self.env_id,
-            &function_stmt.name.lexeme,
+            &function_stmt.name,
             TypedValue::new(function.clone(), TypeAnnotation::Fn),
         );
         Ok(())
@@ -847,10 +844,9 @@ impl Visitor for Interpreter {
             ));
         }
         if let Value::Struct(ref mut struct_value) = value.value {
-            struct_value.set_instance_name(var_stmt.name.lexeme.clone());
+            struct_value.set_instance_name(var_stmt.name.clone());
         }
-        self.env_entries
-            .define(&self.env_id, &var_stmt.name.lexeme, value);
+        self.env_entries.define(&self.env_id, &var_stmt.name, value);
         self.stack
             .push(TypedValue::new(Value::Unit, TypeAnnotation::Unit));
         Ok(())

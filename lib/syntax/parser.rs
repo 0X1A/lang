@@ -1,9 +1,8 @@
-use crate::syntax::ast::expr::*;
-use crate::syntax::ast::stmt::*;
 use crate::error::*;
-use crate::lang::*;
-use crate::token::{TokenType, TypeAnnotation};
+use crate::syntax::ast::expr::*;
+use crate::ast::stmt::*;
 use crate::syntax::token::TokenTwo;
+use crate::token::{TokenType, TypeAnnotation};
 use crate::value::{TypedValue, Value};
 
 pub struct Parser<'a> {

@@ -609,7 +609,7 @@ impl StructValue {
 
 impl CallableTrait for StructValue {
     fn get_name(&self) -> String {
-        self.struct_stmt.name.lexeme.clone()
+        self.struct_stmt.name.clone()
     }
 
     fn arity(&self) -> usize {
@@ -617,7 +617,7 @@ impl CallableTrait for StructValue {
     }
 
     fn get_return_type(&self) -> Option<TypeAnnotation> {
-        Some(TypeAnnotation::User(self.struct_stmt.name.lexeme.clone()))
+        Some(TypeAnnotation::User(self.struct_stmt.name.clone()))
     }
 
     fn bind(&self, _: &dyn StructInstanceTrait, _: &mut Interpreter) -> Result<(), LangError> {
@@ -675,8 +675,8 @@ impl StructTrait for StructValue {
         )
     }
 
-    fn define_method(&mut self, name: &Token, value: TypedValue) -> Result<(), LangError> {
-        self.methods.insert(name.lexeme.clone(), value);
+    fn define_method(&mut self, name: &String, value: TypedValue) -> Result<(), LangError> {
+        self.methods.insert(name.clone(), value);
         Ok(())
     }
 
@@ -788,7 +788,7 @@ impl CallableTrait for Callable {
 
     #[inline(always)]
     fn get_name(&self) -> String {
-        format!("<fn {}>", self.function.name.lexeme)
+        format!("<fn {}>", self.function.name)
     }
 
     #[inline(always)]
@@ -858,7 +858,7 @@ impl CallableTrait for Callable {
             }
             interpreter
                 .env_entries
-                .define(&env_id, &it.0.identifier.lexeme, it.1.clone());
+                .define(&env_id, &it.0.identifier, it.1.clone());
         }
         let return_value = interpreter.execute_block(&self.function.body, env_id)?;
         if let Some(function_return_type) = self.get_return_type() {
