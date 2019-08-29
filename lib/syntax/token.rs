@@ -5,8 +5,8 @@ use crate::value::{Float32, Float64, Value};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SourceSpan<'a> {
-    begin: Span<&'a str>,
-    end: Span<&'a str>,
+    pub begin: Span<&'a str>,
+    pub end: Span<&'a str>,
 }
 
 impl<'a> SourceSpan<'a> {
@@ -20,6 +20,7 @@ pub struct TokenTwo<'a> {
     pub token_type: TokenType,
     pub span: SourceSpan<'a>,
     pub value: Value,
+    pub lexeme: &'a str,
 }
 
 #[derive(Debug, Clone)]
@@ -93,6 +94,7 @@ impl<'a> TokenTwo<'a> {
             token_type,
             span: SourceSpan::new(Span::new(lexeme, 0, 0, 0), Span::new(lexeme, 0, 0, 0)),
             value: value,
+            lexeme: lexeme,
         })
     }
 }

@@ -26,6 +26,7 @@ macro_rules! gen_lex_token {
                     token_type: $token_type,
                     span: SourceSpan::new(begin, end),
                     value: value,
+                    lexeme: output.input,
                 },
             ))
         }
@@ -161,6 +162,7 @@ fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangE
             token_type: TokenType::Identifier,
             span: SourceSpan::new(begin, end),
             value: value,
+            lexeme: idientifier.input,
         },
     ))
 }
@@ -201,6 +203,7 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangEr
             token_type: type_annotation,
             span: SourceSpan::new(begin, end),
             value: value,
+            lexeme: type_str.input,
         },
     ))
 }
@@ -237,6 +240,7 @@ fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangE
             token_type: token_type,
             span: SourceSpan::new(begin, end),
             value: value,
+            lexeme: digit.input,
         },
     ))
 }
