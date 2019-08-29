@@ -15,7 +15,7 @@ use std::convert::TryInto;
 #[derive(Debug)]
 pub struct Interpreter {
     pub env_id: EnvironmentId,
-    pub locals: HashMap<Token, usize>,
+    pub locals: HashMap<String, usize>,
     pub env_entries: Environment,
     pub stack: Vec<TypedValue>,
 }
@@ -52,7 +52,7 @@ impl Interpreter {
     }
 
     pub fn resolve(&mut self, token: &Token, idx: usize) {
-        self.locals.insert(token.clone(), idx);
+        self.locals.insert(token.lexeme.clone(), idx);
         debug!(
             "{}:{} Inserting expr '{:?}' at index '{}' into locals '{:?}' and env '{:?}'",
             file!(),
@@ -532,7 +532,7 @@ impl Interpreter {
             self.env_entries,
             self.pretty_print_locals()
         );
-        if let Some(distance) = self.locals.get(&token) {
+        if let Some(distance) = self.locals.get(&token.lexeme) {
             if let Ok(value) = self
                 .env_entries
                 .get(&EnvironmentId { index: *distance }, &token.lexeme)

@@ -97,4 +97,16 @@ impl<'a> TokenTwo<'a> {
             lexeme: lexeme,
         })
     }
+
+    pub fn new2(token_type: TokenType, lexeme: &str) -> TokenTwo {
+        let value = match token_type {
+            _ => Value::String(token_type.to_string()),
+        };
+        TokenTwo {
+            token_type,
+            span: SourceSpan::new(Span::new(lexeme, 0, 0, 0), Span::new(lexeme, 0, 0, 0)),
+            value: value,
+            lexeme: lexeme,
+        }
+    }
 }

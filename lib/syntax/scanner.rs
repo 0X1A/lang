@@ -93,7 +93,8 @@ fn entry<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError
 }
 
 fn lex_program<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Vec<TokenTwo>, LangError> {
-    let (input, output) = many1(entry)(input)?;
+    let (input, mut output) = many1(entry)(input)?;
+    output.push(TokenTwo::new2(TokenType::Eof, "EoF"));
     Ok((input, output))
 }
 
