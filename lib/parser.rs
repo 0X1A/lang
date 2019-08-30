@@ -531,7 +531,7 @@ impl Parser {
             ))))
         };
         self.pop_expect(&TokenType::SemiColon, "Expect ';' after return value.")?;
-        Ok(Stmt::Return(Box::new(ReturnStmt { keyword, value })))
+        Ok(Stmt::Return(Box::new(ReturnStmt { keyword: "return".into(), value })))
     }
 
     fn statement(&mut self) -> Result<Stmt, LangError> {
@@ -758,7 +758,7 @@ impl Parser {
         parameters.shrink_to_fit();
         Ok(Stmt::TraitFunction(Box::new(TraitFunctionStmt {
             name: name.lexeme,
-            return_type: return_type_annotation_token,
+            return_type: return_type_annotation_token.token_type,
             params: parameters,
         })))
     }
@@ -803,7 +803,7 @@ impl Parser {
         parameters.shrink_to_fit();
         Ok(Stmt::Function(Box::new(FunctionStmt {
             name: name.lexeme,
-            return_type: return_type_annotation_token,
+            return_type: return_type_annotation_token.token_type,
             params: parameters,
             body,
         })))

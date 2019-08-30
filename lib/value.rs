@@ -817,7 +817,7 @@ impl CallableTrait for Callable {
     }
 
     fn get_return_type(&self) -> Option<TypeAnnotation> {
-        match self.function.return_type.token_type {
+        match self.function.return_type {
             TokenType::Type(ref type_name) => match type_name {
                 _ => Some(type_name.clone()),
             },

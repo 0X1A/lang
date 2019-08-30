@@ -597,7 +597,7 @@ impl Interpreter {
     ) -> Result<(), LangError> {
         if let Some(return_type) = callable.get_return_type() {
             if return_type
-                != TypeAnnotation::from_token_type(&trait_function.function.return_type.token_type)?
+                != return_type
             {
                 return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidTypeAssignmentError {

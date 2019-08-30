@@ -1,6 +1,6 @@
 use crate::ast::expr::*;
 use crate::error::*;
-use crate::token::{Token, TypeAnnotation};
+use crate::token::{Token, TypeAnnotation, TokenType};
 use std::convert::TryInto;
 
 #[derive(Clone, Debug)]
@@ -87,14 +87,14 @@ pub struct TraitStmt {
 #[derive(Clone, Debug)]
 pub struct TraitFunctionStmt {
     pub name: String,
-    pub return_type: Token,
+    pub return_type: TokenType,
     pub params: Vec<VariableData>,
 }
 
 #[derive(Clone, Debug)]
 pub struct FunctionStmt {
     pub name: String,
-    pub return_type: Token,
+    pub return_type: TokenType,
     pub params: Vec<VariableData>,
     pub body: Vec<Stmt>,
 }
@@ -113,7 +113,7 @@ pub struct PrintStmt {
 
 #[derive(Clone, Debug)]
 pub struct ReturnStmt {
-    pub keyword: Token,
+    pub keyword: String,
     pub value: Expr,
 }
 

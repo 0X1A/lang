@@ -19,7 +19,7 @@ impl<'a> Parser<'a> {
     }
 
     fn expression(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
+        Ok(self.assignment()?)
     }
 
     fn and(&mut self) -> Result<Expr, LangError> {

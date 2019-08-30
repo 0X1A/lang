@@ -272,7 +272,7 @@ impl<'a> Visitor for Resolver<'a> {
     }
     fn visit_return(&mut self, return_stmt: &ReturnStmt) -> Result<(), LangError> {
         if self.current_function_type == FunctionType::None {
-            return Err(Lang::error(
+            return Err(Lang::error_s(
                 &return_stmt.keyword,
                 "Cannot return from top-level code",
             ));
