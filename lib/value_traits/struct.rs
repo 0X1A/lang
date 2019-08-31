@@ -1,6 +1,5 @@
 use crate::error::*;
 use crate::interpreter::Interpreter;
-use crate::token::Token;
 use crate::value::TypedValue;
 
 pub trait StructTrait {

@@ -11,6 +11,27 @@ pub struct Parser<'a> {
     cursor_position: usize,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TokenIR {
+    pub token_type: TokenType,
+    pub lexeme: String,
+    pub value: Value,
+    pub line: u32,
+    pub offset: usize,
+}
+
+impl TokenIR {
+    fn from_token_two(token: &TokenTwo) -> TokenIR {
+        TokenIR {
+            token_type: token.token_type.clone(),
+            lexeme: token.span.content.input.to_string(),
+            value: token.value.clone(),
+            line: token.span.begin.line,
+            offset: token.span.begin.offset,
+        }
+    }
+}
+
 impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<TokenTwo<'a>>) -> Parser<'a> {
         Parser {
@@ -79,7 +100,11 @@ impl<'a> Parser<'a> {
                     })));
                 }
                 _ => {
-                    return Err(Lang::error2(&equals, "Invalid assignment target"));
+                    return Err(Lang::error_ir(
+                        equals.line,
+                        &equals.lexeme,
+                        "Invalid assignment target",
+                    ));
                 }
             };
         }
@@ -169,7 +194,7 @@ impl<'a> Parser<'a> {
                 let name =
                     self.pop_expect(&TokenType::Identifier, "Expected property name after '.'")?;
                 expr = Expr::Get(Box::new(GetExpr {
-                    name: name.span.content.input.to_string(),
+                    name: name.lexeme,
                     object: expr,
                 }));
             } else {
@@ -203,7 +228,7 @@ impl<'a> Parser<'a> {
     fn primary(&mut self) -> Result<Expr, LangError> {
         if self.matches(&[TokenType::SelfIdent]) {
             return Ok(Expr::SelfIdent(Box::new(SelfIdentExpr {
-                keyword: self.previous().span.content.input.to_string(),
+                keyword: self.previous().lexeme,
             })));
         }
         if self.matches(&[TokenType::False]) {
@@ -297,7 +322,7 @@ impl<'a> Parser<'a> {
                     "Expected ']' after index expression",
                 )?;
                 return Ok(Expr::Index(Box::new(IndexExpr {
-                    from: from.span.content.input.to_string(),
+                    from: from.lexeme,
                     index,
                 })));
             } else if self.matches(&[TokenType::PathSeparator]) {
@@ -308,16 +333,16 @@ impl<'a> Parser<'a> {
                         break;
                     }
                     let path_item = self.pop_expect(&TokenType::Identifier, "expected ident")?;
-                    path_elements.push(path_item.span.content.input.to_string());
+                    path_elements.push(path_item.lexeme);
                 }
                 path_elements.shrink_to_fit();
                 return Ok(Expr::EnumPath(Box::new(EnumPathExpr {
-                    name: enum_name.span.content.input.to_string(),
+                    name: enum_name.lexeme,
                     path_items: path_elements,
                 })));
             } else {
                 return Ok(Expr::Variable(Box::new(VariableExpr {
-                    name: self.previous().span.content.input.to_string(),
+                    name: self.previous().lexeme,
                 })));
             }
         } else if self.matches(&[TokenType::LeftParen]) {
@@ -355,7 +380,7 @@ impl<'a> Parser<'a> {
 
     /// Checks if the cursor_position token in source matches `token_type`, errors using the string `string`
     /// on failure.
-    fn pop_expect(&mut self, token_type: &TokenType, string: &str) -> Result<TokenTwo, LangError> {
+    fn pop_expect(&mut self, token_type: &TokenType, string: &str) -> Result<TokenIR, LangError> {
         if self.check(&token_type) {
             return Ok(self.advance());
         }
@@ -394,7 +419,7 @@ impl<'a> Parser<'a> {
 
     /// Advances the cursor_position position in source, returning the token at the previously 'cursor_position'
     /// position
-    fn advance(&mut self) -> TokenTwo {
+    fn advance(&mut self) -> TokenIR {
         if !self.is_at_end() {
             self.cursor_position += 1;
         }
@@ -413,8 +438,8 @@ impl<'a> Parser<'a> {
     }
 
     /// Returns the token being the `cursor_position` position in source
-    fn previous(&self) -> TokenTwo {
-        self.tokens[self.get_previous_index()].clone()
+    fn previous(&self) -> TokenIR {
+        TokenIR::from_token_two(&self.tokens[self.get_previous_index()])
     }
 
     fn synchronize(&mut self) {
@@ -534,7 +559,6 @@ impl<'a> Parser<'a> {
     }
 
     fn return_statement(&mut self) -> Result<Stmt, LangError> {
-        let keyword = self.previous();
         let value = if !self.check(&TokenType::SemiColon) {
             self.expression()?
         } else {
@@ -612,7 +636,7 @@ impl<'a> Parser<'a> {
         Ok(Stmt::Var(Box::new(VarStmt {
             initializer: Some(initializer),
             type_annotation: type_annotation_token.token_type,
-            name: name.span.content.input.to_string(),
+            name: name.lexeme,
         })))
     }
 
@@ -628,10 +652,7 @@ impl<'a> Parser<'a> {
             let mut item = EnumItem {
                 identifier: self
                     .pop_expect(&TokenType::Identifier, "expected identifier")?
-                    .span
-                    .content
-                    .input
-                    .to_string(),
+                    .lexeme,
                 initializer: None,
             };
             if self.matches(&[TokenType::Equal]) {
@@ -650,12 +671,12 @@ impl<'a> Parser<'a> {
         self.pop_expect(&TokenType::RightBrace, "expected right brace")?;
         item_list.shrink_to_fit();
         Ok(Stmt::Enum(Box::new(EnumStmt {
-            name: name.span.content.input.to_string(),
+            name: name.lexeme,
             item_list,
         })))
     }
 
-    fn trait_impl_declaration(&mut self, trait_name: TokenTwo) -> Result<Stmt, LangError> {
+    fn trait_impl_declaration(&mut self, trait_name: TokenIR) -> Result<Stmt, LangError> {
         let impl_trait_name =
             self.pop_expect(&TokenType::Identifier, "expected identifier after for")?;
         let mut trait_fn_declarations = Vec::new();
@@ -678,8 +699,8 @@ impl<'a> Parser<'a> {
         )?;
         trait_fn_declarations.shrink_to_fit();
         Ok(Stmt::ImplTrait(Box::new(ImplTraitStmt {
-            impl_name: impl_trait_name.span.content.input.to_string(),
-            trait_name: trait_name.span.content.input.to_string(),
+            impl_name: impl_trait_name.lexeme,
+            trait_name: trait_name.lexeme,
             fn_declarations: trait_fn_declarations,
         })))
     }
@@ -708,7 +729,7 @@ impl<'a> Parser<'a> {
         )?;
         trait_fn_declarations.shrink_to_fit();
         Ok(Stmt::Trait(Box::new(TraitStmt {
-            name: trait_name.span.content.input.to_string(),
+            name: trait_name.lexeme,
             trait_fn_declarations,
         })))
     }
@@ -722,7 +743,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn method_impl_declaration(&mut self, name: TokenTwo) -> Result<Stmt, LangError> {
+    fn method_impl_declaration(&mut self, name: TokenIR) -> Result<Stmt, LangError> {
         let mut fn_declarations = Vec::new();
         self.pop_expect(
             &TokenType::LeftBrace,
@@ -743,7 +764,7 @@ impl<'a> Parser<'a> {
         )?;
         fn_declarations.shrink_to_fit();
         Ok(Stmt::Impl(Box::new(ImplStmt {
-            name: name.span.content.input.to_string(),
+            name: name.lexeme,
             fn_declarations,
         })))
     }
@@ -762,7 +783,7 @@ impl<'a> Parser<'a> {
                 TypeAnnotation::check_token_type2(&type_annotation_token)?;
                 // We only pass down the type annotation
                 parameters.push(VariableData::new(
-                    identifier.span.content.input.to_string(),
+                    identifier.lexeme,
                     type_annotation_token.token_type.to_type_annotation()?,
                 ));
                 if !self.matches(&[TokenType::Comma]) {
@@ -776,7 +797,7 @@ impl<'a> Parser<'a> {
         TypeAnnotation::check_token_type2(&return_type_annotation_token)?;
         parameters.shrink_to_fit();
         Ok(Stmt::TraitFunction(Box::new(TraitFunctionStmt {
-            name: name.span.content.input.to_string(),
+            name: name.lexeme,
             return_type: return_type_annotation_token.token_type,
             params: parameters,
         })))
@@ -802,7 +823,7 @@ impl<'a> Parser<'a> {
                 TypeAnnotation::check_token_type2(&type_annotation_token)?;
                 // We only pass down the type annotation
                 parameters.push(VariableData::new(
-                    identifier.span.content.input.to_string(),
+                    identifier.lexeme,
                     type_annotation_token.token_type.to_type_annotation()?,
                 ));
                 if !self.matches(&[TokenType::Comma]) {
@@ -821,7 +842,7 @@ impl<'a> Parser<'a> {
         let body = self.block()?;
         parameters.shrink_to_fit();
         Ok(Stmt::Function(Box::new(FunctionStmt {
-            name: name.span.content.input.to_string(),
+            name: name.lexeme,
             return_type: return_type_annotation_token.token_type,
             params: parameters,
             body,
@@ -846,7 +867,7 @@ impl<'a> Parser<'a> {
                 comma_count += 1;
             }
             fields.push(VariableData::new(
-                field.span.content.input.to_string(),
+                field.lexeme,
                 type_annotation.token_type.to_type_annotation()?,
             ));
             if comma_count < fields.len() - 1 && !fields.is_empty() {
@@ -860,7 +881,7 @@ impl<'a> Parser<'a> {
         fields.shrink_to_fit();
         Ok(Stmt::Struct(Box::new(StructStmt {
             fields,
-            name: name.span.content.input.to_string(),
+            name: name.lexeme,
         })))
     }
 

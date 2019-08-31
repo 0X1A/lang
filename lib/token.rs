@@ -1,8 +1,7 @@
 use crate::error::*;
 use crate::lang::*;
-use crate::syntax::token::TokenTwo;
-use crate::value::{Float64, Value};
-use std::fmt::{self, Debug, Display};
+use crate::syntax::parser::TokenIR;
+use std::fmt::{self, Display};
 
 // TODO: Revisit hashing Token
 #[allow(clippy::derive_hash_xor_eq)]
@@ -51,24 +50,13 @@ impl TypeAnnotation {
     }
 
     /// Checks `token`'s `token_type` to ensure that it has been lexed as a type annotation
-    pub fn check_token_type(token: &Token) -> Result<(), LangError> {
+    pub fn check_token_type2(token: &TokenIR) -> Result<(), LangError> {
         match token.token_type {
             TokenType::Type(_) => Ok(()),
-            _ => Err(Lang::error(
-                &token,
-                &format!(
-                    "invalid type annotation expected a type annotation, found '{}'",
-                    token.token_type.to_string()
-                ),
-            )),
-        }
-    }
-
-    pub fn check_token_type2(token: &TokenTwo) -> Result<(), LangError> {
-        match token.token_type {
-            TokenType::Type(_) => Ok(()),
-            _ => Err(Lang::error2(
-                &token,
+            TokenType::Identifier => Ok(()),
+            _ => Err(Lang::error_ir(
+                token.line,
+                &token.lexeme,
                 &format!(
                     "invalid type annotation expected a type annotation, found '{}'",
                     token.token_type.to_string()
@@ -291,65 +279,5 @@ impl Display for TokenType {
             TokenType::Type(type_annotation) => write!(f, "Type({})", type_annotation.to_string()),
             TokenType::Eof => write!(f, "EoF"),
         }
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-/// Tokenized version of our source text
-pub struct Token {
-    pub token_type: TokenType,
-    pub lexeme: String,
-    pub value: Value,
-    pub line: u64,
-}
-
-impl Token {
-    /// Takes the toke type `token_type` and creates a Token with lexeme `lexeme` and line `line`
-    pub fn from(token_type: TokenType, lexeme: &str, line: u64) -> Result<Token, LangError> {
-        let value = match token_type {
-            TokenType::String => Value::String(lexeme.to_string()),
-            TokenType::Integer => {
-                let integer_value = lexeme.to_string().parse::<i64>()?;
-                if integer_value as i32 <= std::i32::MAX && integer_value as i32 >= std::i32::MIN {
-                    Value::Int32(integer_value as i32)
-                } else {
-                    Value::Int64(integer_value)
-                }
-            }
-            TokenType::Float => Value::Float64(Float64 {
-                inner: lexeme.to_string().parse::<f64>()?,
-            }),
-            TokenType::Identifier => Value::Ident(lexeme.to_string()),
-            TokenType::True | TokenType::False => {
-                Value::Boolean(lexeme.to_string().parse::<bool>()?)
-            }
-            _ => Value::String(token_type.to_string()),
-        };
-        Ok(Token {
-            token_type,
-            lexeme: lexeme.to_string(),
-            value,
-            line,
-        })
-    }
-
-    pub fn to_string(&self) -> String {
-        format!("{} {}", self.token_type.to_string(), self.lexeme)
-    }
-}
-
-impl Debug for Token {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "(TokenType '{:?}', Lexeme '{}', Value '{:?}')",
-            self.token_type, self.lexeme, self.value
-        )
-    }
-}
-
-impl Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.lexeme)
     }
 }

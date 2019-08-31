@@ -2,7 +2,7 @@ use crate::ast::stmt::*;
 use crate::env::*;
 use crate::error::*;
 use crate::interpreter::*;
-use crate::token::{GetTypeAnnotation, Token, TokenType, TypeAnnotation};
+use crate::token::{GetTypeAnnotation, TokenType, TypeAnnotation};
 use crate::value_traits::callable::CallableTrait;
 use crate::value_traits::r#struct::StructTrait;
 use std::{

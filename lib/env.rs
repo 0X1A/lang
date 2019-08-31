@@ -2,7 +2,6 @@ extern crate log;
 
 use crate::error::*;
 use crate::lang::*;
-use crate::token::Token;
 use crate::type_checker::TypeChecker;
 use crate::value::*;
 use std::{
