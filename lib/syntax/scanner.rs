@@ -15,14 +15,14 @@ use nom::{
 
 macro_rules! gen_lex_token {
     ($token_name:ident, $t:tt, $token_type:expr) => {
-        fn $token_name<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+        fn $token_name<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
             let (input, begin) = preceded(multispace0, position)(input)?;
             let (input, output) = preceded(multispace0, tag($t))(input)?;
             let (input, end) = preceded(multispace0, position)(input)?;
-            let value = TokenTwo::get_value(ValueType::String, output.input)?;
+            let value = Token::get_value(ValueType::String, output.input)?;
             Ok((
                 input,
-                TokenTwo {
+                Token {
                     token_type: $token_type,
                     span: SourceSpan::new(begin, output, end),
                     value: value,
@@ -41,7 +41,7 @@ gen_lex_token!(lex_break, "break", TokenType::Break);
 gen_lex_token!(lex_enum, "enum", TokenType::Enum);
 gen_lex_token!(lex_for, "for", TokenType::For);
 gen_lex_token!(lex_while, "while", TokenType::While);
-gen_lex_token!(lex_fn, "fn", TokenType::Enum);
+gen_lex_token!(lex_fn, "fn", TokenType::Fn);
 gen_lex_token!(lex_or, "or", TokenType::Or);
 gen_lex_token!(lex_and, "and", TokenType::And);
 gen_lex_token!(lex_impl, "impl", TokenType::Impl);
@@ -86,18 +86,18 @@ gen_lex_token!(lex_greater_than, ">", TokenType::Greater);
 gen_lex_token!(lex_greater_eq, ">=", TokenType::GreaterEqual);
 gen_lex_token!(lex_equal_equal, "==", TokenType::EqualEqual);
 
-fn entry<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+fn entry<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, result) = alt((lex_digit, lex_keyword, lex_type, lex_ident, lex_symbol))(input)?;
     Ok((input, result))
 }
 
-fn lex_program<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Vec<TokenTwo>, LangError> {
+fn lex_program<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Vec<Token>, LangError> {
     let (input, mut output) = many1(entry)(input)?;
-    output.push(TokenTwo::new2(TokenType::Eof, "EoF"));
+    output.push(Token::new2(TokenType::Eof, "EoF"));
     Ok((input, output))
 }
 
-fn lex_keyword<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+fn lex_keyword<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, token) = alt((
         lex_let, lex_struct, lex_if, lex_else, lex_break, lex_enum, lex_fn, lex_for, lex_while,
         lex_or, lex_impl, lex_trait, lex_true, lex_false, lex_self, lex_print, lex_return, lex_and,
@@ -106,7 +106,7 @@ fn lex_keyword<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, Lan
     Ok((input, token))
 }
 
-fn lex_symbol<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+fn lex_symbol<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, token) = alt((
         lex_left_brace,
         lex_right_brace,
@@ -132,7 +132,7 @@ fn lex_symbol<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, Lang
     Ok((input, token))
 }
 
-fn lex_comparison<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+fn lex_comparison<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, token) = alt((
         lex_bang,
         lex_bang_equal,
@@ -151,14 +151,14 @@ fn allowable_ident_char(input: char) -> bool {
 }
 
 // TODO: Revisit, allow non-ascii identifiers. This isn't something I want to bite off right now
-fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, begin) = preceded(multispace0, position)(input)?;
     let (input, idientifier) = preceded(multispace0, take_while1(allowable_ident_char))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
-    let value = TokenTwo::get_value(ValueType::String, idientifier.input)?;
+    let value = Token::get_value(ValueType::String, idientifier.input)?;
     Ok((
         input,
-        TokenTwo {
+        Token {
             token_type: TokenType::Identifier,
             span: SourceSpan::new(begin, idientifier, end),
             value: value,
@@ -166,7 +166,7 @@ fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangE
     ))
 }
 
-fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, begin) = preceded(multispace0, position)(input)?;
     let (input, type_str) = preceded(
         multispace0,
@@ -176,7 +176,6 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangEr
             tag("f32"),
             tag("f64"),
             tag("bool"),
-            tag("()"),
             tag("fn"),
             tag("String"),
             tag("Array"),
@@ -191,14 +190,13 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangEr
         "f64" => TokenType::Type(TypeAnnotation::F64),
         "bool" => TokenType::Type(TypeAnnotation::Bool),
         "String" => TokenType::Type(TypeAnnotation::String),
-        "()" => TokenType::Type(TypeAnnotation::Unit),
         "fn" => TokenType::Type(TypeAnnotation::Fn),
         _ => TokenType::Identifier,
     };
-    let value = TokenTwo::get_value(ValueType::String, type_str.input)?;
+    let value = Token::get_value(ValueType::String, type_str.input)?;
     Ok((
         input,
-        TokenTwo {
+        Token {
             token_type: type_annotation,
             span: SourceSpan::new(begin, type_str, end),
             value: value,
@@ -210,7 +208,7 @@ fn lis_digit(i: char) -> bool {
     is_digit(i as u8) || i == '.'
 }
 
-fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangError> {
+fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, begin) = preceded(multispace0, position)(input)?;
     let (input, digit) = preceded(multispace0, take_while1(lis_digit))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
@@ -231,10 +229,10 @@ fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangE
         value_type = ValueType::Integer;
         token_type = TokenType::Integer;
     }
-    let value = TokenTwo::get_value(value_type.clone(), digit.input)?;
+    let value = Token::get_value(value_type.clone(), digit.input)?;
     Ok((
         input,
-        TokenTwo {
+        Token {
             token_type: token_type,
             span: SourceSpan::new(begin, digit, end),
             value: value,
@@ -242,20 +240,20 @@ fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, TokenTwo, LangE
     ))
 }
 
-pub struct ScannerTwo<'a> {
+pub struct Scanner<'a> {
     source: &'a str,
-    pub tokens: Vec<TokenTwo<'a>>,
+    pub tokens: Vec<Token<'a>>,
 }
 
-impl<'a> ScannerTwo<'a> {
-    pub fn new(script_content: &'a str) -> ScannerTwo<'a> {
-        ScannerTwo {
+impl<'a> Scanner<'a> {
+    pub fn new(script_content: &'a str) -> Scanner<'a> {
+        Scanner {
             source: script_content,
             tokens: Vec::new(),
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Result<Vec<TokenTwo>, LangError> {
+    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, LangError> {
         let root_span: Span<&str> = Span::new(self.source, 0, 1, 0);
         match lex_program(root_span) {
             Ok(t) => Ok(t.1),

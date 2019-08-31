@@ -21,7 +21,7 @@ impl<'a> SourceSpan<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TokenTwo<'a> {
+pub struct Token<'a> {
     pub token_type: TokenType,
     pub span: SourceSpan<'a>,
     pub value: Value,
@@ -35,7 +35,7 @@ pub enum ValueType {
     Boolean,
 }
 
-impl<'a> TokenTwo<'a> {
+impl<'a> Token<'a> {
     pub fn get_value(value_type: ValueType, lexeme: &str) -> Result<Value, nom::Err<LangError>> {
         let value = match value_type {
             ValueType::String => Value::String(lexeme.to_string()),
@@ -74,11 +74,11 @@ impl<'a> TokenTwo<'a> {
         Ok(value)
     }
 
-    pub fn new2(token_type: TokenType, lexeme: &str) -> TokenTwo {
+    pub fn new2(token_type: TokenType, lexeme: &str) -> Token {
         let value = match token_type {
             _ => Value::String(token_type.to_string()),
         };
-        TokenTwo {
+        Token {
             token_type,
             span: SourceSpan::new(
                 Span::new(lexeme, 0, 0, 0),

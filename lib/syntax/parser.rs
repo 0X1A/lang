@@ -2,12 +2,12 @@ use crate::ast::expr::*;
 use crate::ast::stmt::*;
 use crate::error::*;
 use crate::lang::Lang;
-use crate::syntax::token::TokenTwo;
+use crate::syntax::token::Token;
 use crate::token::{TokenType, TypeAnnotation};
 use crate::value::{TypedValue, Value};
 
 pub struct Parser<'a> {
-    tokens: Vec<TokenTwo<'a>>,
+    tokens: Vec<Token<'a>>,
     cursor_position: usize,
 }
 
@@ -21,7 +21,7 @@ pub struct TokenIR {
 }
 
 impl TokenIR {
-    fn from_token_two(token: &TokenTwo) -> TokenIR {
+    fn from_token_two(token: &Token) -> TokenIR {
         TokenIR {
             token_type: token.token_type.clone(),
             lexeme: token.span.content.input.to_string(),
@@ -33,7 +33,7 @@ impl TokenIR {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokens: Vec<TokenTwo<'a>>) -> Parser<'a> {
+    pub fn new(tokens: Vec<Token<'a>>) -> Parser<'a> {
         Parser {
             tokens,
             cursor_position: 0,
@@ -409,7 +409,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Checks the token in the cursor_position position
-    fn peek(&self) -> TokenTwo {
+    fn peek(&self) -> Token {
         self.tokens[self.cursor_position].clone()
     }
 
@@ -430,7 +430,7 @@ impl<'a> Parser<'a> {
         self.cursor_position - 1
     }
 
-    fn token_at(&self, pos: usize) -> Option<TokenTwo> {
+    fn token_at(&self, pos: usize) -> Option<Token> {
         if let Some(token) = self.tokens.get(pos) {
             return Some(token.clone());
         }

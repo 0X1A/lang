@@ -13,13 +13,13 @@ use std::{
 
 pub struct Lang<'a> {
     interpreter: Interpreter,
-    scanner_two: Option<ScannerTwo<'a>>,
+    scanner_two: Option<Scanner<'a>>,
 }
 
 impl<'a> Lang<'a> {
     pub fn new(script: Option<&'a str>) -> Lang<'a> {
         let scanner_two = if let Some(give_script) = script {
-            Some(ScannerTwo::new(give_script))
+            Some(Scanner::new(give_script))
         } else {
             None
         };
@@ -38,7 +38,7 @@ impl<'a> Lang<'a> {
 
     pub fn build_statements(&mut self) -> Result<Vec<Stmt>, LangError> {
         if let Some(ref mut scanner) = self.scanner_two {
-            let tokens: Vec<TokenTwo> = scanner.scan_tokens()?;
+            let tokens: Vec<Token> = scanner.scan_tokens()?;
             for token in tokens.iter() {
                 debug!("{:?}", token);
             }
@@ -66,8 +66,8 @@ impl<'a> Lang<'a> {
     }
 
     pub fn build_and_run_statements(&mut self, script: &str) -> Result<(), LangError> {
-        let mut scanner = ScannerTwo::new(script);
-        let tokens: Vec<TokenTwo> = scanner.scan_tokens()?;
+        let mut scanner = Scanner::new(script);
+        let tokens: Vec<Token> = scanner.scan_tokens()?;
         let mut resolver = Resolver::new(&mut self.interpreter);
         let mut parser = Parser::new(tokens);
         let statements = parser.parse()?;
@@ -80,7 +80,7 @@ impl<'a> Lang<'a> {
         unimplemented!()
     }
 
-    pub fn error2(token: &TokenTwo, message: &str) -> LangError {
+    pub fn error2(token: &Token, message: &str) -> LangError {
         /*         if token.token_type == syntax::TokenType::Eof {
             return Lang::report(token.line, "at end ", message);
         } */
