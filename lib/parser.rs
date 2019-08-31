@@ -148,7 +148,10 @@ impl Parser {
         if self.matches(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous();
             let right = self.unary()?;
-            return Ok(Expr::Unary(Box::new(UnaryExpr { operator: operator.token_type, right })));
+            return Ok(Expr::Unary(Box::new(UnaryExpr {
+                operator: operator.token_type,
+                right,
+            })));
         }
         Ok(self.call()?)
     }
@@ -161,7 +164,10 @@ impl Parser {
             } else if self.matches(&[TokenType::Dot]) {
                 let name =
                     self.pop_expect(&TokenType::Identifier, "Expected property name after '.'")?;
-                expr = Expr::Get(Box::new(GetExpr { name: name.lexeme, object: expr }));
+                expr = Expr::Get(Box::new(GetExpr {
+                    name: name.lexeme,
+                    object: expr,
+                }));
             } else {
                 break;
             }

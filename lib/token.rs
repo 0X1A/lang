@@ -1,5 +1,6 @@
 use crate::error::*;
 use crate::lang::*;
+use crate::syntax::token::TokenTwo;
 use crate::value::{Float64, Value};
 use std::fmt::{self, Debug, Display};
 
@@ -54,6 +55,19 @@ impl TypeAnnotation {
         match token.token_type {
             TokenType::Type(_) => Ok(()),
             _ => Err(Lang::error(
+                &token,
+                &format!(
+                    "invalid type annotation expected a type annotation, found '{}'",
+                    token.token_type.to_string()
+                ),
+            )),
+        }
+    }
+
+    pub fn check_token_type2(token: &TokenTwo) -> Result<(), LangError> {
+        match token.token_type {
+            TokenType::Type(_) => Ok(()),
+            _ => Err(Lang::error2(
                 &token,
                 &format!(
                     "invalid type annotation expected a type annotation, found '{}'",
