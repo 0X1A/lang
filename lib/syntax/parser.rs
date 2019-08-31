@@ -1,5 +1,6 @@
 use crate::ast::stmt::*;
 use crate::error::*;
+use crate::lang::Lang;
 use crate::syntax::ast::expr::*;
 use crate::syntax::token::TokenTwo;
 use crate::token::{TokenType, TypeAnnotation};
@@ -18,173 +19,47 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn is_at_end(&self) -> bool {
+        self.tokens[self.cursor_position].token_type == TokenType::Eof
+    }
+
+    fn pop_advance(&mut self) -> TokenTwo {
+        if !self.is_at_end() {
+            self.cursor_position += 1;
+        }
+        self.previous()
+    }
+
+    fn previous(&self) -> TokenTwo {
+        self.tokens[self.cursor_position - 1].clone()
+    }
+
+    fn check(&self, token_type: TokenType) -> bool {
+        self.tokens[self.cursor_position].token_type == token_type
+    }
+
+    fn peek(&self) -> TokenTwo {
+        self.tokens[self.cursor_position].clone()
+    }
+
+    fn pop_expect(&mut self, token_type: TokenType, err_str: &str) -> Result<TokenTwo, LangError> {
+        if self.check(token_type) {
+            return Ok(self.pop_advance());
+        }
+        Err(Lang::error2(&self.peek(), err_str))
+    }
+
     fn expression(&mut self) -> Result<Expr, LangError> {
         Ok(self.assignment()?)
     }
 
-    fn and(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
+    fn assignment(&mut self) -> Result<Expr, LangError> {
+        let expr = self.or()?;
+        if self.check(TokenType::Equal) {}
+        Ok(expr)
     }
 
     fn or(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
-    }
-
-    fn assignment(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
-    }
-
-    fn equality(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
-    }
-
-    fn comparison(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
-    }
-
-    fn addition(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
-    }
-
-    fn multiplication(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
-    }
-
-    fn unary(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
-    }
-
-    fn call(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
-    }
-
-    fn finish_call(&mut self, expr: &Expr) -> Result<Expr, LangError> {
-        unimplemented!()
-    }
-
-    fn primary(&mut self) -> Result<Expr, LangError> {
-        unimplemented!()
-    }
-
-    /// Checks if the current token in source matches `token_type`, errors using the string `string`
-    /// on failure.
-    fn pop_expect(&mut self, token_type: &TokenType, string: &str) -> Result<TokenTwo, LangError> {
-        unimplemented!()
-    }
-
-    /// Checks if next sequence of tokens matches those of the slice `tokens`, in respective order,
-    /// advancing the current position in source on first match
-    fn matches(&mut self, tokens: &[TokenType]) -> bool {
-        unimplemented!()
-    }
-
-    /// Checks the current token to see if it matches `token_type`. Returns false if
-    /// the current token is EoF
-    fn check(&self, token_type: &TokenType) -> bool {
-        unimplemented!()
-    }
-
-    /// Checks the token in the current position
-    fn peek(&self) -> TokenTwo {
-        unimplemented!()
-    }
-
-    fn is_at_end(&self) -> bool {
-        unimplemented!()
-    }
-
-    /// Advances the current position in source, returning the token at the previously 'current'
-    /// position
-    fn advance(&mut self) -> TokenTwo {
-        unimplemented!()
-    }
-
-    fn get_previous_index(&self) -> usize {
-        self.cursor_position - 1
-    }
-
-    fn token_at(&self, pos: usize) -> Option<TokenTwo> {
-        unimplemented!()
-    }
-
-    /// Returns the token being the `current` position in source
-    fn previous(&self) -> TokenTwo {
-        unimplemented!()
-    }
-
-    fn synchronize(&mut self) {
-        unimplemented!()
-    }
-
-    fn print_statement(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn expression_statement(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn if_statement(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn while_statement(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn for_statement(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn return_statement(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn statement(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn break_statement(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn block(&mut self) -> Result<Vec<Stmt>, LangError> {
-        unimplemented!()
-    }
-
-    fn let_declaration(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn enum_declaration(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn trait_impl_declaration(&mut self, trait_name: TokenTwo) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn trait_declaration(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn impl_declaration(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn method_impl_declaration(&mut self, name: TokenTwo) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn trait_function_declaration(&mut self) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn function(&mut self, kind: &str) -> Result<Stmt, LangError> {
-        unimplemented!()
-    }
-
-    fn struct_declaration(&mut self) -> Result<Stmt, LangError> {
         unimplemented!()
     }
 

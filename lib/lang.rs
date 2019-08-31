@@ -98,6 +98,17 @@ impl<'a> Lang<'a> {
         Lang::report(token.line, &format!("at '{}'", token.lexeme), message)
     }
 
+    pub fn error2(token: &TokenTwo, message: &str) -> LangError {
+        /*         if token.token_type == syntax::TokenType::Eof {
+            return Lang::report(token.line, "at end ", message);
+        } */
+        Lang::report(
+            token.span.begin.line.into(),
+            &format!("at '{}'", token.lexeme),
+            message,
+        )
+    }
+
     pub fn error_s(token: &String, message: &str) -> LangError {
         /*         if token.token_type == syntax::TokenType::Eof {
             return Lang::report(token.line, "at end ", message);

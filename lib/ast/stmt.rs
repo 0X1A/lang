@@ -1,6 +1,6 @@
 use crate::ast::expr::*;
 use crate::error::*;
-use crate::token::{Token, TypeAnnotation, TokenType};
+use crate::token::{Token, TokenType, TypeAnnotation};
 use std::convert::TryInto;
 
 #[derive(Clone, Debug)]

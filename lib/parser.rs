@@ -531,7 +531,10 @@ impl Parser {
             ))))
         };
         self.pop_expect(&TokenType::SemiColon, "Expect ';' after return value.")?;
-        Ok(Stmt::Return(Box::new(ReturnStmt { keyword: "return".into(), value })))
+        Ok(Stmt::Return(Box::new(ReturnStmt {
+            keyword: "return".into(),
+            value,
+        })))
     }
 
     fn statement(&mut self) -> Result<Stmt, LangError> {

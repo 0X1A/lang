@@ -596,9 +596,7 @@ impl Interpreter {
         trait_function: &TraitFunctionValue,
     ) -> Result<(), LangError> {
         if let Some(return_type) = callable.get_return_type() {
-            if return_type
-                != return_type
-            {
+            if return_type != return_type {
                 return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidTypeAssignmentError {
                         reason: format!(
