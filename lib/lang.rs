@@ -104,12 +104,12 @@ impl<'a> Lang<'a> {
         } */
         Lang::report(
             token.span.begin.line.into(),
-            &format!("at '{}'", token.lexeme),
+            &format!("at '{}'", token.span.content.input),
             message,
         )
     }
 
-    pub fn error_s(token: &String, message: &str) -> LangError {
+    pub fn error_s(token: &str, message: &str) -> LangError {
         /*         if token.token_type == syntax::TokenType::Eof {
             return Lang::report(token.line, "at end ", message);
         } */

@@ -26,7 +26,7 @@ impl Parser {
             let right = self.equality()?;
             expr = Expr::Logical(Box::new(LogicalExpr {
                 left: expr,
-                operator,
+                operator: operator.token_type,
                 right,
             }));
         }
@@ -40,7 +40,7 @@ impl Parser {
             let right = self.and()?;
             expr = Expr::Logical(Box::new(LogicalExpr {
                 left: expr,
-                operator,
+                operator: operator.token_type,
                 right,
             }));
         }
@@ -90,7 +90,7 @@ impl Parser {
             let right = self.comparison()?;
             expression = Expr::Binary(Box::new(BinaryExpr {
                 left: expression,
-                operator,
+                operator: operator.token_type,
                 right,
             }));
         }
@@ -109,7 +109,7 @@ impl Parser {
             let right = self.addition()?;
             expr = Expr::Binary(Box::new(BinaryExpr {
                 left: expr,
-                operator,
+                operator: operator.token_type,
                 right,
             }));
         }
@@ -123,7 +123,7 @@ impl Parser {
             let right = self.multiplication()?;
             expr = Expr::Binary(Box::new(BinaryExpr {
                 left: expr,
-                operator,
+                operator: operator.token_type,
                 right,
             }));
         }
@@ -137,7 +137,7 @@ impl Parser {
             let right = self.unary()?;
             expr = Expr::Binary(Box::new(BinaryExpr {
                 left: expr,
-                operator,
+                operator: operator.token_type,
                 right,
             }));
         }
@@ -148,7 +148,7 @@ impl Parser {
         if self.matches(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous();
             let right = self.unary()?;
-            return Ok(Expr::Unary(Box::new(UnaryExpr { operator, right })));
+            return Ok(Expr::Unary(Box::new(UnaryExpr { operator: operator.token_type, right })));
         }
         Ok(self.call()?)
     }
@@ -161,7 +161,7 @@ impl Parser {
             } else if self.matches(&[TokenType::Dot]) {
                 let name =
                     self.pop_expect(&TokenType::Identifier, "Expected property name after '.'")?;
-                expr = Expr::Get(Box::new(GetExpr { name, object: expr }));
+                expr = Expr::Get(Box::new(GetExpr { name: name.lexeme, object: expr }));
             } else {
                 break;
             }
@@ -193,7 +193,7 @@ impl Parser {
     fn primary(&mut self) -> Result<Expr, LangError> {
         if self.matches(&[TokenType::SelfIdent]) {
             return Ok(Expr::SelfIdent(Box::new(SelfIdentExpr {
-                keyword: self.previous(),
+                keyword: self.previous().lexeme,
             })));
         }
         if self.matches(&[TokenType::False]) {
@@ -286,7 +286,10 @@ impl Parser {
                     &TokenType::RightBracket,
                     "Expected ']' after index expression",
                 )?;
-                return Ok(Expr::Index(Box::new(IndexExpr { from, index })));
+                return Ok(Expr::Index(Box::new(IndexExpr {
+                    from: from.lexeme,
+                    index,
+                })));
             } else if self.matches(&[TokenType::PathSeparator]) {
                 let enum_name = self.previous();
                 let mut path_elements = Vec::new();
@@ -295,16 +298,16 @@ impl Parser {
                         break;
                     }
                     let path_item = self.pop_expect(&TokenType::Identifier, "expected ident")?;
-                    path_elements.push(path_item);
+                    path_elements.push(path_item.lexeme);
                 }
                 path_elements.shrink_to_fit();
                 return Ok(Expr::EnumPath(Box::new(EnumPathExpr {
-                    name: enum_name,
+                    name: enum_name.lexeme,
                     path_items: path_elements,
                 })));
             } else {
                 return Ok(Expr::Variable(Box::new(VariableExpr {
-                    name: self.previous(),
+                    name: self.previous().lexeme,
                 })));
             }
         } else if self.matches(&[TokenType::LeftParen]) {
@@ -312,10 +315,10 @@ impl Parser {
             self.pop_expect(&TokenType::RightParen, "Expect ')' after and expression")?;
             return Ok(Expr::Grouping(Box::new(GroupingExpr { expression: expr })));
         } else if self.matches(&[TokenType::LeftBracket]) {
-            let mut array_type_annotation: Option<Token> = None;
+            let mut array_type_annotation: Option<TokenType> = None;
             if let Some(array_type_token) = self.token_at(self.current - 3) {
                 if let TokenType::Type(_) = array_type_token.token_type {
-                    array_type_annotation = Some(array_type_token.clone());
+                    array_type_annotation = Some(array_type_token.clone().token_type);
                 }
             }
             let mut elements = Vec::new();
@@ -598,7 +601,7 @@ impl Parser {
         )?;
         Ok(Stmt::Var(Box::new(VarStmt {
             initializer: Some(initializer),
-            type_annotation: type_annotation_token,
+            type_annotation: type_annotation_token.token_type,
             name: name.lexeme,
         })))
     }

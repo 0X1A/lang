@@ -675,8 +675,8 @@ impl StructTrait for StructValue {
         )
     }
 
-    fn define_method(&mut self, name: &String, value: TypedValue) -> Result<(), LangError> {
-        self.methods.insert(name.clone(), value);
+    fn define_method(&mut self, name: &str, value: TypedValue) -> Result<(), LangError> {
+        self.methods.insert(name.into(), value);
         Ok(())
     }
 
@@ -702,8 +702,8 @@ impl StructTrait for StructValue {
         )
     }
 
-    fn set_field(&mut self, name: &Token, value: &TypedValue) -> Result<(), LangError> {
-        self.fields.get_mut(&name.lexeme).map_or(
+    fn set_field(&mut self, name: &str, value: &TypedValue) -> Result<(), LangError> {
+        self.fields.get_mut(name).map_or(
             Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::UndefinedVariable {
                     reason: format!("tried to set an undefined variable: '{}'", name),

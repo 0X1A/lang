@@ -6,12 +6,17 @@ use crate::value::{Float32, Float64, Value};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SourceSpan<'a> {
     pub begin: Span<&'a str>,
+    pub content: Span<&'a str>,
     pub end: Span<&'a str>,
 }
 
 impl<'a> SourceSpan<'a> {
-    pub fn new(begin: Span<&'a str>, end: Span<&'a str>) -> SourceSpan<'a> {
-        SourceSpan { begin, end }
+    pub fn new(begin: Span<&'a str>, content: Span<&'a str>, end: Span<&'a str>) -> SourceSpan<'a> {
+        SourceSpan {
+            begin,
+            content,
+            end,
+        }
     }
 }
 
@@ -20,7 +25,6 @@ pub struct TokenTwo<'a> {
     pub token_type: TokenType,
     pub span: SourceSpan<'a>,
     pub value: Value,
-    pub lexeme: &'a str,
 }
 
 #[derive(Debug, Clone)]
@@ -70,43 +74,18 @@ impl<'a> TokenTwo<'a> {
         Ok(value)
     }
 
-    pub fn new(token_type: TokenType, lexeme: &str) -> Result<TokenTwo, LangError> {
-        let value = match token_type {
-            TokenType::String => Value::String(lexeme.to_string()),
-            TokenType::Integer => {
-                let integer_value = lexeme.to_string().parse::<i64>()?;
-                if integer_value as i32 <= std::i32::MAX && integer_value as i32 >= std::i32::MIN {
-                    Value::Int32(integer_value as i32)
-                } else {
-                    Value::Int64(integer_value)
-                }
-            }
-            TokenType::Float => Value::Float64(Float64 {
-                inner: lexeme.to_string().parse::<f64>()?,
-            }),
-            TokenType::Identifier => Value::Ident(lexeme.to_string()),
-            TokenType::True | TokenType::False => {
-                Value::Boolean(lexeme.to_string().parse::<bool>()?)
-            }
-            _ => Value::String(token_type.to_string()),
-        };
-        Ok(TokenTwo {
-            token_type,
-            span: SourceSpan::new(Span::new(lexeme, 0, 0, 0), Span::new(lexeme, 0, 0, 0)),
-            value: value,
-            lexeme: lexeme,
-        })
-    }
-
     pub fn new2(token_type: TokenType, lexeme: &str) -> TokenTwo {
         let value = match token_type {
             _ => Value::String(token_type.to_string()),
         };
         TokenTwo {
             token_type,
-            span: SourceSpan::new(Span::new(lexeme, 0, 0, 0), Span::new(lexeme, 0, 0, 0)),
+            span: SourceSpan::new(
+                Span::new(lexeme, 0, 0, 0),
+                Span::new(lexeme, 0, 0, 0),
+                Span::new(lexeme, 0, 0, 0),
+            ),
             value: value,
-            lexeme: lexeme,
         }
     }
 }

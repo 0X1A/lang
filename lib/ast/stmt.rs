@@ -1,6 +1,6 @@
 use crate::ast::expr::*;
 use crate::error::*;
-use crate::token::{Token, TokenType, TypeAnnotation};
+use crate::token::{TokenType, TypeAnnotation};
 use std::convert::TryInto;
 
 #[derive(Clone, Debug)]
@@ -120,7 +120,7 @@ pub struct ReturnStmt {
 #[derive(Clone, Debug)]
 pub struct VarStmt {
     pub initializer: Option<Expr>,
-    pub type_annotation: Token,
+    pub type_annotation: TokenType,
     pub name: String,
 }
 

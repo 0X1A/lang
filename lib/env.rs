@@ -170,16 +170,16 @@ impl Environment {
     pub fn assign_index_entry(
         &mut self,
         env_id: &EnvironmentId,
-        name: &Token,
+        name: &str,
         value: &TypedValue,
         index: usize,
     ) -> Result<(), LangError> {
-        if let Some(arr_value) = self[env_id].values.get_mut(&name.lexeme) {
+        if let Some(arr_value) = self[env_id].values.get_mut(name) {
             match arr_value.value {
                 Value::Array(ref mut arr) => {
                     if index >= arr.len() {
-                        return Err(Lang::error(
-                            name,
+                        return Err(Lang::error_s(
+                            name.into(),
                             &format!(
                                 "Index out of bounds. Tried to index at {} for an array of length {}",
                                 index,
@@ -191,22 +191,19 @@ impl Environment {
                     return Ok(());
                 }
                 _ => {
-                    return Err(Lang::error(
+                    return Err(Lang::error_s(
                         name,
-                        &format!(
-                            "Tried to assign an undefined variable: '{}'",
-                            name.lexeme.clone(),
-                        ),
+                        &format!("Tried to assign an undefined variable: '{}'", name.clone(),),
                     ));
                 }
             }
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
-        Err(Lang::error(
+        Err(Lang::error_s(
             name,
             &format!(
                 "Tried to assign an undefined variable: '{}', self at time of undefined var: {:?}",
-                name.lexeme.clone(),
+                name.clone(),
                 self
             ),
         ))

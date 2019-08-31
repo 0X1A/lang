@@ -1,5 +1,5 @@
 use crate::error::*;
-use crate::token::Token;
+use crate::token::TokenType;
 use crate::value::TypedValue;
 use std::convert::Into;
 use std::convert::TryInto;
@@ -25,44 +25,44 @@ pub enum Expr {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SelfIdentExpr {
-    pub keyword: Token,
+    pub keyword: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SetArrayElementExpr {
     pub index: Expr,
-    pub name: Token,
+    pub name: String,
     pub value: Expr,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EnumPathExpr {
-    pub name: Token,
-    pub path_items: Vec<Token>,
+    pub name: String,
+    pub path_items: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AssignExpr {
     pub expr: Expr,
-    pub name: Token,
+    pub name: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct IndexExpr {
     pub index: Expr,
-    pub from: Token,
+    pub from: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ArrayExpr {
-    pub type_annotation: Option<Token>,
+    pub type_annotation: Option<TokenType>,
     pub elements: Vec<Expr>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BinaryExpr {
     pub left: Expr,
-    pub operator: Token,
+    pub operator: TokenType,
     pub right: Expr,
 }
 
@@ -74,7 +74,7 @@ pub struct CallExpr {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GetExpr {
-    pub name: Token,
+    pub name: String,
     pub object: Expr,
 }
 
@@ -91,14 +91,14 @@ pub struct LiteralExpr {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct LogicalExpr {
     pub left: Expr,
-    pub operator: Token,
+    pub operator: TokenType,
     pub right: Expr,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SetExpr {
     /// Name of value being set
-    pub name: Token,
+    pub name: String,
     /// The object whos field is being set
     pub object: Expr,
     /// The value the field should be set to
@@ -107,13 +107,13 @@ pub struct SetExpr {
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct UnaryExpr {
-    pub operator: Token,
+    pub operator: TokenType,
     pub right: Expr,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct VariableExpr {
-    pub name: Token,
+    pub name: String,
 }
 
 impl LiteralExpr {

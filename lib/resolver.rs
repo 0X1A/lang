@@ -113,7 +113,7 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
-    fn resolve_local(&mut self, name: &Token) {
+    fn resolve_local(&mut self, name: &str) {
         debug!(
             "{}:{} Attempting to resolve expr '{:?}' within scopes '{:?}'",
             file!(),
@@ -122,7 +122,7 @@ impl<'a> Resolver<'a> {
             self.scopes
         );
         for scope_index in (0..self.scopes.len()).rev() {
-            if self.scopes[scope_index].contains_key(&name.lexeme) {
+            if self.scopes[scope_index].contains_key(name) {
                 self.interpreter.resolve(name, self.scopes.len() - 1);
                 return;
             }
@@ -191,11 +191,11 @@ impl<'a> Visitor for Resolver<'a> {
     }
     fn visit_variable(&mut self, variable: &VariableExpr) -> Result<(), LangError> {
         if let Some(last) = self.scopes.last() {
-            if let Some(value) = last.get(&variable.name.lexeme) {
+            if let Some(value) = last.get(&variable.name) {
                 if !(*value) {
                     return Err(LangErrorType::new_iie_error(format!(
                         "the value with identifier {} was not in scope",
-                        variable.name.lexeme
+                        variable.name
                     )));
                 }
             }

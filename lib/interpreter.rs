@@ -51,8 +51,8 @@ impl Interpreter {
         }
     }
 
-    pub fn resolve(&mut self, token: &Token, idx: usize) {
-        self.locals.insert(token.lexeme.clone(), idx);
+    pub fn resolve(&mut self, token: &str, idx: usize) {
+        self.locals.insert(token.into(), idx);
         debug!(
             "{}:{} Inserting expr '{:?}' at index '{}' into locals '{:?}' and env '{:?}'",
             file!(),
@@ -90,7 +90,7 @@ impl Interpreter {
         self.evaluate(&assign.expr)?;
         let value = self.pop()?;
         self.env_entries
-            .assign(&self.env_id, &assign.name.lexeme, value.clone())?;
+            .assign(&self.env_id, &assign.name, value.clone())?;
         self.stack.push(value);
         Ok(())
     }
@@ -128,13 +128,13 @@ impl Interpreter {
         match value.value {
             Value::Struct(_) => {
                 let struct_value: &dyn StructInstanceTrait = (&value.value).try_into()?;
-                let field = struct_value.get_field(&get_expr.name.lexeme, self)?;
+                let field = struct_value.get_field(&get_expr.name, self)?;
                 self.stack.push(field);
             }
             Value::SelfIndex(s) => {
                 let nvalue = self.env_entries.get(&s.env_id, &s.name)?;
                 let struct_value: &dyn StructInstanceTrait = (&nvalue.value).try_into()?;
-                let field = struct_value.get_field(&get_expr.name.lexeme, self)?;
+                let field = struct_value.get_field(&get_expr.name, self)?;
                 self.stack.push(field);
             }
             _ => {}
@@ -144,11 +144,11 @@ impl Interpreter {
 
     fn execute_binary_op(
         &mut self,
-        op: &Token,
+        op: &TokenType,
         left: TypedValue,
         right: TypedValue,
     ) -> Result<TypedValue, LangError> {
-        match op.token_type {
+        match op {
             TokenType::Plus => Ok(TypedValue::new(left.value + right.value, left.value_type)),
             TokenType::Minus => Ok(TypedValue::new(left.value - right.value, left.value_type)),
             TokenType::Star => Ok(TypedValue::new(left.value * right.value, left.value_type)),
@@ -318,7 +318,7 @@ impl Interpreter {
     fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) -> Result<(), LangError> {
         self.evaluate(&unary_expr.right)?;
         let right = self.pop()?;
-        match unary_expr.operator.token_type {
+        match unary_expr.operator {
             TokenType::Minus => match right.value {
                 Value::Int32(i) => {
                     self.stack
@@ -360,7 +360,7 @@ impl Interpreter {
     fn visit_logical_expr(&mut self, logical_expr: &LogicalExpr) -> Result<(), LangError> {
         self.evaluate(&logical_expr.left)?;
         let left = self.pop()?;
-        if logical_expr.operator.token_type == TokenType::Or {
+        if logical_expr.operator == TokenType::Or {
             if self.is_truthy(&left.value) {
                 self.stack.push(left);
                 return Ok(());
@@ -381,7 +381,7 @@ impl Interpreter {
         let value = self.pop()?;
         match object.value {
             Value::Struct(ref mut struct_value) => {
-                if !struct_value.field_exists(&set_expr.name.lexeme) {
+                if !struct_value.field_exists(&set_expr.name) {
                     return Err(LangErrorType::new_runtime_error(
                         RuntimeErrorType::UndefinedVariable {
                             reason: "Tried to set an undefined struct field".to_string(),
@@ -396,13 +396,13 @@ impl Interpreter {
                 };
                 if let Expr::Variable(var) = set_expr.object.clone() {
                     self.env_entries
-                        .update_value(&self.env_id, &var.name.lexeme, update_struct)?;
+                        .update_value(&self.env_id, &var.name, update_struct)?;
                 }
             }
             Value::SelfIndex(s) => {
                 let nvalue = self.env_entries.get(&s.env_id, &s.name)?;
                 let struct_value: &dyn StructInstanceTrait = (&nvalue.value).try_into()?;
-                if !struct_value.field_exists(&set_expr.name.lexeme) {
+                if !struct_value.field_exists(&set_expr.name) {
                     return Err(LangErrorType::new_runtime_error(
                         RuntimeErrorType::UndefinedVariable {
                             reason: "Tried to set an undefined struct field".to_string(),
@@ -469,7 +469,7 @@ impl Interpreter {
             elements.push(element);
         }
         if let Some(ref type_annotation_set) = array_expr.type_annotation {
-            type_annotation = type_annotation_set.token_type.to_type_annotation()?;
+            type_annotation = type_annotation_set.to_type_annotation()?;
         }
         if type_annotation == TypeAnnotation::Unit {
             type_annotation = TypeAnnotation::Array(Box::new(array_element_type.clone()));
@@ -482,9 +482,7 @@ impl Interpreter {
     fn visit_index_expr(&mut self, index_expr: &IndexExpr) -> Result<(), LangError> {
         self.evaluate(&index_expr.index)?;
         let index = self.pop()?.as_array_index()?;
-        let value = self
-            .env_entries
-            .get(&self.env_id, &index_expr.from.lexeme)?;
+        let value = self.env_entries.get(&self.env_id, &index_expr.from)?;
         match value.value {
             Value::Array(arr) => {
                 if index < arr.len() {
@@ -523,7 +521,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn look_up_variable(&mut self, token: &Token) -> Result<(), LangError> {
+    fn look_up_variable(&mut self, token: &str) -> Result<(), LangError> {
         debug!(
             "{}:{} Looking for token '{:?}' within env '{:?}' and locals\n'{}'",
             file!(),
@@ -532,10 +530,10 @@ impl Interpreter {
             self.env_entries,
             self.pretty_print_locals()
         );
-        if let Some(distance) = self.locals.get(&token.lexeme) {
+        if let Some(distance) = self.locals.get(token) {
             if let Ok(value) = self
                 .env_entries
-                .get(&EnvironmentId { index: *distance }, &token.lexeme)
+                .get(&EnvironmentId { index: *distance }, &token)
             {
                 match value.value {
                     Value::SelfIndex(s) => {
@@ -552,13 +550,13 @@ impl Interpreter {
                     &EnvironmentId {
                         index: *distance + 1,
                     },
-                    &token.lexeme,
+                    &token,
                 )?;
                 self.stack.push(value);
                 Ok(())
             }
         } else {
-            let value = self.env_entries.get(&self.env_id, &token.lexeme)?;
+            let value = self.env_entries.get(&self.env_id, &token)?;
             self.stack.push(value);
             Ok(())
         }
@@ -825,11 +823,7 @@ impl Visitor for Interpreter {
             self.evaluate(&initializer)?;
             value = self.pop()?;
         }
-        let var_type_annotation = var_stmt
-            .type_annotation
-            .token_type
-            .to_type_annotation()
-            .unwrap();
+        let var_type_annotation = var_stmt.type_annotation.to_type_annotation().unwrap();
         if var_type_annotation != value.value_type {
             return Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::InvalidTypeAssignmentError {
