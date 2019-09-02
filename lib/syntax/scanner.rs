@@ -88,7 +88,14 @@ gen_lex_token!(lex_greater_eq, ">=", TokenType::GreaterEqual);
 gen_lex_token!(lex_equal_equal, "==", TokenType::EqualEqual);
 
 fn entry<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-    let (input, result) = alt((lex_digit, lex_keyword, lex_type, lex_ident, lex_symbol))(input)?;
+    let (input, result) = alt((
+        lex_digit,
+        lex_keyword,
+        lex_string,
+        lex_type,
+        lex_ident,
+        lex_symbol,
+    ))(input)?;
     Ok((input, result))
 }
 
@@ -129,7 +136,6 @@ fn lex_symbol<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErr
         lex_or_symbol,
         lex_and_symbol,
         lex_ternary,
-        lex_double_quote,
     ))(input)?;
     Ok((input, token))
 }
@@ -173,6 +179,32 @@ fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
             value: value,
         },
     ))
+}
+
+fn is_allowable_string_content(input: char) -> bool {
+    input != '"'
+}
+
+fn lex_string_content<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, content) = take_while1(is_allowable_string_content)(input)?;
+    let (input, end) = preceded(multispace0, position)(input)?;
+    let value = Token::get_value(ValueType::String, content.input)?;
+    Ok((
+        input,
+        Token {
+            token_type: TokenType::String,
+            span: SourceSpan::new(begin, content, end),
+            value: value,
+        },
+    ))
+}
+
+fn lex_string<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, _) = lex_double_quote(input)?;
+    let (input, string) = lex_string_content(input)?;
+    let (input, _) = lex_double_quote(input)?;
+    Ok((input, string))
 }
 
 fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
