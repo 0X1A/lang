@@ -4,6 +4,7 @@ use crate::error::*;
 use crate::syntax::span::*;
 use crate::syntax::token::*;
 use crate::token::{TokenType, TypeAnnotation};
+use crate::value::{Value, ValueType};
 
 use nom::branch::*;
 use nom::bytes::complete::*;
@@ -19,7 +20,10 @@ macro_rules! gen_lex_token {
             let (input, begin) = preceded(multispace0, position)(input)?;
             let (input, output) = preceded(multispace0, tag($t))(input)?;
             let (input, end) = preceded(multispace0, position)(input)?;
-            let value = Token::get_value(ValueType::String, output.input)?;
+            let value = match Value::from_str(ValueType::String, output.input) {
+                Ok(v) => v,
+                Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+            };
             Ok((
                 input,
                 Token {
@@ -161,21 +165,24 @@ fn allowable_ident_char(input: char) -> bool {
 // TODO: Revisit, allow non-ascii identifiers. This isn't something I want to bite off right now
 fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, begin) = preceded(multispace0, position)(input)?;
-    let (input, idientifier) = preceded(multispace0, take_while1(allowable_ident_char))(input)?;
+    let (input, identifier) = preceded(multispace0, take_while1(allowable_ident_char))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
-    let value = Token::get_value(ValueType::String, idientifier.input)?;
-    if is_digit(idientifier.input.chars().nth(0).unwrap() as u8) {
+    if is_digit(identifier.input.chars().nth(0).unwrap() as u8) {
         return Err(nom::Err::<LangError>::Error(LangError::from(
             LangErrorType::ParserError {
                 reason: "Identifiers may not begin with digits".into(),
             },
         )));
     }
+    let value = match Value::from_str(ValueType::String, identifier.input) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
     Ok((
         input,
         Token {
             token_type: TokenType::Identifier,
-            span: SourceSpan::new(begin, idientifier, end),
+            span: SourceSpan::new(begin, identifier, end),
             value: value,
         },
     ))
@@ -189,7 +196,10 @@ fn lex_string_content<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token,
     let (input, begin) = preceded(multispace0, position)(input)?;
     let (input, content) = take_while1(is_allowable_string_content)(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
-    let value = Token::get_value(ValueType::String, content.input)?;
+    let value = match Value::from_str(ValueType::String, content.input) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
     Ok((
         input,
         Token {
@@ -234,7 +244,10 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError
         "fn" => TokenType::Type(TypeAnnotation::Fn),
         other @ _ => TokenType::Type(TypeAnnotation::User(other.to_string())),
     };
-    let value = Token::get_value(ValueType::String, type_str.input)?;
+    let value = match Value::from_str(ValueType::String, type_str.input) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
     Ok((
         input,
         Token {
@@ -270,7 +283,10 @@ fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
         value_type = ValueType::Integer;
         token_type = TokenType::Integer;
     }
-    let value = Token::get_value(value_type.clone(), digit.input)?;
+    let value = match Value::from_str(value_type.clone(), digit.input) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
     Ok((
         input,
         Token {

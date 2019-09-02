@@ -154,7 +154,44 @@ impl TryInto<TraitFunctionValue> for Value {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ValueType {
+    String,
+    Integer,
+    Float,
+    Boolean,
+}
+
 impl Value {
+    pub fn from_str(value_type: ValueType, lexeme: &str) -> Result<Value, LangError> {
+        let value = match value_type {
+            ValueType::String => Value::String(lexeme.to_string()),
+            ValueType::Integer => {
+                let integer_value = lexeme.to_string().parse::<i64>()?;
+                if integer_value as i32 <= std::i32::MAX && integer_value as i32 >= std::i32::MIN {
+                    Value::Int32(integer_value as i32)
+                } else {
+                    Value::Int64(integer_value)
+                }
+            }
+            ValueType::Float => {
+                let value = lexeme.to_string().parse::<f64>()?;
+                if value as f32 <= std::f32::MAX && value as f32 >= std::f32::MIN {
+                    Value::Float32(Float32 {
+                        inner: value as f32,
+                    })
+                } else {
+                    Value::Float64(Float64 { inner: value })
+                }
+            }
+            ValueType::Boolean => {
+                let value = lexeme.to_string().parse::<bool>()?;
+                Value::Boolean(value)
+            }
+        };
+        Ok(value)
+    }
+
     pub fn default_value(type_annotation: &TypeAnnotation) -> Value {
         match type_annotation {
             TypeAnnotation::I32 => Value::Int32(0),
