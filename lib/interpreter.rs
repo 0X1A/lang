@@ -701,7 +701,7 @@ impl Visitor for Interpreter {
     fn visit_literal(&mut self, literal: &LiteralExpr) -> Result<(), LangError> {
         match literal.value.value_type {
             TypeAnnotation::User(ref user_type) => {
-                let value = self.env_entries.get(&self.env_id, &user_type).unwrap();
+                let value = self.env_entries.get(&self.env_id, &user_type)?;
                 self.stack.push(value);
             }
             _ => {
@@ -823,7 +823,7 @@ impl Visitor for Interpreter {
             self.evaluate(&initializer)?;
             value = self.pop()?;
         }
-        let var_type_annotation = var_stmt.type_annotation.to_type_annotation().unwrap();
+        let var_type_annotation = var_stmt.type_annotation.to_type_annotation()?;
         if var_type_annotation != value.value_type {
             return Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::InvalidTypeAssignmentError {

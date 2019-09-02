@@ -216,9 +216,10 @@ impl TokenType {
     pub fn to_type_annotation(&self) -> Result<TypeAnnotation, LangError> {
         match self {
             TokenType::Type(type_annotation) => Ok(type_annotation.clone()),
-            _ => Err(LangErrorType::new_parser_error(
-                "Failed type annotation extraction".to_string(),
-            )),
+            other @ _ => Err(LangErrorType::new_parser_error(format!(
+                "Failed type annotation extraction: {}",
+                other
+            ))),
         }
     }
 }

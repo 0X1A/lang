@@ -57,7 +57,7 @@ gen_lex_token!(lex_import, "import", TokenType::Import);
 gen_lex_token!(lex_left_brace, "{", TokenType::LeftBrace);
 gen_lex_token!(lex_right_brace, "}", TokenType::RightBrace);
 gen_lex_token!(lex_left_bracket, "[", TokenType::LeftBracket);
-gen_lex_token!(lex_right_bracket, "]", TokenType::LeftBracket);
+gen_lex_token!(lex_right_bracket, "]", TokenType::RightBracket);
 gen_lex_token!(lex_right_paren, ")", TokenType::RightParen);
 gen_lex_token!(lex_left_paren, "(", TokenType::LeftParen);
 gen_lex_token!(lex_comma, ",", TokenType::Comma);
@@ -70,6 +70,7 @@ gen_lex_token!(lex_path_separator, "::", TokenType::PathSeparator);
 gen_lex_token!(lex_star, "*", TokenType::Star);
 gen_lex_token!(lex_equal, "=", TokenType::Equal);
 gen_lex_token!(lex_slash, "/", TokenType::Slash);
+gen_lex_token!(lex_return_type, "->", TokenType::ReturnType);
 gen_lex_token!(lex_double_quote, "\"", TokenType::DoubleQuote);
 
 // Logical
@@ -117,6 +118,7 @@ fn lex_symbol<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErr
         lex_comparison,
         lex_comma,
         lex_dot,
+        lex_return_type,
         lex_minus,
         lex_plus,
         lex_path_separator,
@@ -134,8 +136,8 @@ fn lex_symbol<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErr
 
 fn lex_comparison<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, token) = alt((
-        lex_bang,
         lex_bang_equal,
+        lex_bang,
         lex_equal_equal,
         lex_equal,
         lex_less_eq,
@@ -156,6 +158,13 @@ fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
     let (input, idientifier) = preceded(multispace0, take_while1(allowable_ident_char))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
     let value = Token::get_value(ValueType::String, idientifier.input)?;
+    if is_digit(idientifier.input.chars().nth(0).unwrap() as u8) {
+        return Err(nom::Err::<LangError>::Error(LangError::from(
+            LangErrorType::ParserError {
+                reason: "Identifiers may not begin with digits".into(),
+            },
+        )));
+    }
     Ok((
         input,
         Token {
@@ -191,7 +200,7 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError
         "bool" => TokenType::Type(TypeAnnotation::Bool),
         "String" => TokenType::Type(TypeAnnotation::String),
         "fn" => TokenType::Type(TypeAnnotation::Fn),
-        _ => TokenType::Identifier,
+        other @ _ => TokenType::Type(TypeAnnotation::User(other.to_string())),
     };
     let value = Token::get_value(ValueType::String, type_str.input)?;
     Ok((
@@ -264,17 +273,223 @@ impl<'a> Scanner<'a> {
 
 #[cfg(test)]
 mod scanner_two_tests {
+    macro_rules! gen_lex_token_test {
+        ($test_name:ident, $fn_name:ident, $test_string:literal, $token_type:expr, $result:literal) => {
+            #[test]
+            fn $test_name() {
+                let span = Span::new($test_string, 0, 1, 0);
+                let result = $fn_name(span);
+                assert_eq!(result.is_ok(), $result);
+                if $result {
+                    assert_eq!(result.unwrap().1.token_type, $token_type);
+                }
+            }
+        };
+    }
+
     use super::*;
 
     #[test]
     fn test_lex_ident() {
         let test_string = "   \nvalid_ident\n;\ntest\n;;";
         let string = Span::new(test_string, 0, 1, 0);
-        let string2 = Span::new(test_string, 0, 1, 0);
         let result = lex_ident(string);
-        let result2 = lex_ident(string2);
-        //assert_eq!(result.is_ok(), true);
-        println!("{:?}", result);
-        println!("{:?}", result2);
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(result.unwrap().1.span.content.input, "valid_ident");
+
+        let test_string = "420\n";
+        let string = Span::new(test_string, 0, 1, 0);
+        let result = lex_ident(string);
+        assert_eq!(result.is_ok(), false);
+
+        let test_string = "?!90$*\n";
+        let string = Span::new(test_string, 0, 1, 0);
+        let result = lex_ident(string);
+        assert_eq!(result.is_ok(), false);
     }
+
+    gen_lex_token_test!(test_lex_let, lex_keyword, "let", TokenType::Let, true);
+    gen_lex_token_test!(
+        test_lex_struct,
+        lex_keyword,
+        "struct",
+        TokenType::Struct,
+        true
+    );
+    gen_lex_token_test!(test_lex_if, lex_keyword, "if", TokenType::If, true);
+    gen_lex_token_test!(test_lex_else, lex_keyword, "else", TokenType::Else, true);
+    gen_lex_token_test!(test_lex_break, lex_keyword, "break", TokenType::Break, true);
+    gen_lex_token_test!(test_lex_enum, lex_keyword, "enum", TokenType::Enum, true);
+    gen_lex_token_test!(test_lex_for, lex_keyword, "for", TokenType::For, true);
+    gen_lex_token_test!(test_lex_while, lex_keyword, "while", TokenType::While, true);
+    gen_lex_token_test!(test_lex_fn, lex_keyword, "fn", TokenType::Fn, true);
+    gen_lex_token_test!(test_lex_or, lex_keyword, "or", TokenType::Or, true);
+    gen_lex_token_test!(test_lex_and, lex_keyword, "and", TokenType::And, true);
+    gen_lex_token_test!(test_lex_impl, lex_keyword, "impl", TokenType::Impl, true);
+    gen_lex_token_test!(test_lex_trait, lex_keyword, "trait", TokenType::Trait, true);
+    gen_lex_token_test!(test_lex_true, lex_keyword, "true", TokenType::True, true);
+    gen_lex_token_test!(test_lex_false, lex_keyword, "false", TokenType::False, true);
+    gen_lex_token_test!(
+        test_lex_self,
+        lex_keyword,
+        "self",
+        TokenType::SelfIdent,
+        true
+    );
+    gen_lex_token_test!(
+        test_lex_return,
+        lex_keyword,
+        "return",
+        TokenType::Return,
+        true
+    );
+    gen_lex_token_test!(test_lex_print, lex_keyword, "print", TokenType::Print, true);
+    gen_lex_token_test!(
+        test_lex_import,
+        lex_keyword,
+        "import",
+        TokenType::Import,
+        true
+    );
+
+    gen_lex_token_test!(
+        test_lex_keyword_fail,
+        lex_keyword,
+        "l",
+        TokenType::Let,
+        false
+    );
+
+    gen_lex_token_test!(
+        test_lex_left_brace,
+        lex_left_brace,
+        "{",
+        TokenType::LeftBrace,
+        true
+    );
+    gen_lex_token_test!(
+        test_lex_right_brace,
+        lex_right_brace,
+        "}",
+        TokenType::RightBrace,
+        true
+    );
+    gen_lex_token_test!(
+        test_lex_right_paren,
+        lex_right_paren,
+        ")",
+        TokenType::RightParen,
+        true
+    );
+    gen_lex_token_test!(
+        test_lex_left_paren,
+        lex_left_paren,
+        "(",
+        TokenType::LeftParen,
+        true
+    );
+    gen_lex_token_test!(
+        test_lex_left_bracket,
+        lex_left_bracket,
+        "[",
+        TokenType::LeftBracket,
+        true
+    );
+    gen_lex_token_test!(
+        test_lex_right_bracket,
+        lex_right_bracket,
+        "]",
+        TokenType::RightBracket,
+        true
+    );
+    // gen_lex_token_test!(test_lex_comparison, lex_comparison, "", TokenType::, true);
+    gen_lex_token_test!(test_lex_comma, lex_comma, ",", TokenType::Comma, true);
+    gen_lex_token_test!(test_lex_dot, lex_dot, ".", TokenType::Dot, true);
+    gen_lex_token_test!(
+        test_lex_return_type,
+        lex_return_type,
+        "->",
+        TokenType::ReturnType,
+        true
+    );
+    gen_lex_token_test!(test_lex_minus, lex_minus, "-", TokenType::Minus, true);
+    gen_lex_token_test!(test_lex_plus, lex_plus, "+", TokenType::Plus, true);
+    gen_lex_token_test!(
+        test_lex_path_separator,
+        lex_path_separator,
+        "::",
+        TokenType::PathSeparator,
+        true
+    );
+    gen_lex_token_test!(test_lex_colon, lex_colon, ":", TokenType::Colon, true);
+    gen_lex_token_test!(
+        test_lex_semi_colon,
+        lex_semi_colon,
+        ";",
+        TokenType::SemiColon,
+        true
+    );
+    gen_lex_token_test!(test_lex_star, lex_star, "*", TokenType::Star, true);
+    gen_lex_token_test!(test_lex_slash, lex_slash, "/", TokenType::Slash, true);
+    gen_lex_token_test!(test_lex_or_symbol, lex_or_symbol, "|", TokenType::Or, true);
+    gen_lex_token_test!(
+        test_lex_and_symbol,
+        lex_and_symbol,
+        "&",
+        TokenType::And,
+        true
+    );
+    gen_lex_token_test!(test_lex_ternary, lex_ternary, "?", TokenType::Ternary, true);
+    gen_lex_token_test!(
+        test_lex_double_quote,
+        lex_double_quote,
+        "\"",
+        TokenType::DoubleQuote,
+        true
+    );
+
+    gen_lex_token_test!(test_lex_bang, lex_comparison, "!", TokenType::Bang, true);
+    gen_lex_token_test!(
+        test_lex_bang_equal,
+        lex_comparison,
+        "!=",
+        TokenType::BangEqual,
+        true
+    );
+    gen_lex_token_test!(
+        test_lex_equal_equal,
+        lex_comparison,
+        "==",
+        TokenType::EqualEqual,
+        true
+    );
+    gen_lex_token_test!(test_lex_equal, lex_comparison, "=", TokenType::Equal, true);
+    gen_lex_token_test!(
+        test_lex_less_eq,
+        lex_comparison,
+        "<=",
+        TokenType::LessEqual,
+        true
+    );
+    gen_lex_token_test!(
+        test_lex_less_than,
+        lex_comparison,
+        "<",
+        TokenType::Less,
+        true
+    );
+    gen_lex_token_test!(
+        test_lex_greater_eq,
+        lex_comparison,
+        ">=",
+        TokenType::GreaterEqual,
+        true
+    );
+    gen_lex_token_test!(
+        test_lex_greater_than,
+        lex_comparison,
+        ">",
+        TokenType::Greater,
+        true
+    );
 }
