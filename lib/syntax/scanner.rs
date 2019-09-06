@@ -91,6 +91,19 @@ gen_lex_token!(lex_greater_than, ">", TokenType::Greater);
 gen_lex_token!(lex_greater_eq, ">=", TokenType::GreaterEqual);
 gen_lex_token!(lex_equal_equal, "==", TokenType::EqualEqual);
 
+// Types
+gen_lex_token!(lex_i32_type, "i32", TokenType::Type(TypeAnnotation::I32));
+gen_lex_token!(lex_i64_type, "i64", TokenType::Type(TypeAnnotation::I64));
+gen_lex_token!(lex_f32_type, "f32", TokenType::Type(TypeAnnotation::F32));
+gen_lex_token!(lex_f64_type, "f64", TokenType::Type(TypeAnnotation::F64));
+gen_lex_token!(lex_bool_type, "bool", TokenType::Type(TypeAnnotation::Bool));
+gen_lex_token!(lex_fn_type, "fn", TokenType::Type(TypeAnnotation::Fn));
+gen_lex_token!(
+    lex_string_type,
+    "String",
+    TokenType::Type(TypeAnnotation::String)
+);
+
 fn entry<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, result) = alt((
         lex_digit,
@@ -218,44 +231,16 @@ fn lex_string<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErr
 }
 
 fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-    let (input, begin) = preceded(multispace0, position)(input)?;
-    let (input, type_str) = preceded(
-        multispace0,
-        alt((
-            tag("i32"),
-            tag("i64"),
-            tag("f32"),
-            tag("f64"),
-            tag("bool"),
-            tag("fn"),
-            tag("String"),
-            tag("Array"),
-            take_while1(allowable_ident_char),
-        )),
-    )(input)?;
-    let (input, end) = position(input)?;
-    let type_annotation = match type_str.input {
-        "i32" => TokenType::Type(TypeAnnotation::I32),
-        "i64" => TokenType::Type(TypeAnnotation::I64),
-        "f32" => TokenType::Type(TypeAnnotation::F32),
-        "f64" => TokenType::Type(TypeAnnotation::F64),
-        "bool" => TokenType::Type(TypeAnnotation::Bool),
-        "String" => TokenType::Type(TypeAnnotation::String),
-        "fn" => TokenType::Type(TypeAnnotation::Fn),
-        other @ _ => TokenType::Type(TypeAnnotation::User(other.to_string())),
-    };
-    let value = match Value::from_str(ValueType::String, type_str.input) {
-        Ok(v) => v,
-        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
-    };
-    Ok((
-        input,
-        Token {
-            token_type: type_annotation,
-            span: SourceSpan::new(begin, type_str, end),
-            value: value,
-        },
-    ))
+    let (input, type_annotation) = alt((
+        lex_i32_type,
+        lex_i64_type,
+        lex_f32_type,
+        lex_f64_type,
+        lex_bool_type,
+        lex_fn_type,
+        lex_string_type,
+    ))(input)?;
+    Ok((input, type_annotation))
 }
 
 fn lis_digit(i: char) -> bool {

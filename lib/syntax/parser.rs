@@ -635,7 +635,7 @@ impl<'a> Parser<'a> {
         )?;
         Ok(Stmt::Var(Box::new(VarStmt {
             initializer: Some(initializer),
-            type_annotation: type_annotation_token.token_type,
+            type_annotation: type_annotation_token.token_type.to_type_annotation()?,
             name: name.lexeme,
         })))
     }
