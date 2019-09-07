@@ -230,6 +230,33 @@ fn lex_string<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErr
     Ok((input, string))
 }
 
+fn lex_array<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, arr) = preceded(multispace0, tag("Array<"))(input)?;
+    let (input, array_type) = lex_type(input)?;
+    let (input, _) = preceded(multispace0, tag(">"))(input)?;
+    let (input, end) = preceded(multispace0, position)(input)?;
+    let type_annotation = match array_type.token_type.to_type_annotation() {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
+    let value = match Value::from_str(
+        ValueType::String,
+        &format!("Array<{}>", type_annotation.to_string()),
+    ) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
+    Ok((
+        input,
+        Token {
+            token_type: TokenType::Type(TypeAnnotation::Array(Box::new(type_annotation))),
+            span: SourceSpan::new(begin, arr, end),
+            value: value,
+        },
+    ))
+}
+
 fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, type_annotation) = alt((
         lex_i32_type,
@@ -238,6 +265,7 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError
         lex_f64_type,
         lex_bool_type,
         lex_fn_type,
+        lex_array,
         lex_string_type,
     ))(input)?;
     Ok((input, type_annotation))
@@ -295,10 +323,40 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    fn fixup_types(&self, tokens: &mut Vec<Token>) {
+        let mut user_type_indicies = Vec::new();
+        let mut unit_type_indicies = Vec::new();
+        for (index, token) in tokens.iter().enumerate() {
+            if (token.token_type == TokenType::Colon || token.token_type == TokenType::ReturnType)
+                && tokens[index + 1].token_type == TokenType::Identifier
+            {
+                user_type_indicies.push(index + 1);
+            }
+            if (token.token_type == TokenType::Colon || token.token_type == TokenType::ReturnType)
+                && tokens[index + 1].token_type == TokenType::LeftParen
+                && tokens[index + 2].token_type == TokenType::RightParen
+            {
+                unit_type_indicies.push(index + 1);
+            }
+        }
+        for type_index in user_type_indicies {
+            tokens[type_index].token_type =
+                TokenType::Type(TypeAnnotation::User(tokens[type_index].value.to_string()));
+        }
+
+        for type_index in unit_type_indicies {
+            tokens[type_index].token_type = TokenType::Type(TypeAnnotation::Unit);
+            tokens.remove(type_index + 1);
+        }
+    }
+
     pub fn scan_tokens(&mut self) -> Result<Vec<Token>, LangError> {
         let root_span: Span<&str> = Span::new(self.source, 0, 1, 0);
         match lex_program(root_span) {
-            Ok(t) => Ok(t.1),
+            Ok(mut t) => {
+                self.fixup_types(&mut t.1);
+                Ok(t.1)
+            }
             Err(e) => return Err(e.into()),
         }
     }
