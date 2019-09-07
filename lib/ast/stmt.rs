@@ -87,7 +87,7 @@ pub struct TraitStmt {
 #[derive(Clone, Debug)]
 pub struct TraitFunctionStmt {
     pub name: String,
-    pub return_type: TokenType,
+    pub return_type: TypeAnnotation,
     pub params: Vec<VariableData>,
 }
 

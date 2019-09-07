@@ -798,7 +798,9 @@ impl<'a> Parser<'a> {
         parameters.shrink_to_fit();
         Ok(Stmt::TraitFunction(Box::new(TraitFunctionStmt {
             name: name.lexeme,
-            return_type: return_type_annotation_token.token_type,
+            return_type: return_type_annotation_token
+                .token_type
+                .to_type_annotation()?,
             params: parameters,
         })))
     }
