@@ -120,7 +120,7 @@ pub struct ReturnStmt {
 #[derive(Clone, Debug)]
 pub struct VarStmt {
     pub initializer: Option<Expr>,
-    pub type_annotation: TokenType,
+    pub type_annotation: TypeAnnotation,
     pub name: String,
 }
 

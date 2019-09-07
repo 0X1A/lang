@@ -14,14 +14,9 @@ use nom::{
     character::is_digit, sequence::preceded, IResult,
 };
 
-pub struct Scanner<'a> {
-    source: &'a str,
-    pub tokens: Vec<Token<'a>>,
-}
-
-macro_rules! gen_lex_token_method {
+macro_rules! gen_lex_token {
     ($token_name:ident, $t:tt, $token_type:expr) => {
-        fn $token_name(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+        fn $token_name<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
             let (input, begin) = preceded(multispace0, position)(input)?;
             let (input, output) = preceded(multispace0, tag($t))(input)?;
             let (input, end) = preceded(multispace0, position)(input)?;
@@ -41,6 +36,285 @@ macro_rules! gen_lex_token_method {
     };
 }
 
+// Keyword lexrs
+gen_lex_token!(lex_let, "let", TokenType::Let);
+gen_lex_token!(lex_struct, "struct", TokenType::Struct);
+gen_lex_token!(lex_if, "if", TokenType::If);
+gen_lex_token!(lex_else, "else", TokenType::Else);
+gen_lex_token!(lex_break, "break", TokenType::Break);
+gen_lex_token!(lex_enum, "enum", TokenType::Enum);
+gen_lex_token!(lex_for, "for", TokenType::For);
+gen_lex_token!(lex_while, "while", TokenType::While);
+gen_lex_token!(lex_fn, "fn", TokenType::Fn);
+gen_lex_token!(lex_or, "or", TokenType::Or);
+gen_lex_token!(lex_and, "and", TokenType::And);
+gen_lex_token!(lex_impl, "impl", TokenType::Impl);
+gen_lex_token!(lex_trait, "trait", TokenType::Trait);
+gen_lex_token!(lex_true, "true", TokenType::True);
+gen_lex_token!(lex_false, "false", TokenType::False);
+gen_lex_token!(lex_self, "self", TokenType::SelfIdent);
+gen_lex_token!(lex_return, "return", TokenType::Return);
+gen_lex_token!(lex_print, "print", TokenType::Print);
+gen_lex_token!(lex_import, "import", TokenType::Import);
+
+// Symbol lexrs
+gen_lex_token!(lex_left_brace, "{", TokenType::LeftBrace);
+gen_lex_token!(lex_right_brace, "}", TokenType::RightBrace);
+gen_lex_token!(lex_left_bracket, "[", TokenType::LeftBracket);
+gen_lex_token!(lex_right_bracket, "]", TokenType::RightBracket);
+gen_lex_token!(lex_right_paren, ")", TokenType::RightParen);
+gen_lex_token!(lex_left_paren, "(", TokenType::LeftParen);
+gen_lex_token!(lex_comma, ",", TokenType::Comma);
+gen_lex_token!(lex_dot, ".", TokenType::Dot);
+gen_lex_token!(lex_minus, "-", TokenType::Minus);
+gen_lex_token!(lex_plus, "+", TokenType::Plus);
+gen_lex_token!(lex_semi_colon, ";", TokenType::SemiColon);
+gen_lex_token!(lex_colon, ":", TokenType::Colon);
+gen_lex_token!(lex_path_separator, "::", TokenType::PathSeparator);
+gen_lex_token!(lex_star, "*", TokenType::Star);
+gen_lex_token!(lex_equal, "=", TokenType::Equal);
+gen_lex_token!(lex_slash, "/", TokenType::Slash);
+gen_lex_token!(lex_return_type, "->", TokenType::ReturnType);
+gen_lex_token!(lex_double_quote, "\"", TokenType::DoubleQuote);
+
+// Logical
+gen_lex_token!(lex_bang, "!", TokenType::Bang);
+gen_lex_token!(lex_and_symbol, "&", TokenType::And);
+gen_lex_token!(lex_or_symbol, "|", TokenType::Or);
+gen_lex_token!(lex_ternary, "?", TokenType::Ternary);
+
+// Comparisons
+gen_lex_token!(lex_bang_equal, "!=", TokenType::BangEqual);
+gen_lex_token!(lex_less_than, "<", TokenType::Less);
+gen_lex_token!(lex_less_eq, "<=", TokenType::LessEqual);
+gen_lex_token!(lex_greater_than, ">", TokenType::Greater);
+gen_lex_token!(lex_greater_eq, ">=", TokenType::GreaterEqual);
+gen_lex_token!(lex_equal_equal, "==", TokenType::EqualEqual);
+
+// Types
+gen_lex_token!(lex_i32_type, "i32", TokenType::Type(TypeAnnotation::I32));
+gen_lex_token!(lex_i64_type, "i64", TokenType::Type(TypeAnnotation::I64));
+gen_lex_token!(lex_f32_type, "f32", TokenType::Type(TypeAnnotation::F32));
+gen_lex_token!(lex_f64_type, "f64", TokenType::Type(TypeAnnotation::F64));
+gen_lex_token!(lex_bool_type, "bool", TokenType::Type(TypeAnnotation::Bool));
+gen_lex_token!(lex_fn_type, "fn", TokenType::Type(TypeAnnotation::Fn));
+gen_lex_token!(
+    lex_string_type,
+    "String",
+    TokenType::Type(TypeAnnotation::String)
+);
+
+fn entry<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, result) = alt((
+        lex_digit,
+        lex_keyword,
+        lex_string,
+        lex_type,
+        lex_ident,
+        lex_symbol,
+    ))(input)?;
+    Ok((input, result))
+}
+
+fn lex_program<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Vec<Token>, LangError> {
+    let (input, mut output) = many1(entry)(input)?;
+    output.push(Token::new2(TokenType::Eof, "EoF"));
+    Ok((input, output))
+}
+
+fn lex_keyword<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, token) = alt((
+        lex_let, lex_struct, lex_if, lex_else, lex_break, lex_enum, lex_fn, lex_for, lex_while,
+        lex_or, lex_impl, lex_trait, lex_true, lex_false, lex_self, lex_print, lex_return, lex_and,
+        lex_import,
+    ))(input)?;
+    Ok((input, token))
+}
+
+fn lex_symbol<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, token) = alt((
+        lex_left_brace,
+        lex_right_brace,
+        lex_right_paren,
+        lex_left_paren,
+        lex_left_bracket,
+        lex_right_bracket,
+        lex_comparison,
+        lex_comma,
+        lex_dot,
+        lex_return_type,
+        lex_minus,
+        lex_plus,
+        lex_path_separator,
+        lex_colon,
+        lex_semi_colon,
+        lex_star,
+        lex_slash,
+        lex_or_symbol,
+        lex_and_symbol,
+        lex_ternary,
+    ))(input)?;
+    Ok((input, token))
+}
+
+fn lex_comparison<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, token) = alt((
+        lex_bang_equal,
+        lex_bang,
+        lex_equal_equal,
+        lex_equal,
+        lex_less_eq,
+        lex_less_than,
+        lex_greater_eq,
+        lex_greater_than,
+    ))(input)?;
+    Ok((input, token))
+}
+
+fn allowable_ident_char(input: char) -> bool {
+    return is_alphanumeric(input as u8) || input == '_';
+}
+
+// TODO: Revisit, allow non-ascii identifiers. This isn't something I want to bite off right now
+fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, identifier) = preceded(multispace0, take_while1(allowable_ident_char))(input)?;
+    let (input, end) = preceded(multispace0, position)(input)?;
+    if is_digit(identifier.input.chars().nth(0).unwrap() as u8) {
+        return Err(nom::Err::<LangError>::Error(LangError::from(
+            LangErrorType::ParserError {
+                reason: "Identifiers may not begin with digits".into(),
+            },
+        )));
+    }
+    let value = match Value::from_str(ValueType::String, identifier.input) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
+    Ok((
+        input,
+        Token {
+            token_type: TokenType::Identifier,
+            span: SourceSpan::new(begin, identifier, end),
+            value: value,
+        },
+    ))
+}
+
+fn is_allowable_string_content(input: char) -> bool {
+    input != '"'
+}
+
+fn lex_string_content<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, content) = take_while1(is_allowable_string_content)(input)?;
+    let (input, end) = preceded(multispace0, position)(input)?;
+    let value = match Value::from_str(ValueType::String, content.input) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
+    Ok((
+        input,
+        Token {
+            token_type: TokenType::String,
+            span: SourceSpan::new(begin, content, end),
+            value: value,
+        },
+    ))
+}
+
+fn lex_string<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, _) = lex_double_quote(input)?;
+    let (input, string) = lex_string_content(input)?;
+    let (input, _) = lex_double_quote(input)?;
+    Ok((input, string))
+}
+
+fn lex_array<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, arr) = preceded(multispace0, tag("Array<"))(input)?;
+    let (input, array_type) = lex_type(input)?;
+    let (input, _) = preceded(multispace0, tag(">"))(input)?;
+    let (input, end) = preceded(multispace0, position)(input)?;
+    let type_annotation = match array_type.token_type.to_type_annotation() {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
+    let value = match Value::from_str(
+        ValueType::String,
+        &format!("Array<{}>", type_annotation.to_string()),
+    ) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
+    Ok((
+        input,
+        Token {
+            token_type: TokenType::Type(TypeAnnotation::Array(Box::new(type_annotation))),
+            span: SourceSpan::new(begin, arr, end),
+            value: value,
+        },
+    ))
+}
+
+fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, type_annotation) = alt((
+        lex_i32_type,
+        lex_i64_type,
+        lex_f32_type,
+        lex_f64_type,
+        lex_bool_type,
+        lex_fn_type,
+        lex_array,
+        lex_string_type,
+    ))(input)?;
+    Ok((input, type_annotation))
+}
+
+fn lis_digit(i: char) -> bool {
+    is_digit(i as u8) || i == '.'
+}
+
+fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, digit) = preceded(multispace0, take_while1(lis_digit))(input)?;
+    let (input, end) = preceded(multispace0, position)(input)?;
+    // TODO: Fix this parser function, we shouldn't have to waste cycles on goofy shit like this
+    if digit.input.len() == 1 && digit.input.contains('.') {
+        return Err(nom::Err::<LangError>::Error(LangError::from(
+            LangErrorType::ParserError {
+                reason: "Attempted to lex a digit that was only '.'".into(),
+            },
+        )));
+    }
+    let value_type;
+    let token_type;
+    if digit.input.contains('.') {
+        value_type = ValueType::Float;
+        token_type = TokenType::Float;
+    } else {
+        value_type = ValueType::Integer;
+        token_type = TokenType::Integer;
+    }
+    let value = match Value::from_str(value_type.clone(), digit.input) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+    };
+    Ok((
+        input,
+        Token {
+            token_type: token_type,
+            span: SourceSpan::new(begin, digit, end),
+            value: value,
+        },
+    ))
+}
+
+pub struct Scanner<'a> {
+    source: &'a str,
+    pub tokens: Vec<Token<'a>>,
+}
+
 impl<'a> Scanner<'a> {
     pub fn new(script_content: &'a str) -> Scanner<'a> {
         Scanner {
@@ -49,289 +323,42 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    // Keyword lexrs
-    gen_lex_token_method!(lex_let, "let", TokenType::Let);
-    gen_lex_token_method!(lex_struct, "struct", TokenType::Struct);
-    gen_lex_token_method!(lex_if, "if", TokenType::If);
-    gen_lex_token_method!(lex_else, "else", TokenType::Else);
-    gen_lex_token_method!(lex_break, "break", TokenType::Break);
-    gen_lex_token_method!(lex_enum, "enum", TokenType::Enum);
-    gen_lex_token_method!(lex_for, "for", TokenType::For);
-    gen_lex_token_method!(lex_while, "while", TokenType::While);
-    gen_lex_token_method!(lex_fn, "fn", TokenType::Fn);
-    gen_lex_token_method!(lex_or, "or", TokenType::Or);
-    gen_lex_token_method!(lex_and, "and", TokenType::And);
-    gen_lex_token_method!(lex_impl, "impl", TokenType::Impl);
-    gen_lex_token_method!(lex_trait, "trait", TokenType::Trait);
-    gen_lex_token_method!(lex_true, "true", TokenType::True);
-    gen_lex_token_method!(lex_false, "false", TokenType::False);
-    gen_lex_token_method!(lex_self, "self", TokenType::SelfIdent);
-    gen_lex_token_method!(lex_return, "return", TokenType::Return);
-    gen_lex_token_method!(lex_print, "print", TokenType::Print);
-    gen_lex_token_method!(lex_import, "import", TokenType::Import);
+    fn fixup_types(&self, tokens: &mut Vec<Token>) {
+        let mut user_type_indicies = Vec::new();
+        let mut unit_type_indicies = Vec::new();
+        for (index, token) in tokens.iter().enumerate() {
+            if (token.token_type == TokenType::Colon || token.token_type == TokenType::ReturnType)
+                && tokens[index + 1].token_type == TokenType::Identifier
+            {
+                user_type_indicies.push(index + 1);
+            }
+            if (token.token_type == TokenType::Colon || token.token_type == TokenType::ReturnType)
+                && tokens[index + 1].token_type == TokenType::LeftParen
+                && tokens[index + 2].token_type == TokenType::RightParen
+            {
+                unit_type_indicies.push(index + 1);
+            }
+        }
+        for type_index in user_type_indicies {
+            tokens[type_index].token_type =
+                TokenType::Type(TypeAnnotation::User(tokens[type_index].value.to_string()));
+        }
 
-    // Symbol lexrs
-    gen_lex_token_method!(lex_left_brace, "{", TokenType::LeftBrace);
-    gen_lex_token_method!(lex_right_brace, "}", TokenType::RightBrace);
-    gen_lex_token_method!(lex_left_bracket, "[", TokenType::LeftBracket);
-    gen_lex_token_method!(lex_right_bracket, "]", TokenType::RightBracket);
-    gen_lex_token_method!(lex_right_paren, ")", TokenType::RightParen);
-    gen_lex_token_method!(lex_left_paren, "(", TokenType::LeftParen);
-    gen_lex_token_method!(lex_comma, ",", TokenType::Comma);
-    gen_lex_token_method!(lex_dot, ".", TokenType::Dot);
-    gen_lex_token_method!(lex_minus, "-", TokenType::Minus);
-    gen_lex_token_method!(lex_plus, "+", TokenType::Plus);
-    gen_lex_token_method!(lex_semi_colon, ";", TokenType::SemiColon);
-    gen_lex_token_method!(lex_colon, ":", TokenType::Colon);
-    gen_lex_token_method!(lex_path_separator, "::", TokenType::PathSeparator);
-    gen_lex_token_method!(lex_star, "*", TokenType::Star);
-    gen_lex_token_method!(lex_equal, "=", TokenType::Equal);
-    gen_lex_token_method!(lex_slash, "/", TokenType::Slash);
-    gen_lex_token_method!(lex_return_type, "->", TokenType::ReturnType);
-    gen_lex_token_method!(lex_double_quote, "\"", TokenType::DoubleQuote);
-
-    // Logical
-    gen_lex_token_method!(lex_bang, "!", TokenType::Bang);
-    gen_lex_token_method!(lex_and_symbol, "&", TokenType::And);
-    gen_lex_token_method!(lex_or_symbol, "|", TokenType::Or);
-    gen_lex_token_method!(lex_ternary, "?", TokenType::Ternary);
-
-    // Comparisons
-    gen_lex_token_method!(lex_bang_equal, "!=", TokenType::BangEqual);
-    gen_lex_token_method!(lex_less_than, "<", TokenType::Less);
-    gen_lex_token_method!(lex_less_eq, "<=", TokenType::LessEqual);
-    gen_lex_token_method!(lex_greater_than, ">", TokenType::Greater);
-    gen_lex_token_method!(lex_greater_eq, ">=", TokenType::GreaterEqual);
-    gen_lex_token_method!(lex_equal_equal, "==", TokenType::EqualEqual);
+        for type_index in unit_type_indicies {
+            tokens[type_index].token_type = TokenType::Type(TypeAnnotation::Unit);
+            tokens.remove(type_index + 1);
+        }
+    }
 
     pub fn scan_tokens(&mut self) -> Result<Vec<Token>, LangError> {
         let root_span: Span<&str> = Span::new(self.source, 0, 1, 0);
-        match self.lex_program(root_span) {
-            Ok(t) => Ok(t.1),
+        match lex_program(root_span) {
+            Ok(mut t) => {
+                self.fixup_types(&mut t.1);
+                Ok(t.1)
+            }
             Err(e) => return Err(e.into()),
         }
-    }
-
-    fn entry(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-        let (input, result) = alt((
-            |input| self.lex_digit(input),
-            |input| self.lex_keyword(input),
-            |input| self.lex_string(input),
-            |input| self.lex_type(input),
-            |input| self.lex_ident(input),
-            |input| self.lex_symbol(input),
-        ))(input)?;
-        Ok((input, result))
-    }
-
-    fn lex_program(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Vec<Token>, LangError> {
-        let (input, mut output) = many1(|input| self.entry(input))(input)?;
-        output.push(Token::new2(TokenType::Eof, "EoF"));
-        Ok((input, output))
-    }
-
-    fn lex_keyword(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-        let (input, token) = alt((
-            |input| self.lex_let(input),
-            |input| self.lex_struct(input),
-            |input| self.lex_if(input),
-            |input| self.lex_else(input),
-            |input| self.lex_break(input),
-            |input| self.lex_enum(input),
-            |input| self.lex_for(input),
-            |input| self.lex_while(input),
-            |input| self.lex_fn(input),
-            |input| self.lex_or(input),
-            |input| self.lex_and(input),
-            |input| self.lex_impl(input),
-            |input| self.lex_trait(input),
-            |input| self.lex_true(input),
-            |input| self.lex_false(input),
-            |input| self.lex_self(input),
-            |input| self.lex_return(input),
-            |input| self.lex_print(input),
-            |input| self.lex_import(input),
-        ))(input)?;
-        Ok((input, token))
-    }
-
-    fn lex_symbol(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-        let (input, token) = alt((
-            |input| self.lex_left_brace(input),
-            |input| self.lex_right_brace(input),
-            |input| self.lex_right_paren(input),
-            |input| self.lex_left_paren(input),
-            |input| self.lex_left_bracket(input),
-            |input| self.lex_right_bracket(input),
-            |input| self.lex_comparison(input),
-            |input| self.lex_comma(input),
-            |input| self.lex_dot(input),
-            |input| self.lex_return_type(input),
-            |input| self.lex_minus(input),
-            |input| self.lex_plus(input),
-            |input| self.lex_path_separator(input),
-            |input| self.lex_colon(input),
-            |input| self.lex_semi_colon(input),
-            |input| self.lex_star(input),
-            |input| self.lex_slash(input),
-            |input| self.lex_or_symbol(input),
-            |input| self.lex_and_symbol(input),
-            |input| self.lex_ternary(input),
-        ))(input)?;
-        Ok((input, token))
-    }
-
-    fn lex_comparison(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-        let (input, token) = alt((
-            |input| self.lex_bang_equal(input),
-            |input| self.lex_bang(input),
-            |input| self.lex_equal_equal(input),
-            |input| self.lex_equal(input),
-            |input| self.lex_less_eq(input),
-            |input| self.lex_less_than(input),
-            |input| self.lex_greater_eq(input),
-            |input| self.lex_greater_than(input),
-        ))(input)?;
-        Ok((input, token))
-    }
-
-    fn allowable_ident_char(input: char) -> bool {
-        return is_alphanumeric(input as u8) || input == '_';
-    }
-
-    // TODO: Revisit, allow non-ascii identifiers. This isn't something I want to bite off right now
-    fn lex_ident(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-        let (input, begin) = preceded(multispace0, position)(input)?;
-        let (input, identifier) =
-            preceded(multispace0, take_while1(Scanner::allowable_ident_char))(input)?;
-        let (input, end) = preceded(multispace0, position)(input)?;
-        if is_digit(identifier.input.chars().nth(0).unwrap() as u8) {
-            return Err(nom::Err::<LangError>::Error(LangError::from(
-                LangErrorType::ParserError {
-                    reason: "Identifiers may not begin with digits".into(),
-                },
-            )));
-        }
-        let value = match Value::from_str(ValueType::String, identifier.input) {
-            Ok(v) => v,
-            Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
-        };
-        Ok((
-            input,
-            Token {
-                token_type: TokenType::Identifier,
-                span: SourceSpan::new(begin, identifier, end),
-                value: value,
-            },
-        ))
-    }
-
-    fn is_allowable_string_content(input: char) -> bool {
-        input != '"'
-    }
-
-    fn lex_string_content(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-        let (input, begin) = preceded(multispace0, position)(input)?;
-        let (input, content) = take_while1(Scanner::is_allowable_string_content)(input)?;
-        let (input, end) = preceded(multispace0, position)(input)?;
-        let value = match Value::from_str(ValueType::String, content.input) {
-            Ok(v) => v,
-            Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
-        };
-        Ok((
-            input,
-            Token {
-                token_type: TokenType::String,
-                span: SourceSpan::new(begin, content, end),
-                value: value,
-            },
-        ))
-    }
-
-    fn lex_string(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-        let (input, _) = self.lex_double_quote(input)?;
-        let (input, string) = self.lex_string_content(input)?;
-        let (input, _) = self.lex_double_quote(input)?;
-        Ok((input, string))
-    }
-
-    fn lex_type(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-        let (input, begin) = preceded(multispace0, position)(input)?;
-        let (input, type_str) = preceded(
-            multispace0,
-            alt((
-                tag("i32"),
-                tag("i64"),
-                tag("f32"),
-                tag("f64"),
-                tag("bool"),
-                tag("fn"),
-                tag("String"),
-                tag("Array"),
-                take_while1(Scanner::allowable_ident_char),
-            )),
-        )(input)?;
-        let (input, end) = position(input)?;
-        let type_annotation = match type_str.input {
-            "i32" => TokenType::Type(TypeAnnotation::I32),
-            "i64" => TokenType::Type(TypeAnnotation::I64),
-            "f32" => TokenType::Type(TypeAnnotation::F32),
-            "f64" => TokenType::Type(TypeAnnotation::F64),
-            "bool" => TokenType::Type(TypeAnnotation::Bool),
-            "String" => TokenType::Type(TypeAnnotation::String),
-            "fn" => TokenType::Type(TypeAnnotation::Fn),
-            other @ _ => TokenType::Type(TypeAnnotation::User(other.to_string())),
-        };
-        let value = match Value::from_str(ValueType::String, type_str.input) {
-            Ok(v) => v,
-            Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
-        };
-        Ok((
-            input,
-            Token {
-                token_type: type_annotation,
-                span: SourceSpan::new(begin, type_str, end),
-                value: value,
-            },
-        ))
-    }
-    fn lis_digit(i: char) -> bool {
-        is_digit(i as u8) || i == '.'
-    }
-
-    fn lex_digit(&self, input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
-        let (input, begin) = preceded(multispace0, position)(input)?;
-        let (input, digit) = preceded(multispace0, take_while1(Scanner::lis_digit))(input)?;
-        let (input, end) = preceded(multispace0, position)(input)?;
-        // TODO: Fix this parser function, we shouldn't have to waste cycles on goofy shit like this
-        if digit.input.len() == 1 && digit.input.contains('.') {
-            return Err(nom::Err::<LangError>::Error(LangError::from(
-                LangErrorType::ParserError {
-                    reason: "Attempted to lex a digit that was only '.'".into(),
-                },
-            )));
-        }
-        let value_type;
-        let token_type;
-        if digit.input.contains('.') {
-            value_type = ValueType::Float;
-            token_type = TokenType::Float;
-        } else {
-            value_type = ValueType::Integer;
-            token_type = TokenType::Integer;
-        }
-        let value = match Value::from_str(value_type.clone(), digit.input) {
-            Ok(v) => v,
-            Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
-        };
-        Ok((
-            input,
-            Token {
-                token_type: token_type,
-                span: SourceSpan::new(begin, digit, end),
-                value: value,
-            },
-        ))
     }
 }
 
@@ -341,9 +368,8 @@ mod scanner_two_tests {
         ($test_name:ident, $fn_name:ident, $test_string:literal, $token_type:expr, $result:literal) => {
             #[test]
             fn $test_name() {
-                let scanner = Scanner::new($test_string);
                 let span = Span::new($test_string, 0, 1, 0);
-                let result = scanner.$fn_name(span);
+                let result = $fn_name(span);
                 assert_eq!(result.is_ok(), $result);
                 if $result {
                     assert_eq!(result.unwrap().1.token_type, $token_type);
@@ -357,20 +383,19 @@ mod scanner_two_tests {
     #[test]
     fn test_lex_ident() {
         let test_string = "   \nvalid_ident\n;\ntest\n;;";
-        let scanner = Scanner::new(test_string);
         let string = Span::new(test_string, 0, 1, 0);
-        let result = scanner.lex_ident(string);
+        let result = lex_ident(string);
         assert_eq!(result.is_ok(), true);
         assert_eq!(result.unwrap().1.span.content.input, "valid_ident");
 
         let test_string = "420\n";
         let string = Span::new(test_string, 0, 1, 0);
-        let result = scanner.lex_ident(string);
+        let result = lex_ident(string);
         assert_eq!(result.is_ok(), false);
 
         let test_string = "?!90$*\n";
         let string = Span::new(test_string, 0, 1, 0);
-        let result = scanner.lex_ident(string);
+        let result = lex_ident(string);
         assert_eq!(result.is_ok(), false);
     }
 

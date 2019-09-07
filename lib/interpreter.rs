@@ -823,7 +823,7 @@ impl Visitor for Interpreter {
             self.evaluate(&initializer)?;
             value = self.pop()?;
         }
-        let var_type_annotation = var_stmt.type_annotation.to_type_annotation()?;
+        let var_type_annotation = var_stmt.type_annotation.clone();
         if var_type_annotation != value.value_type {
             return Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::InvalidTypeAssignmentError {
