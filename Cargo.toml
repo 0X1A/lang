@@ -10,7 +10,7 @@ clap = { version = "2.32.0", features = ["yaml"] }
 log = "*"
 env_logger = "*"
 nom = "5.0.1"
-bytecount = "0.6.0"
+bytecount = { version = "0.6.0" }
 
 [lib]
 name = "lang"
@@ -22,3 +22,7 @@ criterion = "0.2.11"
 [[bench]]
 name = "lib"
 harness = false
+
+[features]
+default = ["runtime-dispatch-simd"]
+runtime-dispatch-simd = ["bytecount/runtime-dispatch-simd"]
