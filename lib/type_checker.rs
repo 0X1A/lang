@@ -42,7 +42,7 @@ impl TypeChecker {
             TypeAnnotation::Array(lhs_element_type) => match rhs_type_annotation {
                 TypeAnnotation::Array(rhs_element_type) => {
                     let a = lhs_element_type;
-                    return TypeChecker::can_convert_implicitly(&**a, &**rhs_element_type);
+                    TypeChecker::can_convert_implicitly(&**a, &**rhs_element_type)
                 }
                 _ => false,
             },

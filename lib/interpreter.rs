@@ -654,9 +654,9 @@ impl Interpreter {
 
     fn check_impl_trait(
         &self,
-        impl_trait: &String,
+        impl_trait: &str,
         fn_value: &Value,
-        trait_token: &String,
+        trait_token: &str,
     ) -> Result<bool, LangError> {
         let typed_trait_value = self.env_entries.get_ref(&self.env_id, trait_token)?;
         let trait_value_type: &TraitValue = (&typed_trait_value.value).try_into()?;

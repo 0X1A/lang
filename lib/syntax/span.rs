@@ -1,5 +1,5 @@
 use std::fmt;
-use std::iter::{Enumerate, Iterator, Map};
+use std::iter::{Enumerate, Map};
 use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
 use std::slice::Iter;
 use std::str::{CharIndices, Chars};
@@ -164,7 +164,7 @@ macro_rules! gen_slice_impl {
                 let next_offset = self.offset + offset;
 
                 let bytes = slice.as_bytes();
-                let number_of_lines = bytes.iter().filter(|&&c| c == b'\n').count() as u32;
+                let number_of_lines = bytecount::count(bytes, b'\n') as u32;
                 let next_line = self.line + number_of_lines;
 
                 Span::new(next_input, next_offset, next_line, 0)

@@ -172,7 +172,7 @@ fn lex_comparison<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, Lan
 }
 
 fn allowable_ident_char(input: char) -> bool {
-    return is_alphanumeric(input as u8) || input == '_';
+    is_alphanumeric(input as u8) || input == '_'
 }
 
 // TODO: Revisit, allow non-ascii identifiers. This isn't something I want to bite off right now
@@ -189,14 +189,14 @@ fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
     }
     let value = match Value::from_str(ValueType::String, identifier.input) {
         Ok(v) => v,
-        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e)),
     };
     Ok((
         input,
         Token {
             token_type: TokenType::Identifier,
             span: SourceSpan::new(begin, identifier, end),
-            value: value,
+            value,
         },
     ))
 }
@@ -211,14 +211,14 @@ fn lex_string_content<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token,
     let (input, end) = preceded(multispace0, position)(input)?;
     let value = match Value::from_str(ValueType::String, content.input) {
         Ok(v) => v,
-        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e)),
     };
     Ok((
         input,
         Token {
             token_type: TokenType::String,
             span: SourceSpan::new(begin, content, end),
-            value: value,
+            value,
         },
     ))
 }
@@ -238,21 +238,21 @@ fn lex_array<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
     let (input, end) = preceded(multispace0, position)(input)?;
     let type_annotation = match array_type.token_type.to_type_annotation() {
         Ok(v) => v,
-        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e)),
     };
     let value = match Value::from_str(
         ValueType::String,
         &format!("Array<{}>", type_annotation.to_string()),
     ) {
         Ok(v) => v,
-        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e)),
     };
     Ok((
         input,
         Token {
             token_type: TokenType::Type(TypeAnnotation::Array(Box::new(type_annotation))),
             span: SourceSpan::new(begin, arr, end),
-            value: value,
+            value,
         },
     ))
 }
@@ -287,25 +287,27 @@ fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
             },
         )));
     }
-    let value_type;
-    let token_type;
-    if digit.input.contains('.') {
-        value_type = ValueType::Float;
-        token_type = TokenType::Float;
+    let is_float = digit.input.contains('.');
+    let value_type = if is_float {
+        ValueType::Float
     } else {
-        value_type = ValueType::Integer;
-        token_type = TokenType::Integer;
-    }
+        ValueType::Integer
+    };
+    let token_type = if is_float {
+        TokenType::Float
+    } else {
+        TokenType::Integer
+    };
     let value = match Value::from_str(value_type.clone(), digit.input) {
         Ok(v) => v,
-        Err(e) => return Err(nom::Err::Failure::<LangError>(e.into())),
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e)),
     };
     Ok((
         input,
         Token {
-            token_type: token_type,
+            token_type,
             span: SourceSpan::new(begin, digit, end),
-            value: value,
+            value,
         },
     ))
 }
@@ -357,7 +359,7 @@ impl<'a> Scanner<'a> {
                 self.fixup_types(&mut t.1);
                 Ok(t.1)
             }
-            Err(e) => return Err(e.into()),
+            Err(e) => Err(e.into()),
         }
     }
 }

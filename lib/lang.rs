@@ -44,7 +44,7 @@ impl<'a> Lang<'a> {
             }
             let mut parser = Parser::new(tokens);
             let statements = parser.parse()?;
-            return Ok(statements);
+            Ok(statements)
         } else {
             Ok(vec![])
         }

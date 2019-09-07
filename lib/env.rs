@@ -178,7 +178,7 @@ impl Environment {
                 Value::Array(ref mut arr) => {
                     if index >= arr.len() {
                         return Err(Lang::error_s(
-                            name.into(),
+                            name,
                             &format!(
                                 "Index out of bounds. Tried to index at {} for an array of length {}",
                                 index,
@@ -192,7 +192,7 @@ impl Environment {
                 _ => {
                     return Err(Lang::error_s(
                         name,
-                        &format!("Tried to assign an undefined variable: '{}'", name.clone(),),
+                        &format!("Tried to assign an undefined variable: '{}'", name,),
                     ));
                 }
             }
@@ -228,7 +228,7 @@ impl Environment {
         false
     }
 
-    pub fn get_ref(&self, env_id: &EnvironmentId, name: &String) -> Result<&TypedValue, LangError> {
+    pub fn get_ref(&self, env_id: &EnvironmentId, name: &str) -> Result<&TypedValue, LangError> {
         debug!(
             "{}:{} Looking for token with lexeme '{}' at index '{}' env: {:?}",
             file!(),
@@ -238,15 +238,15 @@ impl Environment {
             self
         );
         if let Some(value) = self[env_id].values.get(name) {
-            return Ok(value);
+            Ok(value)
         } else if let Some(enclosing) = self[env_id].enclosing.clone() {
-            return Ok(self.get_ref(&enclosing, name)?);
+            Ok(self.get_ref(&enclosing, name)?)
         } else {
             Err(Lang::error_s(
                 name,
                 &format!(
                     "(get) Tried to get an undefined variable: '{}'",
-                    name.clone()
+                    name.to_string()
                 ),
             ))
         }

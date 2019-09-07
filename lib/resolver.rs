@@ -62,7 +62,7 @@ impl<'a> Resolver<'a> {
 
     // TODO: Figure out how to handle trait implementations' declarations
     /// Declare token in latest scope
-    fn declare(&mut self, name: &String) -> Result<(), LangError> {
+    fn declare(&mut self, name: &str) -> Result<(), LangError> {
         assert!(!self.scopes.is_empty());
         // Our scopes are a stack, check the last element for the token being declared
         self.scopes.last_mut().map_or(
@@ -78,7 +78,7 @@ impl<'a> Resolver<'a> {
                     ))) */
                     Ok(())
                 } else {
-                    last.insert(name.clone(), false);
+                    last.insert(name.into(), false);
                     Ok(())
                 }
             },
@@ -86,11 +86,11 @@ impl<'a> Resolver<'a> {
     }
 
     /// Defines `name` in current scope
-    fn define(&mut self, name: &String) {
+    fn define(&mut self, name: &str) {
         debug!("{}:{} Defining {:?} as in scope", file!(), line!(), name);
         assert!(!self.scopes.is_empty());
         if let Some(ref mut last) = self.scopes.last_mut() {
-            last.insert(name.clone(), true);
+            last.insert(name.into(), true);
         }
     }
 

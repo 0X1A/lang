@@ -38,7 +38,7 @@ impl<'a> Token<'a> {
                 Span::new(lexeme, 0, 0, 0),
                 Span::new(lexeme, 0, 0, 0),
             ),
-            value: value,
+            value,
         }
     }
 }

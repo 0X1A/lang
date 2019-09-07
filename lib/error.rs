@@ -191,7 +191,7 @@ impl From<nom::Err<LangError>> for LangError {
                 LangError::from(LangErrorType::ParserError {
                     reason: format!("parser did not have enough data for parsing, required a buffer of size: {}", s)
                 }),
-                    nom::Needed::Unknown => LangError::from(LangErrorType::ParserError { reason: format!("parser did not have enough data for parsing, required a buffer of unknown size") }),
+                    nom::Needed::Unknown => LangError::from(LangErrorType::ParserError { reason: "parser did not have enough data for parsing, required a buffer of unknown size".into() }),
                 }
             }
             nom::Err::Error(e) => e,

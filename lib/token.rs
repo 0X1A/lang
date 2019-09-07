@@ -28,7 +28,7 @@ impl TypeAnnotation {
         if let TypeAnnotation::Array(_) = self {
             return true;
         }
-        return false;
+        false
     }
 
     pub fn get_array_element_type(array: &TypeAnnotation) -> Result<TypeAnnotation, LangError> {
@@ -216,7 +216,7 @@ impl TokenType {
     pub fn to_type_annotation(&self) -> Result<TypeAnnotation, LangError> {
         match self {
             TokenType::Type(type_annotation) => Ok(type_annotation.clone()),
-            other @ _ => Err(LangErrorType::new_parser_error(format!(
+            other => Err(LangErrorType::new_parser_error(format!(
                 "Failed type annotation extraction: {}",
                 other
             ))),
