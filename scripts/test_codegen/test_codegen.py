@@ -103,6 +103,25 @@ class LangTestSources(object):
         let instance: TestStruct = TestStruct();
         instance.hello();
         """,
+        # Control Flow
+        "For loop": """
+        for (let i: i32 = 0; i < 10; i = i + 1) {
+            print i;
+        }
+        for (let b: bool = false; b == true; b = false) {
+            print b;
+        }
+        """,
+        "While Loop": """
+        let b: bool = true;
+        let i: i32 = 0;
+        while (b) {
+            i = i + 1;
+            if (i == 10) {
+                b = false;
+            }
+        }
+        """
     })
 
     def generate_files(self, path):

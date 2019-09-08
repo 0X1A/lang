@@ -57,6 +57,24 @@ mod tests {
         assert_eq!(result.is_ok(), false)
     }
     #[test]
+    fn for_loop() {
+        let mut lang = Lang::new(Some(
+            "
+        for (let i: i32 = 0; i < 10; i = i + 1) {
+            print i;
+        }
+        for (let b: bool = false; b == true; b = false) {
+            print b;
+        }
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
     fn struct_declaration() {
         let mut lang = Lang::new(Some("struct TestStruct {}"));
         let result = lang.run();
@@ -190,6 +208,26 @@ mod tests {
             println!("{}", error);
         }
         assert_eq!(result.is_ok(), false)
+    }
+    #[test]
+    fn while_loop() {
+        let mut lang = Lang::new(Some(
+            "
+        let b: bool = true;
+        let i: i32 = 0;
+        while (b) {
+            i = i + 1;
+            if (i == 10) {
+                b = false;
+            }
+        }
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
     }
     #[test]
     fn f64_variable_declaration() {
