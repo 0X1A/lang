@@ -1,5 +1,4 @@
 use crate::error::*;
-use crate::lang::*;
 use crate::syntax::parser::TokenIR;
 use std::fmt::{self, Display};
 
@@ -50,18 +49,11 @@ impl TypeAnnotation {
     }
 
     /// Checks `token`'s `token_type` to ensure that it has been lexed as a type annotation
-    pub fn check_token_type2(token: &TokenIR) -> Result<(), LangError> {
+    pub fn check_token_type2(token: &TokenIR) -> Result<(), ()> {
         match token.token_type {
             TokenType::Type(_) => Ok(()),
             TokenType::Identifier => Ok(()),
-            _ => Err(Lang::error_ir(
-                token.line,
-                &token.lexeme,
-                &format!(
-                    "invalid type annotation expected a type annotation, found '{}'",
-                    token.token_type.to_string()
-                ),
-            )),
+            _ => Err(()),
         }
     }
 }

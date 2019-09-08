@@ -313,7 +313,7 @@ fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
 }
 
 pub struct Scanner<'a> {
-    source: &'a str,
+    pub source: &'a str,
     pub tokens: Vec<Token<'a>>,
 }
 

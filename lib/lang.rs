@@ -38,11 +38,12 @@ impl<'a> Lang<'a> {
 
     pub fn build_statements(&mut self) -> Result<Vec<Stmt>, LangError> {
         if let Some(ref mut scanner) = self.scanner_two {
+            let source = scanner.source.clone();
             let tokens: Vec<Token> = scanner.scan_tokens()?;
             for token in tokens.iter() {
                 debug!("{:?}", token);
             }
-            let mut parser = Parser::new(tokens);
+            let mut parser = Parser::new(source, tokens);
             let statements = parser.parse()?;
             Ok(statements)
         } else {
@@ -69,7 +70,7 @@ impl<'a> Lang<'a> {
         let mut scanner = Scanner::new(script);
         let tokens: Vec<Token> = scanner.scan_tokens()?;
         let mut resolver = Resolver::new(&mut self.interpreter);
-        let mut parser = Parser::new(tokens);
+        let mut parser = Parser::new(script, tokens);
         let statements = parser.parse()?;
         resolver.resolve(&statements)?;
         resolver.interpreter.interpret(statements)?;
@@ -103,6 +104,13 @@ impl<'a> Lang<'a> {
             return Lang::report(token.line, "at end ", message);
         } */
         Lang::report(0, &format!("at '{}'", token), message)
+    }
+
+    pub fn parser_error(line: &str, token: &Token, error_mesg: &str) -> LangError {
+        LangErrorType::new_parser_error(format!(
+            "\n\t|\n{}\t|{}\n\t|\n{}",
+            token.span.begin.line, line, error_mesg
+        ))
     }
 
     pub fn report(line: u64, ware: &str, message: &str) -> LangError {
