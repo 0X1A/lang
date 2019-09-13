@@ -255,12 +255,18 @@ impl Hash for Value {
 impl Add for Value {
     type Output = Value;
 
+    #[inline(always)]
     fn add(self, other: Value) -> Value {
         match self {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs + rhs),
                 Value::Float64(rhs) => Value::Int64(lhs + rhs.inner as i64),
                 _ => Value::Int64(lhs),
+            },
+            Value::Int32(lhs) => match other {
+                Value::Int32(rhs) => Value::Int32(lhs + rhs),
+                Value::Float32(rhs) => Value::Int32(lhs + rhs.inner as i32),
+                _ => Value::Int32(lhs),
             },
             Value::Float64(lhs) => match other {
                 Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner + rhs as f64)),
@@ -279,6 +285,7 @@ impl Add for Value {
 impl Sub for Value {
     type Output = Value;
 
+    #[inline(always)]
     fn sub(self, other: Value) -> Value {
         match self {
             Value::Int64(lhs) => match other {
@@ -299,6 +306,7 @@ impl Sub for Value {
 impl Mul for Value {
     type Output = Value;
 
+    #[inline(always)]
     fn mul(self, other: Value) -> Value {
         match self {
             Value::Int64(lhs) => match other {
@@ -319,6 +327,7 @@ impl Mul for Value {
 impl Div for Value {
     type Output = Value;
 
+    #[inline(always)]
     fn div(self, other: Value) -> Value {
         match self {
             Value::Int64(lhs) => match other {

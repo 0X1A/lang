@@ -123,7 +123,7 @@ impl<'a> Resolver<'a> {
         );
         for scope_index in (0..self.scopes.len()).rev() {
             if self.scopes[scope_index].contains_key(name) {
-                self.interpreter.resolve(name, self.scopes.len() - 1);
+                self.interpreter.resolve(name, scope_index);
                 return;
             }
         }
