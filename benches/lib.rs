@@ -42,6 +42,22 @@ fn array_i64_variable_re_assignment_failure(c: &mut Criterion) {
         })
     });
 }
+fn for_loop(c: &mut Criterion) {
+    c.bench_function("For loop", |b| {
+        b.iter(|| {
+            Lang::new(black_box(Some(
+                "
+        for (let i: i32 = 0; i < 10; i = i + 1) {
+            print i;
+        }
+        for (let b: bool = false; b == true; b = false) {
+            print b;
+        }
+        ",
+            )))
+        })
+    });
+}
 fn struct_declaration(c: &mut Criterion) {
     c.bench_function("Struct declaration", |b| {
         b.iter(|| Lang::new(black_box(Some("struct TestStruct {}"))))
@@ -160,6 +176,24 @@ fn struct_with_method_call_failure(c: &mut Criterion) {
         })
     });
 }
+fn while_loop(c: &mut Criterion) {
+    c.bench_function("While Loop", |b| {
+        b.iter(|| {
+            Lang::new(black_box(Some(
+                "
+        let b: bool = true;
+        let i: i32 = 0;
+        while (b) {
+            i = i + 1;
+            if (i == 10) {
+                b = false;
+            }
+        }
+        ",
+            )))
+        })
+    });
+}
 fn f64_variable_declaration(c: &mut Criterion) {
     c.bench_function("f64 Variable declaration", |b| {
         b.iter(|| Lang::new(black_box(Some("let i: f64;"))))
@@ -227,6 +261,7 @@ criterion_group!(
     array_i64_variable_declaration_empty,
     array_i64_variable_re_assignment,
     array_i64_variable_re_assignment_failure,
+    for_loop,
     struct_declaration,
     struct_declaration_failure,
     struct_declaration_with_fields,
@@ -235,6 +270,7 @@ criterion_group!(
     struct_with_fields_instatiation_and_field_assignment,
     struct_with_impl,
     struct_with_method_call_failure,
+    while_loop,
     f64_variable_declaration,
     f64_variable_declaration_and_assignment,
     f64_variable_re_assignment,
