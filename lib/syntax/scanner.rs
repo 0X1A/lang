@@ -401,6 +401,7 @@ mod scanner_two_tests {
         assert_eq!(result.is_ok(), false);
     }
 
+    gen_lex_token_test!(test_long_lex, entry, "letShouldLexAsIdent", TokenType::Identifier, true);
     gen_lex_token_test!(test_lex_let, lex_keyword, "let", TokenType::Let, true);
     gen_lex_token_test!(
         test_lex_struct,
