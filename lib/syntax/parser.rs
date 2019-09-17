@@ -386,7 +386,15 @@ impl<'a> Parser<'a> {
         if self.check(&token_type) {
             return Ok(self.advance());
         }
-        Err(self.parse_error(&self.peek(), string))
+        Err(self.parse_error(
+            &self.peek(),
+            &format!(
+                "{}, expected {} but found {}",
+                string,
+                token_type,
+                &self.peek().token_type
+            ),
+        ))
     }
 
     fn parse_error(&self, token: &Token, error_mesg: &str) -> LangError {
@@ -735,7 +743,10 @@ impl<'a> Parser<'a> {
             loop {
                 self.pop_expect(&TokenType::Fn, "expected fn after left brace")?;
                 trait_fn_declarations.push(self.trait_function_declaration()?);
-                self.pop_expect(&TokenType::SemiColon, "expected fn after left brace")?;
+                self.pop_expect(
+                    &TokenType::SemiColon,
+                    "expected ; after trait function declaration",
+                )?;
                 if self.check(&TokenType::RightBrace) {
                     break;
                 }

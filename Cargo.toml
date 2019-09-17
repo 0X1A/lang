@@ -10,6 +10,7 @@ clap = { version = "2.32.0", features = ["yaml"] }
 log = "*"
 env_logger = "*"
 nom = "5.0.1"
+lazy_static = "*"
 bytecount = { version = "0.6.0" }
 
 [lib]

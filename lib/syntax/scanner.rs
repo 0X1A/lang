@@ -1,3 +1,4 @@
+extern crate lazy_static;
 extern crate nom;
 
 use crate::error::*;
@@ -13,6 +14,33 @@ use nom::{
     bytes::complete::take_while1, character::complete::multispace0, character::is_alphanumeric,
     character::is_digit, sequence::preceded, IResult,
 };
+use std::collections::HashMap;
+
+lazy_static! {
+    static ref KEYWORDS: HashMap<&'static str, TokenType> = {
+        let mut keywords = HashMap::new();
+        keywords.insert("let", TokenType::Let);
+        keywords.insert("struct", TokenType::Struct);
+        keywords.insert("if", TokenType::If);
+        keywords.insert("else", TokenType::Else);
+        keywords.insert("break", TokenType::Break);
+        keywords.insert("enum", TokenType::Enum);
+        keywords.insert("for", TokenType::For);
+        keywords.insert("while", TokenType::While);
+        keywords.insert("fn", TokenType::Fn);
+        keywords.insert("or", TokenType::Or);
+        keywords.insert("and", TokenType::And);
+        keywords.insert("impl", TokenType::Impl);
+        keywords.insert("trait", TokenType::Trait);
+        keywords.insert("true", TokenType::True);
+        keywords.insert("false", TokenType::False);
+        keywords.insert("self", TokenType::SelfIdent);
+        keywords.insert("return", TokenType::Return);
+        keywords.insert("print", TokenType::Print);
+        keywords.insert("import", TokenType::Import);
+        keywords
+    };
+}
 
 macro_rules! gen_lex_token {
     ($token_name:ident, $t:tt, $token_type:expr) => {
@@ -107,10 +135,10 @@ gen_lex_token!(
 fn entry<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, result) = alt((
         lex_digit,
-        lex_keyword,
-        lex_string,
         lex_type,
         lex_ident,
+        lex_keyword,
+        lex_string,
         lex_symbol,
     ))(input)?;
     Ok((input, result))
@@ -180,6 +208,13 @@ fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
     let (input, begin) = preceded(multispace0, position)(input)?;
     let (input, identifier) = preceded(multispace0, take_while1(allowable_ident_char))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
+    if KEYWORDS.get(identifier.input).is_some() {
+        return Err(nom::Err::<LangError>::Error(LangError::from(
+            LangErrorType::ParserError {
+                reason: "Identifiers may not be a keyword".into(),
+            },
+        )));
+    }
     if is_digit(identifier.input.chars().nth(0).unwrap() as u8) {
         return Err(nom::Err::<LangError>::Error(LangError::from(
             LangErrorType::ParserError {
@@ -264,7 +299,7 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError
         lex_f32_type,
         lex_f64_type,
         lex_bool_type,
-        lex_fn_type,
+        // lex_fn_type,
         lex_array,
         lex_string_type,
     ))(input)?;
@@ -327,6 +362,7 @@ impl<'a> Scanner<'a> {
 
     fn fixup_types(&self, tokens: &mut Vec<Token>) {
         let mut user_type_indicies = Vec::new();
+        // Contain's the index of a left paren that should be converted to Unit, and Right paren removed
         let mut unit_type_indicies = Vec::new();
         for (index, token) in tokens.iter().enumerate() {
             if (token.token_type == TokenType::Colon || token.token_type == TokenType::ReturnType)
@@ -346,10 +382,17 @@ impl<'a> Scanner<'a> {
                 TokenType::Type(TypeAnnotation::User(tokens[type_index].value.to_string()));
         }
 
-        for type_index in unit_type_indicies {
-            tokens[type_index].token_type = TokenType::Type(TypeAnnotation::Unit);
-            tokens.remove(type_index + 1);
+        for type_index in unit_type_indicies.iter() {
+            tokens[*type_index].token_type = TokenType::Type(TypeAnnotation::Unit);
         }
+        let mut index = 0;
+        tokens.retain(|token| {
+            let should_retain = {
+                !(token.token_type == TokenType::RightParen
+                    && unit_type_indicies.contains(&(index - 1 as usize)))
+            };
+            (should_retain, index += 1).0
+        });
     }
 
     pub fn scan_tokens(&mut self) -> Result<Vec<Token>, LangError> {
@@ -401,7 +444,13 @@ mod scanner_two_tests {
         assert_eq!(result.is_ok(), false);
     }
 
-    gen_lex_token_test!(test_long_lex, entry, "letShouldLexAsIdent", TokenType::Identifier, true);
+    gen_lex_token_test!(
+        test_long_lex,
+        entry,
+        "letShouldLexAsIdent",
+        TokenType::Identifier,
+        true
+    );
     gen_lex_token_test!(test_lex_let, lex_keyword, "let", TokenType::Let, true);
     gen_lex_token_test!(
         test_lex_struct,

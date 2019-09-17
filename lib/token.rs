@@ -121,6 +121,7 @@ impl PartialEq for TypeAnnotation {
                 _ => false,
             },
             TypeAnnotation::Trait => match other {
+                TypeAnnotation::Unit => true,
                 _ => false,
             },
             TypeAnnotation::Array(lhs) => match other {
@@ -138,6 +139,7 @@ impl PartialEq for TypeAnnotation {
             },
             TypeAnnotation::Unit => match other {
                 TypeAnnotation::User(_) => true,
+                TypeAnnotation::Trait => true,
                 TypeAnnotation::Unit => true,
                 _ => false,
             },

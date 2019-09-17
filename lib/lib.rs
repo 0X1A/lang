@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+extern crate lazy_static;
+
 pub mod ast;
 pub mod ast_printer;
 pub mod env;

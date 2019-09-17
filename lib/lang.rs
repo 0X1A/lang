@@ -40,6 +40,9 @@ impl<'a> Lang<'a> {
         if let Some(ref mut scanner) = self.scanner_two {
             let source = scanner.source.clone();
             let tokens: Vec<Token> = scanner.scan_tokens()?;
+            for token in tokens.iter() {
+                debug!("{:?}", token);
+            }
             let mut parser = Parser::new(source, tokens);
             let statements = parser.parse()?;
             Ok(statements)
