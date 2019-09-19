@@ -38,7 +38,7 @@ impl<'a> Lang<'a> {
 
     pub fn build_statements(&mut self) -> Result<Vec<Stmt>, LangError> {
         if let Some(ref mut scanner) = self.scanner_two {
-            let source = scanner.source.clone();
+            let source = scanner.source;
             let tokens: Vec<Token> = scanner.scan_tokens()?;
             for token in tokens.iter() {
                 debug!("{:?}", token);

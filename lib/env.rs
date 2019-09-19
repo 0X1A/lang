@@ -202,8 +202,7 @@ impl Environment {
             name,
             &format!(
                 "Tried to assign an undefined variable: '{}', self at time of undefined var: {:?}",
-                name.clone(),
-                self
+                name, self
             ),
         ))
     }

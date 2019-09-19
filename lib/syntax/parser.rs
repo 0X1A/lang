@@ -638,7 +638,7 @@ impl<'a> Parser<'a> {
         let name = self.pop_expect(&TokenType::Identifier, "Expected variable name")?;
         self.pop_expect(&TokenType::Colon, "Expected colon after variable name")?;
         let type_annotation_token = self.advance();
-        if let Err(_) = TypeAnnotation::check_token_type2(&type_annotation_token) {
+        if TypeAnnotation::check_token_type2(&type_annotation_token).is_err() {
             return Err(self.parse_error(
                 &self.peek(),
                 &format!(
@@ -809,7 +809,7 @@ impl<'a> Parser<'a> {
                     self.pop_expect(&TokenType::Identifier, "Expect parameter name")?;
                 self.pop_expect(&TokenType::Colon, "Expected colon after paramter name")?;
                 let type_annotation_token = self.advance();
-                if let Err(_) = TypeAnnotation::check_token_type2(&type_annotation_token) {
+                if TypeAnnotation::check_token_type2(&type_annotation_token).is_err() {
                     return Err(self.parse_error(
                         &self.peek(),
                         &format!(
@@ -831,7 +831,7 @@ impl<'a> Parser<'a> {
         self.pop_expect(&TokenType::RightParen, "Expect ')' after parameter list.")?;
         self.pop_expect(&TokenType::ReturnType, "Expected '->' after ')'")?;
         let return_type_annotation_token = self.advance();
-        if let Err(_) = TypeAnnotation::check_token_type2(&return_type_annotation_token) {
+        if TypeAnnotation::check_token_type2(&return_type_annotation_token).is_err() {
             return Err(self.parse_error(
                 &self.peek(),
                 &format!(
@@ -889,7 +889,7 @@ impl<'a> Parser<'a> {
         self.pop_expect(&TokenType::RightParen, "Expect ')' after parameter list.")?;
         self.pop_expect(&TokenType::ReturnType, "Expected '->' after ')'")?;
         let return_type_annotation_token = self.advance();
-        if let Err(_) = TypeAnnotation::check_token_type2(&return_type_annotation_token) {
+        if TypeAnnotation::check_token_type2(&return_type_annotation_token).is_err() {
             return Err(self.parse_error(
                 &self.peek(),
                 &format!(
@@ -925,7 +925,7 @@ impl<'a> Parser<'a> {
             let field = self.pop_expect(&TokenType::Identifier, "Expected identifier")?;
             self.pop_expect(&TokenType::Colon, "Expected ':' after field identifier")?;
             let type_annotation = self.advance();
-            if let Err(_) = TypeAnnotation::check_token_type2(&type_annotation) {
+            if TypeAnnotation::check_token_type2(&type_annotation).is_err() {
                 return Err(self.parse_error(
                     &self.peek(),
                     &format!(

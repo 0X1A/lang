@@ -16,6 +16,51 @@ use nom::{
 };
 use std::collections::HashMap;
 
+// A very convoluted iterator
+struct TokenIter<'a, T> {
+    slice: &'a mut [T],
+    len: usize,
+    position: usize,
+    indices: [usize; 3],
+}
+
+impl<'a, T> TokenIter<'a, T> {
+    fn new(data: &'a mut [T]) -> TokenIter<T> {
+        TokenIter {
+            slice: data,
+            len: 3,
+            position: 0,
+            indices: [0, 0, 0],
+        }
+    }
+
+    fn next(&mut self) -> Option<&mut [T]> {
+        let mut upper_bound = self.slice.len() + (self.len / 2);
+        if upper_bound >= self.slice.len() {
+            upper_bound = self.slice.len() - 1;
+        }
+        if self.position + (self.len / 2) < upper_bound {
+            self.position += 1;
+            self.indices = [
+                self.position - 1,
+                self.position + 1,
+                (self.position - 1) + self.len,
+            ];
+            Some(&mut self.slice[(self.position - 1)..(self.position - 1) + self.len])
+        } else if self.position + (self.len / 2) <= upper_bound {
+            self.position += 1;
+            self.indices = [
+                self.position - 1,
+                self.position - 1,
+                (self.position - 1) + (self.len - 1),
+            ];
+            Some(&mut self.slice[(self.position - 1)..(self.position - 1) + (self.len - 1)])
+        } else {
+            None
+        }
+    }
+}
+
 lazy_static! {
     static ref KEYWORDS: HashMap<&'static str, TokenType> = {
         let mut keywords = HashMap::new();
@@ -125,7 +170,7 @@ gen_lex_token!(lex_i64_type, "i64", TokenType::Type(TypeAnnotation::I64));
 gen_lex_token!(lex_f32_type, "f32", TokenType::Type(TypeAnnotation::F32));
 gen_lex_token!(lex_f64_type, "f64", TokenType::Type(TypeAnnotation::F64));
 gen_lex_token!(lex_bool_type, "bool", TokenType::Type(TypeAnnotation::Bool));
-gen_lex_token!(lex_fn_type, "fn", TokenType::Type(TypeAnnotation::Fn));
+//gen_lex_token!(lex_fn_type, "fn", TokenType::Type(TypeAnnotation::Fn));
 gen_lex_token!(
     lex_string_type,
     "String",
@@ -361,35 +406,29 @@ impl<'a> Scanner<'a> {
     }
 
     fn fixup_types(&self, tokens: &mut Vec<Token>) {
-        let mut user_type_indicies = Vec::new();
         // Contain's the index of a left paren that should be converted to Unit, and Right paren removed
         let mut unit_type_indicies = Vec::new();
-        for (index, token) in tokens.iter().enumerate() {
-            if (token.token_type == TokenType::Colon || token.token_type == TokenType::ReturnType)
-                && tokens[index + 1].token_type == TokenType::Identifier
-            {
-                user_type_indicies.push(index + 1);
+        let mut window = TokenIter::new(tokens);
+        while let Some(slice) = window.next() {
+            let is_type_annotation = slice[0].token_type == TokenType::Colon
+                || slice[0].token_type == TokenType::ReturnType;
+            if is_type_annotation && slice[1].token_type == TokenType::Identifier {
+                slice[1].token_type =
+                    TokenType::Type(TypeAnnotation::User(slice[1].value.to_string()));
             }
-            if (token.token_type == TokenType::Colon || token.token_type == TokenType::ReturnType)
-                && tokens[index + 1].token_type == TokenType::LeftParen
-                && tokens[index + 2].token_type == TokenType::RightParen
+            if is_type_annotation
+                && slice[1].token_type == TokenType::LeftParen
+                && slice[2].token_type == TokenType::RightParen
             {
-                unit_type_indicies.push(index + 1);
+                slice[1].token_type = TokenType::Type(TypeAnnotation::Unit);
+                unit_type_indicies.push(window.indices[1]);
             }
-        }
-        for type_index in user_type_indicies {
-            tokens[type_index].token_type =
-                TokenType::Type(TypeAnnotation::User(tokens[type_index].value.to_string()));
-        }
-
-        for type_index in unit_type_indicies.iter() {
-            tokens[*type_index].token_type = TokenType::Type(TypeAnnotation::Unit);
         }
         let mut index = 0;
         tokens.retain(|token| {
             let should_retain = {
                 !(token.token_type == TokenType::RightParen
-                    && unit_type_indicies.contains(&(index - 1 as usize)))
+                    && unit_type_indicies.contains(&(index as usize)))
             };
             (should_retain, index += 1).0
         });
