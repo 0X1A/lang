@@ -8,40 +8,8 @@ use crate::error::LangError;
 
 use nom::{
     error::ErrorKind, error::ParseError, AsBytes, Compare, CompareResult, Err, FindSubstring,
-    HexDisplay, IResult, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset, Slice,
+    IResult, InputIter, InputLength, InputTake, InputTakeAtPosition, Offset, Slice,
 };
-
-pub fn ___dbg_dmp<'a, F, O, E: std::fmt::Debug>(
-    f: F,
-    context: &'static str,
-) -> impl Fn(&'a [u8]) -> IResult<&'a [u8], O, E>
-where
-    F: Fn(&'a [u8]) -> IResult<&'a [u8], O, E>,
-{
-    move |i: &'a [u8]| match f(i) {
-        Err(e) => {
-            println!("{}: Error({:?}) at:\n{}", context, e, i.to_hex(8));
-            Err(e)
-        }
-        a => a,
-    }
-}
-
-pub fn dbg_dmp<'a, F, O, E: std::fmt::Debug>(
-    f: F,
-    context: &'static str,
-) -> impl Fn(Span<&'a str>) -> IResult<Span<&'a str>, O, E>
-where
-    F: Fn(Span<&'a str>) -> IResult<Span<&'a str>, O, E>,
-{
-    move |i: Span<&'a str>| match f(i.clone()) {
-        Err(e) => {
-            println!("{}: Error({:?}) at:\n{}", context, e, i.input.to_hex(8));
-            Err(e)
-        }
-        a => a,
-    }
-}
 
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct Span<T> {

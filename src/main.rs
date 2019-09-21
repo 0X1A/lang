@@ -11,6 +11,8 @@ fn main() -> Result<(), LangError> {
         Lang::setup_logging(0)?;
         if arg_matches.is_present("print_ast") {
             Lang::new(Some(&Lang::read_file(file_path.to_string())?)).print_ast()?;
+        } else if arg_matches.is_present("print_tokens") {
+            Lang::new(Some(&Lang::read_file(file_path.to_string())?)).print_tokens()?;
         } else {
             Lang::new(Some(&Lang::read_file(file_path.to_string())?)).run()?;
         }

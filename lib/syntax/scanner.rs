@@ -16,12 +16,11 @@ use nom::{
 };
 use std::collections::HashMap;
 
-// A very convoluted iterator
+// A very convoluted iterator, this is essentially like a mutable iter::windows fixed to size 3
 struct TokenIter<'a, T> {
     slice: &'a mut [T],
     len: usize,
     position: usize,
-    indices: [usize; 3],
 }
 
 impl<'a, T> TokenIter<'a, T> {
@@ -30,7 +29,6 @@ impl<'a, T> TokenIter<'a, T> {
             slice: data,
             len: 3,
             position: 0,
-            indices: [0, 0, 0],
         }
     }
 
@@ -41,19 +39,9 @@ impl<'a, T> TokenIter<'a, T> {
         }
         if self.position + (self.len / 2) < upper_bound {
             self.position += 1;
-            self.indices = [
-                self.position - 1,
-                self.position + 1,
-                (self.position - 1) + self.len,
-            ];
             Some(&mut self.slice[(self.position - 1)..(self.position - 1) + self.len])
         } else if self.position + (self.len / 2) <= upper_bound {
             self.position += 1;
-            self.indices = [
-                self.position - 1,
-                self.position - 1,
-                (self.position - 1) + (self.len - 1),
-            ];
             Some(&mut self.slice[(self.position - 1)..(self.position - 1) + (self.len - 1)])
         } else {
             None
@@ -405,7 +393,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn fixup_types(&self, tokens: &mut Vec<Token>) {
+    fn fixup_types(&self, tokens: &mut Vec<Token>) -> Result<(), LangError> {
         // Contain's the index of a left paren that should be converted to Unit, and Right paren removed
         let mut unit_type_indicies = Vec::new();
         let mut window = TokenIter::new(tokens);
@@ -421,7 +409,7 @@ impl<'a> Scanner<'a> {
                 && slice[2].token_type == TokenType::RightParen
             {
                 slice[1].token_type = TokenType::Type(TypeAnnotation::Unit);
-                unit_type_indicies.push(window.indices[1]);
+                unit_type_indicies.push(window.position + 1);
             }
         }
         let mut index = 0;
@@ -432,13 +420,14 @@ impl<'a> Scanner<'a> {
             };
             (should_retain, index += 1).0
         });
+        Ok(())
     }
 
     pub fn scan_tokens(&mut self) -> Result<Vec<Token>, LangError> {
         let root_span: Span<&str> = Span::new(self.source, 0, 1, 0);
         match lex_program(root_span) {
             Ok(mut t) => {
-                self.fixup_types(&mut t.1);
+                self.fixup_types(&mut t.1)?;
                 Ok(t.1)
             }
             Err(e) => Err(e.into()),

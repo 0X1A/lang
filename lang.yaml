@@ -7,6 +7,9 @@ args:
       short: d
       long: debug
       help: Print debug information inline
+  - print_tokens:
+      long: print_tokens
+      help: Print the tokens
   - print_ast:
       short: p
       long: printast

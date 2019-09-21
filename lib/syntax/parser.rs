@@ -867,7 +867,7 @@ impl<'a> Parser<'a> {
                     self.pop_expect(&TokenType::Identifier, "Expect parameter name")?;
                 self.pop_expect(&TokenType::Colon, "Expected colon after paramter name")?;
                 let type_annotation_token = self.advance();
-                if let Err(_) = TypeAnnotation::check_token_type2(&type_annotation_token) {
+                if TypeAnnotation::check_token_type2(&type_annotation_token).is_err() {
                     return Err(self.parse_error(
                         &self.peek(),
                         &format!(
