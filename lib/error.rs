@@ -102,7 +102,7 @@ impl Debug for LangErrorType {
             ),
             LangErrorType::ParserError { reason } => write!(f, "parser error {:?}", reason),
             LangErrorType::ControlFlow { subtype } => {
-                write!(f, "{} must be used within a loop", subtype)
+                write!(f, "{:?} must be used within a loop", subtype)
             }
         }
     }
@@ -200,14 +200,19 @@ impl From<nom::Err<LangError>> for LangError {
     }
 }
 
-#[derive(Debug)]
 pub struct LangError {
     pub context: Context<LangErrorType>,
 }
 
+impl fmt::Debug for LangError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.context.get_context())
+    }
+}
+
 impl fmt::Display for LangError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&self.context.get_context(), f)
+        write!(f, "{}", self.context.get_context())
     }
 }
 
