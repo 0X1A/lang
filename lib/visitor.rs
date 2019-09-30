@@ -6,10 +6,10 @@ use crate::error::LangError;
 // bounds on an associated type in order to use the error propogation operator
 pub trait Visitor: Sized {
     fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
-        Ok(noop_expr(self, expr)?)
+        Ok(visit_expr(self, expr)?)
     }
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), LangError> {
-        Ok(noop_stmt(self, stmt)?)
+        Ok(visit_stmt(self, stmt)?)
     }
 
     fn visit_assign(&mut self, assign: &AssignExpr) -> Result<(), LangError>;
@@ -48,7 +48,7 @@ pub trait Visitor: Sized {
     fn visit_while(&mut self, block: &WhileStmt) -> Result<(), LangError>;
 }
 
-pub fn noop_expr<V: Visitor>(visitor: &mut V, expr: &Expr) -> Result<(), LangError> {
+pub fn visit_expr<V: Visitor>(visitor: &mut V, expr: &Expr) -> Result<(), LangError> {
     match expr {
         Expr::Assign(ref assign_expr) => Ok(visitor.visit_assign(&*assign_expr)?),
         Expr::Binary(ref binary_expr) => Ok(visitor.visit_binary(&*binary_expr)?),
@@ -68,7 +68,7 @@ pub fn noop_expr<V: Visitor>(visitor: &mut V, expr: &Expr) -> Result<(), LangErr
     }
 }
 
-pub fn noop_stmt<V: Visitor>(visitor: &mut V, stmt: &Stmt) -> Result<(), LangError> {
+pub fn visit_stmt<V: Visitor>(visitor: &mut V, stmt: &Stmt) -> Result<(), LangError> {
     match stmt {
         Stmt::Break => Ok(visitor.visit_break()?),
         Stmt::Enum(ref enum_stmt) => Ok(visitor.visit_enum(&*enum_stmt)?),

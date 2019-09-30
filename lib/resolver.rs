@@ -132,10 +132,10 @@ impl<'a> Resolver<'a> {
 
 impl<'a> Visitor for Resolver<'a> {
     fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
-        Ok(noop_expr(self, expr)?)
+        Ok(visit_expr(self, expr)?)
     }
     fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), LangError> {
-        Ok(noop_stmt(self, stmt)?)
+        Ok(visit_stmt(self, stmt)?)
     }
 
     fn visit_assign(&mut self, assign: &AssignExpr) -> Result<(), LangError> {
