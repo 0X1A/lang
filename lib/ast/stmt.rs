@@ -20,6 +20,7 @@ pub enum Stmt {
     Return(Box<ReturnStmt>),
     Var(Box<VarStmt>),
     While(Box<WhileStmt>),
+    Import(Box<ImportStmt>),
 }
 
 #[derive(Clone, Debug)]
@@ -128,6 +129,11 @@ pub struct VarStmt {
 pub struct WhileStmt {
     pub body: Stmt,
     pub condition: Expr,
+}
+
+#[derive(Clone, Debug)]
+pub struct ImportStmt {
+    pub module_path: String,
 }
 
 impl TryInto<ImplStmt> for Stmt {

@@ -46,6 +46,7 @@ pub trait Visitor: Sized {
     fn visit_return(&mut self, block: &ReturnStmt) -> Result<(), LangError>;
     fn visit_var(&mut self, block: &VarStmt) -> Result<(), LangError>;
     fn visit_while(&mut self, block: &WhileStmt) -> Result<(), LangError>;
+    fn visit_import(&mut self, import_stmt: &ImportStmt) -> Result<(), LangError>;
 }
 
 pub fn visit_expr<V: Visitor>(visitor: &mut V, expr: &Expr) -> Result<(), LangError> {
@@ -85,5 +86,6 @@ pub fn visit_stmt<V: Visitor>(visitor: &mut V, stmt: &Stmt) -> Result<(), LangEr
         Stmt::Return(ref enum_stmt) => Ok(visitor.visit_return(&*enum_stmt)?),
         Stmt::Var(ref enum_stmt) => Ok(visitor.visit_var(&*enum_stmt)?),
         Stmt::While(ref enum_stmt) => Ok(visitor.visit_while(&*enum_stmt)?),
+        Stmt::Import(ref import_stmt) => Ok(visitor.visit_import(&*import_stmt)?),
     }
 }

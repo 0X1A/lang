@@ -6,6 +6,7 @@ extern crate lazy_static;
 
 pub mod ast;
 pub mod ast_printer;
+pub mod depresolver;
 pub mod env;
 pub mod error;
 pub mod interpreter;

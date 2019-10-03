@@ -1,4 +1,5 @@
 use crate::ast::stmt::*;
+use crate::depresolver::*;
 use crate::error::*;
 use crate::interpreter::Interpreter;
 use crate::resolver::*;
@@ -77,8 +78,10 @@ impl<'a> Lang<'a> {
         let mut scanner = Scanner::new(script);
         let tokens: Vec<Token> = scanner.scan_tokens()?;
         let mut resolver = Resolver::new(&mut self.interpreter);
+        let mut dep_resolver = DependencyResolver::default();
         let mut parser = Parser::new(script, tokens);
         let statements = parser.parse()?;
+        dep_resolver.resolve(&statements)?;
         resolver.resolve(&statements)?;
         resolver.interpreter.interpret(statements)?;
         Ok(())
@@ -136,7 +139,7 @@ impl<'a> Lang<'a> {
         }
     }
 
-    pub fn read_file(file_path: String) -> Result<String, LangError> {
+    pub fn read_file(file_path: &String) -> Result<String, LangError> {
         let mut file = File::open(file_path)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;

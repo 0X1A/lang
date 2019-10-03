@@ -300,4 +300,7 @@ impl<'a> Visitor for Resolver<'a> {
         self.resolve_statement(&while_stmt.body)?;
         Ok(())
     }
+    fn visit_import(&mut self, _: &ImportStmt) -> Result<(), LangError> {
+        Ok(())
+    }
 }

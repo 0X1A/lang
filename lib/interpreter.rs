@@ -862,4 +862,7 @@ impl Visitor for Interpreter {
         }
         Ok(())
     }
+    fn visit_import(&mut self, _: &ImportStmt) -> Result<(), LangError> {
+        Ok(())
+    }
 }

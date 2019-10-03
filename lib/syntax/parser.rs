@@ -496,6 +496,33 @@ impl<'a> Parser<'a> {
         })))
     }
 
+    fn import_statement(&mut self) -> Result<Stmt, LangError> {
+        let mut path = String::new();
+        loop {
+            if self.check(&TokenType::PathSeparator) {
+                self.pop_expect(
+                    &TokenType::PathSeparator,
+                    "Expected a import path separator",
+                )?;
+                path.push(std::path::MAIN_SEPARATOR);
+            } else if self.check(&TokenType::Identifier) {
+                let path_element =
+                    self.pop_expect(&TokenType::Identifier, "Expected an identifier")?;
+                path.push_str(path_element.lexeme.as_ref())
+            } else if self.check(&TokenType::SemiColon) {
+                self.pop_expect(
+                    &TokenType::SemiColon,
+                    "Expected semicolon after import statement",
+                )?;
+                break;
+            } else {
+                break;
+            }
+        }
+        path.push_str(".lang");
+        Ok(Stmt::Import(Box::new(ImportStmt { module_path: path })))
+    }
+
     fn if_statement(&mut self) -> Result<Stmt, LangError> {
         self.pop_expect(&TokenType::LeftParen, "Expect '(' after an 'if'.")?;
         let condition = self.expression()?;
@@ -598,6 +625,9 @@ impl<'a> Parser<'a> {
         }
         if self.matches(&[TokenType::For]) {
             return Ok(self.for_statement()?);
+        }
+        if self.matches(&[TokenType::Import]) {
+            return Ok(self.import_statement()?);
         }
         if self.matches(&[TokenType::If]) {
             return Ok(self.if_statement()?);
