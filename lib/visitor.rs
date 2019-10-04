@@ -4,52 +4,52 @@ use crate::error::LangError;
 
 // We _have_ to return a concrete definition of Result here since we can't have
 // bounds on an associated type in order to use the error propogation operator
-pub trait Visitor: Sized {
-    fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
+pub trait Visitor<T>: Sized {
+    fn visit_expr(&mut self, expr: &Expr) -> Result<T, LangError> {
         Ok(visit_expr(self, expr)?)
     }
-    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), LangError> {
+    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<T, LangError> {
         Ok(visit_stmt(self, stmt)?)
     }
 
-    fn visit_assign(&mut self, assign: &AssignExpr) -> Result<(), LangError>;
-    fn visit_binary(&mut self, binary: &BinaryExpr) -> Result<(), LangError>;
-    fn visit_call(&mut self, call: &CallExpr) -> Result<(), LangError>;
-    fn visit_get(&mut self, get: &GetExpr) -> Result<(), LangError>;
-    fn visit_enum_path(&mut self, enum_path: &EnumPathExpr) -> Result<(), LangError>;
-    fn visit_grouping(&mut self, grouping: &GroupingExpr) -> Result<(), LangError>;
-    fn visit_literal(&mut self, literal: &LiteralExpr) -> Result<(), LangError>;
-    fn visit_logical(&mut self, logical: &LogicalExpr) -> Result<(), LangError>;
-    fn visit_set(&mut self, set: &SetExpr) -> Result<(), LangError>;
-    fn visit_unary(&mut self, unary: &UnaryExpr) -> Result<(), LangError>;
-    fn visit_array(&mut self, array: &ArrayExpr) -> Result<(), LangError>;
-    fn visit_index(&mut self, index: &IndexExpr) -> Result<(), LangError>;
+    fn visit_assign(&mut self, assign: &AssignExpr) -> Result<T, LangError>;
+    fn visit_binary(&mut self, binary: &BinaryExpr) -> Result<T, LangError>;
+    fn visit_call(&mut self, call: &CallExpr) -> Result<T, LangError>;
+    fn visit_get(&mut self, get: &GetExpr) -> Result<T, LangError>;
+    fn visit_enum_path(&mut self, enum_path: &EnumPathExpr) -> Result<T, LangError>;
+    fn visit_grouping(&mut self, grouping: &GroupingExpr) -> Result<T, LangError>;
+    fn visit_literal(&mut self, literal: &LiteralExpr) -> Result<T, LangError>;
+    fn visit_logical(&mut self, logical: &LogicalExpr) -> Result<T, LangError>;
+    fn visit_set(&mut self, set: &SetExpr) -> Result<T, LangError>;
+    fn visit_unary(&mut self, unary: &UnaryExpr) -> Result<T, LangError>;
+    fn visit_array(&mut self, array: &ArrayExpr) -> Result<T, LangError>;
+    fn visit_index(&mut self, index: &IndexExpr) -> Result<T, LangError>;
     fn visit_set_array_element(
         &mut self,
         set_array_element: &SetArrayElementExpr,
-    ) -> Result<(), LangError>;
-    fn visit_variable(&mut self, variable: &VariableExpr) -> Result<(), LangError>;
-    fn visit_self_ident(&mut self, self_ident: &SelfIdentExpr) -> Result<(), LangError>;
+    ) -> Result<T, LangError>;
+    fn visit_variable(&mut self, variable: &VariableExpr) -> Result<T, LangError>;
+    fn visit_self_ident(&mut self, self_ident: &SelfIdentExpr) -> Result<T, LangError>;
 
-    fn visit_break(&mut self) -> Result<(), LangError>;
-    fn visit_enum(&mut self, enum_stmt: &EnumStmt) -> Result<(), LangError>;
-    fn visit_impl(&mut self, impl_stmt: &ImplStmt) -> Result<(), LangError>;
-    fn visit_impl_trait(&mut self, impl_trait: &ImplTraitStmt) -> Result<(), LangError>;
-    fn visit_block(&mut self, block: &BlockStmt) -> Result<(), LangError>;
-    fn visit_struct(&mut self, block: &StructStmt) -> Result<(), LangError>;
-    fn visit_expression(&mut self, block: &ExpressionStmt) -> Result<(), LangError>;
-    fn visit_trait(&mut self, block: &TraitStmt) -> Result<(), LangError>;
-    fn visit_trait_function(&mut self, block: &TraitFunctionStmt) -> Result<(), LangError>;
-    fn visit_function(&mut self, block: &FunctionStmt) -> Result<(), LangError>;
-    fn visit_if(&mut self, block: &IfStmt) -> Result<(), LangError>;
-    fn visit_print(&mut self, block: &PrintStmt) -> Result<(), LangError>;
-    fn visit_return(&mut self, block: &ReturnStmt) -> Result<(), LangError>;
-    fn visit_var(&mut self, block: &VarStmt) -> Result<(), LangError>;
-    fn visit_while(&mut self, block: &WhileStmt) -> Result<(), LangError>;
-    fn visit_import(&mut self, import_stmt: &ImportStmt) -> Result<(), LangError>;
+    fn visit_break(&mut self) -> Result<T, LangError>;
+    fn visit_enum(&mut self, enum_stmt: &EnumStmt) -> Result<T, LangError>;
+    fn visit_impl(&mut self, impl_stmt: &ImplStmt) -> Result<T, LangError>;
+    fn visit_impl_trait(&mut self, impl_trait: &ImplTraitStmt) -> Result<T, LangError>;
+    fn visit_block(&mut self, block: &BlockStmt) -> Result<T, LangError>;
+    fn visit_struct(&mut self, block: &StructStmt) -> Result<T, LangError>;
+    fn visit_expression(&mut self, block: &ExpressionStmt) -> Result<T, LangError>;
+    fn visit_trait(&mut self, block: &TraitStmt) -> Result<T, LangError>;
+    fn visit_trait_function(&mut self, block: &TraitFunctionStmt) -> Result<T, LangError>;
+    fn visit_function(&mut self, block: &FunctionStmt) -> Result<T, LangError>;
+    fn visit_if(&mut self, block: &IfStmt) -> Result<T, LangError>;
+    fn visit_print(&mut self, block: &PrintStmt) -> Result<T, LangError>;
+    fn visit_return(&mut self, block: &ReturnStmt) -> Result<T, LangError>;
+    fn visit_var(&mut self, block: &VarStmt) -> Result<T, LangError>;
+    fn visit_while(&mut self, block: &WhileStmt) -> Result<T, LangError>;
+    fn visit_import(&mut self, import_stmt: &ImportStmt) -> Result<T, LangError>;
 }
 
-pub fn visit_expr<V: Visitor>(visitor: &mut V, expr: &Expr) -> Result<(), LangError> {
+pub fn visit_expr<T, V: Visitor<T>>(visitor: &mut V, expr: &Expr) -> Result<T, LangError> {
     match expr {
         Expr::Assign(ref assign_expr) => Ok(visitor.visit_assign(&*assign_expr)?),
         Expr::Binary(ref binary_expr) => Ok(visitor.visit_binary(&*binary_expr)?),
@@ -69,7 +69,7 @@ pub fn visit_expr<V: Visitor>(visitor: &mut V, expr: &Expr) -> Result<(), LangEr
     }
 }
 
-pub fn visit_stmt<V: Visitor>(visitor: &mut V, stmt: &Stmt) -> Result<(), LangError> {
+pub fn visit_stmt<T, V: Visitor<T>>(visitor: &mut V, stmt: &Stmt) -> Result<T, LangError> {
     match stmt {
         Stmt::Break => Ok(visitor.visit_break()?),
         Stmt::Enum(ref enum_stmt) => Ok(visitor.visit_enum(&*enum_stmt)?),

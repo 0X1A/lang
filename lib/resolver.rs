@@ -130,7 +130,7 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl<'a> Visitor for Resolver<'a> {
+impl<'a> Visitor<()> for Resolver<'a> {
     fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
         Ok(visit_expr(self, expr)?)
     }

@@ -61,11 +61,15 @@ impl<'a> Lang<'a> {
 
     pub fn run(&mut self) -> Result<(), LangError> {
         let statements = self.build_statements();
+        let mut dep_resolver = DependencyResolver::default();
         let mut resolver = Resolver::new(&mut self.interpreter);
         match statements {
-            Ok(s) => {
-                resolver.resolve(&s)?;
-                resolver.interpreter.interpret(s)?;
+            Ok(mut s) => {
+                let mut import_statements = dep_resolver.resolve(&s)?;
+                import_statements.append(&mut s);
+                debug!("statemts at run: {:?}", import_statements);
+                resolver.resolve(&import_statements)?;
+                resolver.interpreter.interpret(import_statements)?;
             }
             Err(e) => {
                 return Err(e);

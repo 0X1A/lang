@@ -672,7 +672,7 @@ impl Interpreter {
     }
 }
 
-impl Visitor for Interpreter {
+impl Visitor<()> for Interpreter {
     fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
         Ok(visit_expr(self, expr)?)
     }
