@@ -33,11 +33,16 @@ impl Default for Interpreter {
 
 impl Interpreter {
     fn pretty_print_locals(&self) -> String {
-        self.locals
-            .iter()
-            .map(|ref kvp| format!("{:?} => {}", kvp.0, kvp.1))
-            .collect::<Vec<String>>()
-            .join(",\n")
+        let mut format = String::from("ident: idx\n");
+        format.push_str(
+            &self
+                .locals
+                .iter()
+                .map(|ref kvp| format!("{:?} => {}", kvp.0, kvp.1))
+                .collect::<Vec<String>>()
+                .join(",\n"),
+        );
+        format
     }
 
     pub fn new() -> Interpreter {
@@ -69,7 +74,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn pop(&mut self) -> Result<TypedValue, LangError> {
+    pub fn pop(&mut self) -> Result<TypedValue, LangError> {
         self.stack.pop().ok_or_else(|| {
             LangErrorType::new_iie_error("the interpreter's stack pop failed!".to_string())
         })
@@ -566,17 +571,19 @@ impl Interpreter {
         &mut self,
         stmts: &[Stmt],
         env_id: EnvironmentId,
-    ) -> Result<TypedValue, LangError> {
+    ) -> Result<(), LangError> {
         let previous = self.env_id.clone();
         self.env_id = env_id;
-        let mut value = TypedValue::new(Value::Unit, TypeAnnotation::Unit);
         for stmt in stmts {
             match stmt {
                 Stmt::Return(_) => {
                     // Set value and break early on a return
                     self.execute(&stmt)?;
-                    value = self.pop()?;
-                    break;
+                    self.env_entries.remove_entry(&self.env_id);
+                    self.env_id = previous;
+                    return Err(LangError::from(LangErrorType::ControlFlow {
+                        subtype: ControlFlow::Break,
+                    }));
                 }
                 _ => {
                     self.execute(&stmt)?;
@@ -585,7 +592,7 @@ impl Interpreter {
         }
         self.env_entries.remove_entry(&self.env_id);
         self.env_id = previous;
-        Ok(value)
+        Ok(())
     }
 
     fn check_impl_trait_return_type(

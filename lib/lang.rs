@@ -67,7 +67,6 @@ impl<'a> Lang<'a> {
             Ok(mut s) => {
                 let mut import_statements = dep_resolver.resolve(&s)?;
                 import_statements.append(&mut s);
-                debug!("statemts at run: {:?}", import_statements);
                 resolver.resolve(&import_statements)?;
                 resolver.interpreter.interpret(import_statements)?;
             }

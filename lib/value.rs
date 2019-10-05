@@ -588,6 +588,15 @@ pub struct TypedValue {
     pub value_type: TypeAnnotation,
 }
 
+impl Default for TypedValue {
+    fn default() -> TypedValue {
+        TypedValue {
+            value: Value::Unit,
+            value_type: TypeAnnotation::Unit,
+        }
+    }
+}
+
 impl Eq for TypedValue {}
 
 impl TypedValue {
@@ -906,7 +915,17 @@ impl CallableTrait for Callable {
                 .env_entries
                 .define(&env_id, &it.0.identifier, it.1.clone());
         }
-        let return_value = interpreter.execute_block(&self.function.body, env_id)?;
+        let mut return_value = TypedValue::default();
+        let value_from_block = interpreter.execute_block(&self.function.body, env_id);
+        if let Err(err) = value_from_block {
+            match err.context.get_context() {
+                LangErrorType::ControlFlow { subtype: _ } => {
+                    return_value = interpreter.pop()?;
+                }
+                _ => {}
+            }
+        }
+        debug!("return from execute_block {:?}", return_value);
         if let Some(function_return_type) = self.get_return_type() {
             if function_return_type != return_value.value_type {
                 return Err(LangErrorType::new_runtime_error(
