@@ -10,15 +10,12 @@ use crate::visitor::*;
 pub struct DependencyResolver {}
 
 impl DependencyResolver {
-    pub fn resolve(&mut self, stmts: &Vec<Stmt>) -> Result<Vec<Stmt>, LangError> {
+    pub fn resolve(&mut self, stmts: &[Stmt]) -> Result<Vec<Stmt>, LangError> {
         let mut statements: Vec<Stmt> = Vec::new();
         for stmt in stmts {
-            match stmt {
-                Stmt::Import(_) => {
-                    let mut imported = self.visit_stmt(stmt)?;
-                    statements.append(&mut imported);
-                }
-                _ => {}
+            if let Stmt::Import(_) = stmt {
+                let mut imported = self.visit_stmt(stmt)?;
+                statements.append(&mut imported);
             }
         }
         Ok(statements)

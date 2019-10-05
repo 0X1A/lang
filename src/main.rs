@@ -2,7 +2,8 @@
 extern crate clap;
 
 use clap::App;
-use lang::{error::*, lang::*};
+use lang::error::LangError;
+use lang::lang::*;
 use std::result::Result;
 
 fn main() -> Result<(), LangError> {

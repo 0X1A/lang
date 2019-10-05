@@ -142,7 +142,7 @@ impl<'a> Lang<'a> {
         }
     }
 
-    pub fn read_file(file_path: &String) -> Result<String, LangError> {
+    pub fn read_file(file_path: &str) -> Result<String, LangError> {
         let mut file = File::open(file_path)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;

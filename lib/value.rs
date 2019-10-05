@@ -918,11 +918,8 @@ impl CallableTrait for Callable {
         let mut return_value = TypedValue::default();
         let value_from_block = interpreter.execute_block(&self.function.body, env_id);
         if let Err(err) = value_from_block {
-            match err.context.get_context() {
-                LangErrorType::ControlFlow { subtype: _ } => {
-                    return_value = interpreter.pop()?;
-                }
-                _ => {}
+            if let LangErrorType::ControlFlow { .. } = err.context.get_context() {
+                return_value = interpreter.pop()?;
             }
         }
         debug!("return from execute_block {:?}", return_value);

@@ -595,9 +595,9 @@ impl<'a> Parser<'a> {
             condition: condition.unwrap(),
             body,
         }));
-        if initializer.is_some() {
+        if let Some(initializer) = initializer {
             body = Stmt::Block(Box::new(BlockStmt {
-                statements: vec![initializer.unwrap(), body],
+                statements: vec![initializer, body],
             }));
         }
         Ok(body)
