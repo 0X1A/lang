@@ -4,6 +4,7 @@ use crate::ast::expr::*;
 use crate::ast::stmt::*;
 use crate::env::*;
 use crate::error::*;
+use crate::mem::*;
 use crate::token::*;
 use crate::type_checker::*;
 use crate::value::*;
@@ -16,6 +17,7 @@ use std::convert::TryInto;
 pub struct Interpreter {
     pub env_id: EnvironmentId,
     pub locals: HashMap<String, usize>,
+    pub arena: Arena<TypedValue>,
     pub env_entries: Environment,
     pub stack: Vec<TypedValue>,
 }
@@ -24,6 +26,7 @@ impl Default for Interpreter {
     fn default() -> Interpreter {
         Interpreter {
             locals: HashMap::new(),
+            arena: Arena::with_capacity(256),
             env_id: EnvironmentId { index: 0 },
             env_entries: Environment::default(),
             stack: Vec::new(),
@@ -50,6 +53,7 @@ impl Interpreter {
         let env_id = env_entries.new_entry();
         Interpreter {
             locals: HashMap::new(),
+            arena: Arena::with_capacity(256),
             env_id,
             env_entries,
             stack: Vec::new(),

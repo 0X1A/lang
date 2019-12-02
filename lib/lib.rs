@@ -11,6 +11,7 @@ pub mod env;
 pub mod error;
 pub mod interpreter;
 pub mod lang;
+pub mod mem;
 pub mod resolver;
 pub mod syntax;
 pub mod token;

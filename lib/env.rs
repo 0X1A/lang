@@ -2,6 +2,7 @@ extern crate log;
 
 use crate::error::*;
 use crate::lang::*;
+use crate::mem::*;
 use crate::type_checker::TypeChecker;
 use crate::value::*;
 use std::{
@@ -19,6 +20,7 @@ pub struct EnvironmentId {
 // a VM
 #[derive(Clone, Debug)]
 pub struct EnvironmentEntry {
+    pub values_two: HashMap<String, ArenaEntryIndex>,
     pub values: HashMap<String, TypedValue>,
     pub enclosing: Option<EnvironmentId>,
 }
@@ -73,6 +75,7 @@ impl Environment {
     pub fn new_entry(&mut self) -> EnvironmentId {
         let env_id = self.entries.len();
         self.entries.push(EnvironmentEntry {
+            values_two: HashMap::new(),
             values: HashMap::new(),
             enclosing: None,
         });
@@ -106,6 +109,51 @@ impl Environment {
         )
     }
 
+    pub fn get_at_two(&mut self, index: usize, name: &str) -> Result<ArenaEntryIndex, LangError> {
+        self.entries.get(index).map_or(
+            Err(LangErrorType::new_runtime_error(
+                RuntimeErrorType::GenericError {
+                    reason: format!(
+                        "tried to index an environment with lenght {} at index {}",
+                        self.entries.len(),
+                        index
+                    ),
+                },
+            )),
+            |env_entry| {
+                env_entry.values_two.get(name).map_or(
+                    Err(LangErrorType::new_runtime_error(
+                        RuntimeErrorType::UndefinedVariable {
+                            reason: format!(
+                                "tried to get an undefined variable: '{}' at index {}",
+                                name, index
+                            ),
+                        },
+                    )),
+                    |value| Ok(value.clone()),
+                )
+            },
+        )
+    }
+
+    pub fn get_two(
+        &self,
+        env_id: &EnvironmentId,
+        name: &str,
+    ) -> Result<ArenaEntryIndex, LangError> {
+        if self[env_id].values_two.contains_key(name) {
+            return Ok(self[env_id].values_two[name].clone());
+        } else if let Some(enclosing) = self[env_id].enclosing.clone() {
+            return Ok(self.get_two(&enclosing, name)?);
+        }
+        // We error when an assignment is attempted on a variable that hasn't been instantiated
+        Err(LangErrorType::new_runtime_error(
+            RuntimeErrorType::UndefinedVariable {
+                reason: format!("Tried to get a variable: '{}'", name),
+            },
+        ))
+    }
+
     pub fn get(&self, env_id: &EnvironmentId, name: &str) -> Result<TypedValue, LangError> {
         if self[env_id].values.contains_key(name) {
             return Ok(self[env_id].values[name].clone());
@@ -118,6 +166,25 @@ impl Environment {
                 reason: format!("Tried to get a variable: '{}'", name),
             },
         ))
+    }
+
+    pub fn define_two(
+        &mut self,
+        env_id: &EnvironmentId,
+        arena: &mut Arena<TypedValue>,
+        name: &str,
+        value: TypedValue,
+    ) {
+        debug!(
+            "{}:{} Defining '{}' with value '{:?}' at index '{}'",
+            file!(),
+            line!(),
+            name,
+            value,
+            env_id.index
+        );
+        let index = arena.push(value);
+        self[env_id].values_two.insert(name.to_string(), index);
     }
 
     pub fn define(&mut self, env_id: &EnvironmentId, name: &str, value: TypedValue) {
@@ -156,6 +223,49 @@ impl Environment {
             return Ok(());
         } else if let Some(enclosing) = self[env_id].enclosing.clone() {
             self.assign(&enclosing, name, value)?;
+            return Ok(());
+        }
+        // We error when an assignment is attempted on a variable that hasn't been instantiated
+        Err(LangErrorType::new_runtime_error(
+            RuntimeErrorType::UndefinedVariable {
+                reason: format!("tried to assign an undefined variable: '{}'", name),
+            },
+        ))
+    }
+
+    pub fn assign_two(
+        &mut self,
+        env_id: &EnvironmentId,
+        name: &str,
+        value: TypedValue,
+        arena: &mut Arena<TypedValue>,
+        index: ArenaEntryIndex,
+    ) -> Result<(), LangError> {
+        debug!(
+            "{}:{} Assigning '{}' with value '{:?}' at index '{}'",
+            file!(),
+            line!(),
+            name,
+            value,
+            env_id.index
+        );
+        if self[env_id].values_two.contains_key(name) {
+            if let Some(existing_value_index) = self[env_id].values_two.get(name) {
+                let existing_value_entry = &arena[existing_value_index];
+                let existing_value = match existing_value_entry {
+                    ArenaEntry::Emtpy => TypedValue::default(),
+                    _ => TypedValue::default(),
+                };
+                if !TypeChecker::can_convert_implicitly(&existing_value, &value) {
+                    TypeChecker::check_type(&existing_value, &value)?;
+                }
+            }
+            self[env_id]
+                .values_two
+                .insert(name.to_string(), index.clone());
+            return Ok(());
+        } else if let Some(enclosing) = self[env_id].enclosing.clone() {
+            self.assign_two(&enclosing, name, value, arena, index)?;
             return Ok(());
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
