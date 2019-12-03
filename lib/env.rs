@@ -253,11 +253,12 @@ impl Environment {
             if let Some(existing_value_index) = self[env_id].values_two.get(name) {
                 let existing_value_entry = &arena[existing_value_index];
                 let existing_value = match existing_value_entry {
-                    ArenaEntry::Emtpy => TypedValue::default(),
-                    _ => TypedValue::default(),
+                    ArenaEntry::Occupied(value) => value,
+                    // TODO: Handle trying to do an assign on a non-occupied arena entry
+                    _ => panic!(),
                 };
-                if !TypeChecker::can_convert_implicitly(&existing_value, &value) {
-                    TypeChecker::check_type(&existing_value, &value)?;
+                if !TypeChecker::can_convert_implicitly(existing_value, &value) {
+                    TypeChecker::check_type(existing_value, &value)?;
                 }
             }
             self[env_id]
@@ -333,6 +334,16 @@ impl Environment {
         }
         if let Some(ref enclosing) = self[env_id].enclosing {
             return self.is_defined(enclosing, name.clone());
+        }
+        false
+    }
+
+    pub fn is_defined_two(&self, env_id: &EnvironmentId, name: String) -> bool {
+        if self[env_id].values_two.contains_key(&name) {
+            return true;
+        }
+        if let Some(ref enclosing) = self[env_id].enclosing {
+            return self.is_defined_two(enclosing, name.clone());
         }
         false
     }
