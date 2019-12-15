@@ -183,7 +183,7 @@ impl Environment {
             value,
             env_id.index
         );
-        let index = arena.push(value);
+        let index = arena.insert(value);
         self[env_id].values_two.insert(name.to_string(), index);
     }
 
@@ -251,7 +251,7 @@ impl Environment {
         );
         if self[env_id].values_two.contains_key(name) {
             if let Some(existing_value_index) = self[env_id].values_two.get(name) {
-                let existing_value_entry = &arena[existing_value_index];
+                let existing_value_entry = &arena[*existing_value_index];
                 let existing_value = match existing_value_entry {
                     ArenaEntry::Occupied(value) => value,
                     // TODO: Handle trying to do an assign on a non-occupied arena entry
