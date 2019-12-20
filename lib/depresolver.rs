@@ -14,7 +14,7 @@ impl DependencyResolver {
         let mut statements: Vec<Stmt> = Vec::new();
         for stmt in stmts {
             if let Stmt::Import(_) = stmt {
-                let mut imported = self.visit_stmt(stmt)?;
+                let mut imported = self.visit_stmt_mut(stmt)?;
                 statements.append(&mut imported);
             }
         }
@@ -28,12 +28,12 @@ impl Default for DependencyResolver {
     }
 }
 
-impl Visitor<Vec<Stmt>> for DependencyResolver {
-    fn visit_expr(&mut self, expr: &Expr) -> Result<Vec<Stmt>, LangError> {
-        Ok(visit_expr(self, expr)?)
+impl VisitorMut<Vec<Stmt>> for DependencyResolver {
+    fn visit_expr_mut(&mut self, expr: &Expr) -> Result<Vec<Stmt>, LangError> {
+        Ok(visit_expr_mut(self, expr)?)
     }
-    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<Vec<Stmt>, LangError> {
-        Ok(visit_stmt(self, stmt)?)
+    fn visit_stmt_mut(&mut self, stmt: &Stmt) -> Result<Vec<Stmt>, LangError> {
+        Ok(visit_stmt_mut(self, stmt)?)
     }
 
     fn visit_assign(&mut self, _: &AssignExpr) -> Result<Vec<Stmt>, LangError> {

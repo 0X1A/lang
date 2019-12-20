@@ -43,11 +43,11 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_statement(&mut self, stmt: &Stmt) -> Result<(), LangError> {
-        Ok(self.visit_stmt(stmt)?)
+        Ok(self.visit_stmt_mut(stmt)?)
     }
 
     fn resolve_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
-        Ok(self.visit_expr(expr)?)
+        Ok(self.visit_expr_mut(expr)?)
     }
 
     fn begin_scope(&mut self) {
@@ -130,12 +130,12 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl<'a> Visitor<()> for Resolver<'a> {
-    fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
-        Ok(visit_expr(self, expr)?)
+impl<'a> VisitorMut<()> for Resolver<'a> {
+    fn visit_expr_mut(&mut self, expr: &Expr) -> Result<(), LangError> {
+        Ok(visit_expr_mut(self, expr)?)
     }
-    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), LangError> {
-        Ok(visit_stmt(self, stmt)?)
+    fn visit_stmt_mut(&mut self, stmt: &Stmt) -> Result<(), LangError> {
+        Ok(visit_stmt_mut(self, stmt)?)
     }
 
     fn visit_assign(&mut self, assign: &AssignExpr) -> Result<(), LangError> {

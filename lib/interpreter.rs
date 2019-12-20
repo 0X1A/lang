@@ -14,11 +14,15 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 
 #[derive(Debug)]
+pub struct AstVisitor {}
+
+#[derive(Debug)]
 pub struct Interpreter {
     pub env_id: EnvironmentId,
     pub locals: HashMap<String, usize>,
     pub arena: Arena<TypedValue>,
     pub env_entries: Environment,
+    pub ast_visitor: AstVisitor,
     pub stack: Vec<TypedValue>,
 }
 
@@ -29,6 +33,7 @@ impl Default for Interpreter {
             arena: Arena::with_capacity(256),
             env_id: EnvironmentId { index: 0 },
             env_entries: Environment::default(),
+            ast_visitor: AstVisitor {},
             stack: Vec::new(),
         }
     }
@@ -56,6 +61,7 @@ impl Interpreter {
             arena: Arena::with_capacity(256),
             env_id,
             env_entries,
+            ast_visitor: AstVisitor {},
             stack: Vec::new(),
         }
     }
@@ -74,7 +80,7 @@ impl Interpreter {
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Result<(), LangError> {
-        self.visit_expr(expr)?;
+        self.visit_expr_mut(expr)?;
         Ok(())
     }
 
@@ -526,7 +532,7 @@ impl Interpreter {
 
     #[inline(always)]
     fn execute(&mut self, stmt: &Stmt) -> Result<(), LangError> {
-        self.visit_stmt(stmt)?;
+        self.visit_stmt_mut(stmt)?;
         Ok(())
     }
 
@@ -683,12 +689,12 @@ impl Interpreter {
     }
 }
 
-impl Visitor<()> for Interpreter {
-    fn visit_expr(&mut self, expr: &Expr) -> Result<(), LangError> {
-        Ok(visit_expr(self, expr)?)
+impl VisitorMut<()> for Interpreter {
+    fn visit_expr_mut(&mut self, expr: &Expr) -> Result<(), LangError> {
+        Ok(visit_expr_mut(self, expr)?)
     }
-    fn visit_stmt(&mut self, stmt: &Stmt) -> Result<(), LangError> {
-        Ok(visit_stmt(self, stmt)?)
+    fn visit_stmt_mut(&mut self, stmt: &Stmt) -> Result<(), LangError> {
+        Ok(visit_stmt_mut(self, stmt)?)
     }
 
     fn visit_assign(&mut self, assign: &AssignExpr) -> Result<(), LangError> {
@@ -774,7 +780,7 @@ impl Visitor<()> for Interpreter {
         Ok(self.visit_struct_stmt(block)?)
     }
     fn visit_expression(&mut self, block: &ExpressionStmt) -> Result<(), LangError> {
-        Ok(self.visit_expr(&block.expression)?)
+        Ok(self.visit_expr_mut(&block.expression)?)
     }
     fn visit_trait(&mut self, block: &TraitStmt) -> Result<(), LangError> {
         Ok(self.visit_trait_stmt(block)?)
