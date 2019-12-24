@@ -283,6 +283,36 @@ impl Add for Value {
     }
 }
 
+impl<'a> Add for &'a Value {
+    type Output = Value;
+
+    #[inline(always)]
+    fn add(self, other: &'a Value) -> Value {
+        match self {
+            Value::Int64(lhs) => match other {
+                Value::Int64(rhs) => Value::Int64(lhs + rhs),
+                Value::Float64(rhs) => Value::Int64(lhs + rhs.inner as i64),
+                _ => Value::Int64(lhs.clone()),
+            },
+            Value::Int32(lhs) => match other {
+                Value::Int32(rhs) => Value::Int32(lhs + rhs),
+                Value::Float32(rhs) => Value::Int32(lhs + rhs.inner as i32),
+                _ => Value::Int32(lhs.clone()),
+            },
+            Value::Float64(lhs) => match other {
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner + *rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner + rhs.inner)),
+                _ => Value::Float64(lhs.clone()),
+            },
+            Value::String(lhs) => match other {
+                Value::String(rhs) => Value::String(format!("{}{}", lhs, rhs)),
+                _ => Value::String(lhs.clone()),
+            },
+            _ => self.clone(),
+        }
+    }
+}
+
 impl Sub for Value {
     type Output = Value;
 
@@ -300,6 +330,27 @@ impl Sub for Value {
                 _ => Value::Float64(lhs),
             },
             _ => self,
+        }
+    }
+}
+
+impl<'a> Sub for &'a Value {
+    type Output = Value;
+
+    #[inline(always)]
+    fn sub(self, other: &'a Value) -> Value {
+        match self {
+            Value::Int64(lhs) => match other {
+                Value::Int64(rhs) => Value::Int64(lhs - rhs),
+                Value::Float64(rhs) => Value::Int64(lhs - rhs.inner as i64),
+                _ => Value::Int64(lhs.clone()),
+            },
+            Value::Float64(lhs) => match other {
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner - *rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner - rhs.inner)),
+                _ => Value::Float64(lhs.clone()),
+            },
+            _ => self.clone(),
         }
     }
 }
@@ -325,6 +376,27 @@ impl Mul for Value {
     }
 }
 
+impl<'a> Mul for &'a Value {
+    type Output = Value;
+
+    #[inline(always)]
+    fn mul(self, other: &'a Value) -> Value {
+        match self {
+            Value::Int64(lhs) => match other {
+                Value::Int64(rhs) => Value::Int64(lhs * rhs),
+                Value::Float64(rhs) => Value::Int64(lhs * rhs.inner as i64),
+                _ => Value::Int64(lhs.clone()),
+            },
+            Value::Float64(lhs) => match other {
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner * (*rhs as f64))),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner * rhs.inner)),
+                _ => Value::Float64(lhs.clone()),
+            },
+            _ => self.clone(),
+        }
+    }
+}
+
 impl Div for Value {
     type Output = Value;
 
@@ -342,6 +414,27 @@ impl Div for Value {
                 _ => Value::Float64(lhs),
             },
             _ => self,
+        }
+    }
+}
+
+impl<'a> Div for &'a Value {
+    type Output = Value;
+
+    #[inline(always)]
+    fn div(self, other: &'a Value) -> Value {
+        match self {
+            Value::Int64(lhs) => match other {
+                Value::Int64(rhs) => Value::Int64(lhs / rhs),
+                Value::Float64(rhs) => Value::Int64(lhs / rhs.inner as i64),
+                _ => Value::Int64(lhs.clone()),
+            },
+            Value::Float64(lhs) => match other {
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner / *rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner / rhs.inner)),
+                _ => Value::Float64(lhs.clone()),
+            },
+            _ => self.clone(),
         }
     }
 }
@@ -699,7 +792,7 @@ impl CallableTrait for StructValue {
         _: &mut Arena<TypedValue>,
         _: &mut Environment,
         _: &Interpreter,
-        _: Vec<TypedValue>,
+        _: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError> {
         Ok(TypedValue::new(
             Value::Struct(Box::new(self.clone())),
@@ -963,7 +1056,7 @@ impl CallableTrait for Callable {
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
         interpreter: &Interpreter,
-        args: Vec<TypedValue>,
+        args: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError> {
         let mut env_id = env.entry_from(&self.closure);
 
@@ -979,7 +1072,15 @@ impl CallableTrait for Callable {
                 },
             ));
         }
-        for it in self.function.params.iter().zip(args.iter()) {
+        let mut evaluated_args = Vec::new();
+        for arg in args {
+            let arg_value_entry = &arena[arg];
+            match arg_value_entry {
+                ArenaEntry::Occupied(v) => evaluated_args.push(v.clone()),
+                ArenaEntry::Emtpy => panic!(),
+            };
+        }
+        for it in self.function.params.iter().zip(evaluated_args.iter()) {
             if it.0.type_annotation != it.1.value_type {
                 return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidFunctionArgumentType {
@@ -995,7 +1096,7 @@ impl CallableTrait for Callable {
         }
         let return_value = TypedValue::default();
         let value_from_block =
-            interpreter.execute_block_nm(&self.function.body, &mut env_id, arena, env);
+            interpreter.execute_block(&self.function.body, &mut env_id, arena, env);
         if let Err(err) = value_from_block {
             if let LangErrorType::ControlFlow { .. } = err.context.get_context() {
                 // return_value = interpreter.pop()?;

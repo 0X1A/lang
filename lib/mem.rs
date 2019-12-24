@@ -1,3 +1,6 @@
+use crate::error::*;
+use crate::value::*;
+use std::convert::TryInto;
 use std::ops::{Index, IndexMut};
 
 pub type ArenaEntryIndex = usize;
@@ -6,6 +9,54 @@ pub type ArenaEntryIndex = usize;
 pub enum ArenaEntry<T> {
     Emtpy,
     Occupied(T),
+}
+
+impl TryInto<TypedValue> for &ArenaEntry<TypedValue> {
+    type Error = LangError;
+    fn try_into(self) -> Result<TypedValue, Self::Error> {
+        match self {
+            ArenaEntry::Occupied(value) => Ok(value.clone()),
+            ArenaEntry::Emtpy => Err(LangErrorType::new_iie_error(
+                "tried to index an empty arena entry".into(),
+            )),
+        }
+    }
+}
+
+impl TryInto<TypedValue> for ArenaEntry<TypedValue> {
+    type Error = LangError;
+    fn try_into(self) -> Result<TypedValue, Self::Error> {
+        match self {
+            ArenaEntry::Occupied(value) => Ok(value),
+            ArenaEntry::Emtpy => Err(LangErrorType::new_iie_error(
+                "tried to index an empty arena entry".into(),
+            )),
+        }
+    }
+}
+
+impl<'a> TryInto<&'a TypedValue> for &'a ArenaEntry<TypedValue> {
+    type Error = LangError;
+    fn try_into(self) -> Result<&'a TypedValue, Self::Error> {
+        match self {
+            ArenaEntry::Occupied(ref value) => Ok(value),
+            ArenaEntry::Emtpy => Err(LangErrorType::new_iie_error(
+                "tried to index an empty arena entry".into(),
+            )),
+        }
+    }
+}
+
+impl<'a> TryInto<&'a mut TypedValue> for &'a mut ArenaEntry<TypedValue> {
+    type Error = LangError;
+    fn try_into(self) -> Result<&'a mut TypedValue, Self::Error> {
+        match self {
+            ArenaEntry::Occupied(ref mut value) => Ok(value),
+            ArenaEntry::Emtpy => Err(LangErrorType::new_iie_error(
+                "tried to index an empty arena entry".into(),
+            )),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -35,6 +86,7 @@ impl<T> Arena<T> {
         self.offset += 1;
         self.entries
             .insert(arena_index, ArenaEntry::Occupied(element));
+        self.len += 1;
         arena_index
     }
 

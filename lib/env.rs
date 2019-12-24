@@ -5,6 +5,7 @@ use crate::lang::*;
 use crate::mem::*;
 use crate::type_checker::TypeChecker;
 use crate::value::*;
+use std::convert::*;
 use std::{
     collections::HashMap,
     fmt::{self, Debug},
@@ -268,11 +269,7 @@ impl Environment {
         if self[env_id].values_two.contains_key(name) {
             if let Some(existing_value_index) = self[env_id].values_two.get(name) {
                 let existing_value_entry = &mut arena[*existing_value_index];
-                let existing_value = match existing_value_entry {
-                    ArenaEntry::Occupied(value) => value,
-                    // TODO: Handle trying to do an assign on a non-occupied arena entry
-                    _ => panic!(),
-                };
+                let existing_value: &mut TypedValue = existing_value_entry.try_into()?;
                 if !TypeChecker::can_convert_implicitly(existing_value, &value) {
                     TypeChecker::check_type(existing_value, &value)?;
                 }

@@ -17,7 +17,7 @@ pub trait CallableTrait {
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
         interpreter: &Interpreter,
-        args: Vec<TypedValue>,
+        args: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError>;
     fn bind(
         &self,
