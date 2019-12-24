@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 pub type ArenaEntryIndex = usize;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ArenaEntry<T> {
     Emtpy,
     Occupied(T),
@@ -36,6 +36,10 @@ impl<T> Arena<T> {
         self.entries
             .insert(arena_index, ArenaEntry::Occupied(element));
         arena_index
+    }
+
+    pub fn get(&mut self, index: ArenaEntryIndex) -> ArenaEntry<T> {
+        self.entries.remove(index)
     }
 
     pub fn remove(&mut self, index: ArenaEntryIndex) {

@@ -2,6 +2,7 @@ use crate::ast::stmt::*;
 use crate::env::*;
 use crate::error::*;
 use crate::interpreter::*;
+use crate::mem::*;
 use crate::token::{GetTypeAnnotation, TokenType, TypeAnnotation};
 use crate::value_traits::callable::CallableTrait;
 use crate::value_traits::r#struct::StructTrait;
@@ -679,12 +680,27 @@ impl CallableTrait for StructValue {
         unimplemented!()
     }
 
+    fn bind_two(
+        &self,
+        _: &dyn StructInstanceTrait,
+        _: &mut Environment,
+        _: &mut Arena<TypedValue>,
+    ) -> Result<(), LangError> {
+        unimplemented!()
+    }
+
     fn get_params(&self) -> Vec<VariableData> {
         vec![]
     }
 
     // TODO: This should take constructor args
-    fn call(&self, _: &mut Interpreter, _: Vec<TypedValue>) -> Result<TypedValue, LangError> {
+    fn call_two(
+        &self,
+        _: &mut Arena<TypedValue>,
+        _: &mut Environment,
+        _: &Interpreter,
+        _: Vec<TypedValue>,
+    ) -> Result<TypedValue, LangError> {
         Ok(TypedValue::new(
             Value::Struct(Box::new(self.clone())),
             TypeAnnotation::User(CallableTrait::get_name(self)),
@@ -730,6 +746,28 @@ impl StructTrait for StructValue {
         )
     }
 
+    fn get_field_two(
+        &self,
+        name: &str,
+        env: &mut Environment,
+        arena: &mut Arena<TypedValue>,
+        _: &Interpreter,
+    ) -> Result<TypedValue, LangError> {
+        self.fields.get(name).map_or(
+            {
+                if let Ok(method) = self.get_method_two(name, env, arena) {
+                    return Ok(method);
+                }
+                Err(LangErrorType::new_runtime_error(
+                    RuntimeErrorType::UndefinedVariable {
+                        reason: format!("get_field tried to get an undefined variable: '{}'", name),
+                    },
+                ))
+            },
+            |value| Ok(value.clone()),
+        )
+    }
+
     fn define_method(&mut self, name: &str, value: TypedValue) -> Result<(), LangError> {
         self.methods.insert(name.into(), value);
         Ok(())
@@ -751,6 +789,29 @@ impl StructTrait for StructValue {
                 {
                     let callable: &dyn CallableTrait = (&callable_value.value).try_into()?;
                     callable.bind(self, interpreter)?;
+                }
+                Ok(callable_value)
+            },
+        )
+    }
+
+    fn get_method_two(
+        &self,
+        name: &str,
+        env: &mut Environment,
+        arena: &mut Arena<TypedValue>,
+    ) -> Result<TypedValue, LangError> {
+        self.methods.get(name).map_or(
+            Err(LangErrorType::new_runtime_error(
+                RuntimeErrorType::UndefinedVariable {
+                    reason: format!("tried to get an undefined method: '{}'", name),
+                },
+            )),
+            |value| {
+                let callable_value = value.clone();
+                {
+                    let callable: &dyn CallableTrait = (&callable_value.value).try_into()?;
+                    callable.bind_two(self, env, arena)?;
                 }
                 Ok(callable_value)
             },
@@ -867,6 +928,23 @@ impl CallableTrait for Callable {
         Ok(())
     }
 
+    fn bind_two(
+        &self,
+        struct_instance: &dyn StructInstanceTrait,
+        env: &mut Environment,
+        arena: &mut Arena<TypedValue>,
+    ) -> Result<(), LangError> {
+        let value = TypedValue::new(
+            Value::SelfIndex(SelfIndex {
+                name: struct_instance.get_instance_name(),
+                env_id: self.closure.clone(),
+            }),
+            TypeAnnotation::SelfIndex,
+        );
+        env.define_two(&self.closure, arena, "self", value);
+        Ok(())
+    }
+
     fn get_params(&self) -> Vec<VariableData> {
         self.function.params.clone()
     }
@@ -880,12 +958,14 @@ impl CallableTrait for Callable {
         }
     }
 
-    fn call(
+    fn call_two(
         &self,
-        interpreter: &mut Interpreter,
+        arena: &mut Arena<TypedValue>,
+        env: &mut Environment,
+        interpreter: &Interpreter,
         args: Vec<TypedValue>,
     ) -> Result<TypedValue, LangError> {
-        let env_id = interpreter.env_entries.entry_from(&self.closure);
+        let mut env_id = env.entry_from(&self.closure);
 
         if args.len() != self.arity() {
             return Err(LangErrorType::new_runtime_error(
@@ -911,15 +991,14 @@ impl CallableTrait for Callable {
                     },
                 ));
             }
-            interpreter
-                .env_entries
-                .define(&env_id, &it.0.identifier, it.1.clone());
+            env.define_two(&env_id, arena, &it.0.identifier, it.1.clone());
         }
-        let mut return_value = TypedValue::default();
-        let value_from_block = interpreter.execute_block(&self.function.body, env_id);
+        let return_value = TypedValue::default();
+        let value_from_block =
+            interpreter.execute_block_nm(&self.function.body, &mut env_id, arena, env);
         if let Err(err) = value_from_block {
             if let LangErrorType::ControlFlow { .. } = err.context.get_context() {
-                return_value = interpreter.pop()?;
+                // return_value = interpreter.pop()?;
             }
         }
         debug!("return from execute_block {:?}", return_value);

@@ -26,6 +26,7 @@ pub struct EnvironmentEntry {
 }
 
 pub struct Environment {
+    pub root_entry_id: EnvironmentId,
     pub entries: Vec<EnvironmentEntry>,
 }
 
@@ -52,6 +53,7 @@ impl Debug for Environment {
 impl Default for Environment {
     fn default() -> Environment {
         Environment {
+            root_entry_id: EnvironmentId { index: 0 },
             entries: Vec::new(),
         }
     }
@@ -72,6 +74,21 @@ impl IndexMut<&EnvironmentId> for Environment {
 }
 
 impl Environment {
+    pub fn new() -> Environment {
+        let mut env = Environment {
+            root_entry_id: EnvironmentId { index: 0 as usize },
+            entries: Vec::new(),
+        };
+        env.root_entry_id = EnvironmentId {
+            index: env.entries.len(),
+        };
+        env.entries.push(EnvironmentEntry {
+            values_two: HashMap::new(),
+            values: HashMap::new(),
+            enclosing: None,
+        });
+        env
+    }
     pub fn new_entry(&mut self) -> EnvironmentId {
         let env_id = self.entries.len();
         self.entries.push(EnvironmentEntry {
@@ -239,7 +256,6 @@ impl Environment {
         name: &str,
         value: TypedValue,
         arena: &mut Arena<TypedValue>,
-        index: ArenaEntryIndex,
     ) -> Result<(), LangError> {
         debug!(
             "{}:{} Assigning '{}' with value '{:?}' at index '{}'",
@@ -251,7 +267,7 @@ impl Environment {
         );
         if self[env_id].values_two.contains_key(name) {
             if let Some(existing_value_index) = self[env_id].values_two.get(name) {
-                let existing_value_entry = &arena[*existing_value_index];
+                let existing_value_entry = &mut arena[*existing_value_index];
                 let existing_value = match existing_value_entry {
                     ArenaEntry::Occupied(value) => value,
                     // TODO: Handle trying to do an assign on a non-occupied arena entry
@@ -260,13 +276,11 @@ impl Environment {
                 if !TypeChecker::can_convert_implicitly(existing_value, &value) {
                     TypeChecker::check_type(existing_value, &value)?;
                 }
+                *existing_value = value;
             }
-            self[env_id]
-                .values_two
-                .insert(name.to_string(), index.clone());
             return Ok(());
         } else if let Some(enclosing) = self[env_id].enclosing.clone() {
-            self.assign_two(&enclosing, name, value, arena, index)?;
+            self.assign_two(&enclosing, name, value, arena)?;
             return Ok(());
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
@@ -382,6 +396,29 @@ impl Environment {
         Closure: FnOnce(&mut TypedValue) -> Result<(), LangError>,
     {
         if let Some(value) = self[env_id].values.get_mut(name) {
+            closure(value)?;
+        } else {
+            debug!("{}:{} Didn't find the thing :O", file!(), line!());
+        }
+        Ok(())
+    }
+
+    pub fn update_value_two<Closure>(
+        &mut self,
+        env_id: &EnvironmentId,
+        name: &str,
+        arena: &mut Arena<TypedValue>,
+        closure: Closure,
+    ) -> Result<(), LangError>
+    where
+        Closure: FnOnce(&mut TypedValue) -> Result<(), LangError>,
+    {
+        if let Some(value) = self[env_id].values_two.get(name) {
+            let value_entry = &mut arena[*value];
+            let value = match value_entry {
+                ArenaEntry::Occupied(v) => v,
+                ArenaEntry::Emtpy => panic!(),
+            };
             closure(value)?;
         } else {
             debug!("{}:{} Didn't find the thing :O", file!(), line!());

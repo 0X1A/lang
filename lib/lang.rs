@@ -68,7 +68,7 @@ impl<'a> Lang<'a> {
                 let mut import_statements = dep_resolver.resolve(&s)?;
                 import_statements.append(&mut s);
                 resolver.resolve(&import_statements)?;
-                resolver.interpreter.interpret(import_statements)?;
+                resolver.interpreter.interpret_two(import_statements)?;
             }
             Err(e) => {
                 return Err(e);
@@ -86,7 +86,7 @@ impl<'a> Lang<'a> {
         let statements = parser.parse()?;
         dep_resolver.resolve(&statements)?;
         resolver.resolve(&statements)?;
-        resolver.interpreter.interpret(statements)?;
+        resolver.interpreter.interpret_two(statements)?;
         Ok(())
     }
 
