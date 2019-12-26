@@ -999,6 +999,30 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
             subtype: ControlFlow::Break,
         }))
     }
+
+    fn visit_assert(
+        &self,
+        assert_stmt: &AssertStmt,
+        arena: &mut Arena<TypedValue>,
+        env: &mut Environment,
+    ) -> Result<Option<ArenaEntryIndex>, LangError> {
+        if let Some(assert_stmt_index) = self.evaluate(&assert_stmt.condition, arena, env)? {
+            let arena_entry = &arena[assert_stmt_index];
+            let eval = match arena_entry {
+                ArenaEntry::Occupied(v) => v,
+                ArenaEntry::Emtpy => panic!(),
+            };
+            if self.is_truthy(&eval.value) {
+                return Ok(Some(assert_stmt_index));
+            } else {
+                println!("assert failed");
+                return Err(LangError::from(LangErrorType::ControlFlow {
+                    subtype: ControlFlow::Assert,
+                }));
+            }
+        }
+        Ok(None)
+    }
     fn visit_enum(
         &self,
         _: &EnumStmt,

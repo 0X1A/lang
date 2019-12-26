@@ -86,6 +86,9 @@ impl VisitorMut<Vec<Stmt>> for DependencyResolver {
     fn visit_break(&mut self) -> Result<Vec<Stmt>, LangError> {
         unreachable!()
     }
+    fn visit_assert(&mut self, _: &AssertStmt) -> Result<Vec<Stmt>, LangError> {
+        unreachable!()
+    }
     fn visit_enum(&mut self, _: &EnumStmt) -> Result<Vec<Stmt>, LangError> {
         unreachable!()
     }

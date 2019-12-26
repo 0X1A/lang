@@ -623,6 +623,9 @@ impl<'a> Parser<'a> {
         if self.matches(&[TokenType::Break]) {
             return Ok(self.break_statement()?);
         }
+        if self.matches(&[TokenType::Assert]) {
+            return Ok(self.assert_statement()?);
+        }
         if self.matches(&[TokenType::For]) {
             return Ok(self.for_statement()?);
         }
@@ -652,6 +655,18 @@ impl<'a> Parser<'a> {
     fn break_statement(&mut self) -> Result<Stmt, LangError> {
         self.pop_expect(&TokenType::SemiColon, "expected ';' after 'break'")?;
         Ok(Stmt::Break)
+    }
+
+    fn assert_statement(&mut self) -> Result<Stmt, LangError> {
+        self.pop_expect(&TokenType::LeftParen, "Expect '(' after an 'assert'.")?;
+        let condition = self.expression()?;
+        self.pop_expect(
+            &TokenType::RightParen,
+            "Expect ')' after 'assert' condition.",
+        )?;
+        self.pop_expect(&TokenType::SemiColon, "expected ';' after 'break'")?;
+
+        Ok(Stmt::Assert(Box::new(AssertStmt { condition })))
     }
 
     fn block(&mut self) -> Result<Vec<Stmt>, LangError> {

@@ -153,6 +153,7 @@ impl Eq for TypeAnnotation {}
 /// All token types we currently extract from source text
 pub enum TokenType {
     Break,
+    Assert,
     LeftParen,
     RightParen,
     LeftBrace,
@@ -222,6 +223,7 @@ impl Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self {
             TokenType::Break => write!(f, "break"),
+            TokenType::Assert => write!(f, "assert"),
             TokenType::Enum => write!(f, "enum"),
             TokenType::LeftParen => write!(f, "("),
             TokenType::RightParen => write!(f, ")"),

@@ -60,6 +60,8 @@ pub enum RuntimeErrorType {
 pub enum ControlFlow {
     #[fail(display = "Break")]
     Break,
+    #[fail(display = "Assert")]
+    Assert,
 }
 
 impl Debug for RuntimeErrorType {

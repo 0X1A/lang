@@ -56,6 +56,7 @@ lazy_static! {
         keywords.insert("struct", TokenType::Struct);
         keywords.insert("if", TokenType::If);
         keywords.insert("else", TokenType::Else);
+        keywords.insert("assert", TokenType::Assert);
         keywords.insert("break", TokenType::Break);
         keywords.insert("enum", TokenType::Enum);
         keywords.insert("for", TokenType::For);
@@ -103,6 +104,7 @@ gen_lex_token!(lex_struct, "struct", TokenType::Struct);
 gen_lex_token!(lex_if, "if", TokenType::If);
 gen_lex_token!(lex_else, "else", TokenType::Else);
 gen_lex_token!(lex_break, "break", TokenType::Break);
+gen_lex_token!(lex_assert, "assert", TokenType::Assert);
 gen_lex_token!(lex_enum, "enum", TokenType::Enum);
 gen_lex_token!(lex_for, "for", TokenType::For);
 gen_lex_token!(lex_while, "while", TokenType::While);
@@ -185,9 +187,9 @@ fn lex_program<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Vec<Token>, L
 
 fn lex_keyword<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, token) = alt((
-        lex_let, lex_struct, lex_if, lex_else, lex_break, lex_enum, lex_fn, lex_for, lex_while,
-        lex_or, lex_impl, lex_trait, lex_true, lex_false, lex_self, lex_print, lex_return, lex_and,
-        lex_import,
+        lex_let, lex_struct, lex_if, lex_else, lex_break, lex_assert, lex_enum, lex_fn, lex_for,
+        lex_while, lex_or, lex_impl, lex_trait, lex_true, lex_false, lex_self, lex_print,
+        lex_return, lex_and, lex_import,
     ))(input)?;
     Ok((input, token))
 }
@@ -489,6 +491,13 @@ mod scanner_two_tests {
     );
     gen_lex_token_test!(test_lex_if, lex_keyword, "if", TokenType::If, true);
     gen_lex_token_test!(test_lex_else, lex_keyword, "else", TokenType::Else, true);
+    gen_lex_token_test!(
+        test_lex_assert,
+        lex_keyword,
+        "assert",
+        TokenType::Assert,
+        true
+    );
     gen_lex_token_test!(test_lex_break, lex_keyword, "break", TokenType::Break, true);
     gen_lex_token_test!(test_lex_enum, lex_keyword, "enum", TokenType::Enum, true);
     gen_lex_token_test!(test_lex_for, lex_keyword, "for", TokenType::For, true);

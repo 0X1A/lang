@@ -6,6 +6,7 @@ use std::convert::TryInto;
 #[derive(Clone, Debug)]
 pub enum Stmt {
     Break,
+    Assert(Box<AssertStmt>),
     Enum(Box<EnumStmt>),
     Impl(Box<ImplStmt>),
     ImplTrait(Box<ImplTraitStmt>),
@@ -98,6 +99,11 @@ pub struct FunctionStmt {
     pub return_type: TokenType,
     pub params: Vec<VariableData>,
     pub body: Vec<Stmt>,
+}
+
+#[derive(Clone, Debug)]
+pub struct AssertStmt {
+    pub condition: Expr,
 }
 
 #[derive(Clone, Debug)]

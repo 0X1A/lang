@@ -35,6 +35,7 @@ pub trait VisitorMut<T>: Sized {
     fn visit_self_ident(&mut self, self_ident: &SelfIdentExpr) -> Result<T, LangError>;
 
     fn visit_break(&mut self) -> Result<T, LangError>;
+    fn visit_assert(&mut self, assert_stmt: &AssertStmt) -> Result<T, LangError>;
     fn visit_enum(&mut self, enum_stmt: &EnumStmt) -> Result<T, LangError>;
     fn visit_impl(&mut self, impl_stmt: &ImplStmt) -> Result<T, LangError>;
     fn visit_impl_trait(&mut self, impl_trait: &ImplTraitStmt) -> Result<T, LangError>;
@@ -75,6 +76,7 @@ pub fn visit_expr_mut<T, V: VisitorMut<T>>(visitor: &mut V, expr: &Expr) -> Resu
 pub fn visit_stmt_mut<T, V: VisitorMut<T>>(visitor: &mut V, stmt: &Stmt) -> Result<T, LangError> {
     match stmt {
         Stmt::Break => Ok(visitor.visit_break()?),
+        Stmt::Assert(ref assert_stmt) => Ok(visitor.visit_assert(&*assert_stmt)?),
         Stmt::Enum(ref enum_stmt) => Ok(visitor.visit_enum(&*enum_stmt)?),
         Stmt::Impl(ref enum_stmt) => Ok(visitor.visit_impl(&*enum_stmt)?),
         Stmt::ImplTrait(ref enum_stmt) => Ok(visitor.visit_impl_trait(&*enum_stmt)?),
@@ -205,6 +207,12 @@ pub trait Visitor<T>: Sized {
     ) -> Result<T, LangError>;
 
     fn visit_break(&self) -> Result<T, LangError>;
+    fn visit_assert(
+        &self,
+        condition: &AssertStmt,
+        arena: &mut Arena<TypedValue>,
+        env: &mut Environment,
+    ) -> Result<T, LangError>;
     fn visit_enum(
         &self,
         enum_stmt: &EnumStmt,
@@ -348,6 +356,7 @@ pub fn visit_stmt<T, V: Visitor<T>>(
 ) -> Result<T, LangError> {
     match stmt {
         Stmt::Break => Ok(visitor.visit_break()?),
+        Stmt::Assert(ref assert_stmt) => Ok(visitor.visit_assert(&*assert_stmt, arena, env)?),
         Stmt::Enum(ref enum_stmt) => Ok(visitor.visit_enum(&*enum_stmt, &mut *arena, &mut *env)?),
         Stmt::Impl(ref enum_stmt) => Ok(visitor.visit_impl(&*enum_stmt, &mut *arena, &mut *env)?),
         Stmt::ImplTrait(ref enum_stmt) => {

@@ -212,6 +212,9 @@ impl<'a> VisitorMut<()> for Resolver<'a> {
     fn visit_break(&mut self) -> Result<(), LangError> {
         Ok(())
     }
+    fn visit_assert(&mut self, _: &AssertStmt) -> Result<(), LangError> {
+        Ok(())
+    }
     fn visit_enum(&mut self, _: &EnumStmt) -> Result<(), LangError> {
         unimplemented!()
     }
