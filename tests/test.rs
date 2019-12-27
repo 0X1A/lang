@@ -16,7 +16,14 @@ mod tests {
     }
     #[test]
     fn array_i64_variable_declaration_and_assignment() {
-        let mut lang = Lang::new(Some("let i: Array<i64> = [0, 1, 2];"));
+        let mut lang = Lang::new(Some(
+            "
+        let i: Array<i64> = [0, 1, 2];
+        assert(i[0] == 0);
+        assert(i[1] == 1);
+        assert(i[2] == 2);
+        ",
+        ));
         let result = lang.run();
         if let Err(ref error) = result {
             println!("{}", error);
@@ -35,8 +42,13 @@ mod tests {
     #[test]
     fn array_i64_variable_re_assignment() {
         let mut lang = Lang::new(Some(
-            "let i: Array<i64> = [];
-            i = [0, 1, 2];",
+            "
+        let i: Array<i64> = [];
+        i = [0, 1, 2];
+        assert(i[0] == 0);
+        assert(i[1] == 1);
+        assert(i[2] == 2);
+        ",
         ));
         let result = lang.run();
         if let Err(ref error) = result {
@@ -48,7 +60,11 @@ mod tests {
     fn array_i64_variable_re_assignment_failure() {
         let mut lang = Lang::new(Some(
             "let i: Array<i64> = [];
-            i = [0.00, 1.00, 2.00];",
+            i = [0.00, 1.00, 2.00];
+        assert(i[0] == 0.00);
+        assert(i[1] == 1.00);
+        assert(i[2] == 2.00);
+            ",
         ));
         let result = lang.run();
         if let Err(ref error) = result {
@@ -158,6 +174,9 @@ mod tests {
         instance.field0 = 0;
         instance.field1 = 1.00;
         instance.field2 = false;
+        assert(instance.field0 == 0);
+        assert(instance.field1 == 1.00);
+        assert(instance.field2 == false);
         ",
         ));
         let result = lang.run();
@@ -221,6 +240,7 @@ mod tests {
                 b = false;
             }
         }
+        assert(b == false);
         ",
         ));
         let result = lang.run();
@@ -251,7 +271,9 @@ mod tests {
     fn f64_variable_re_assignment() {
         let mut lang = Lang::new(Some(
             "let i: f64 = 0.00;
-            i = 100.00;",
+            assert(i == 0.00);
+            i = 100.00;
+            assert(i == 100.00);",
         ));
         let result = lang.run();
         if let Err(ref error) = result {
@@ -282,7 +304,10 @@ mod tests {
     }
     #[test]
     fn i64_variable_declaration_and_assignment() {
-        let mut lang = Lang::new(Some("let i: i64 = 0;"));
+        let mut lang = Lang::new(Some(
+            "let i: i64 = 0;
+        assert(i == 0);",
+        ));
         let result = lang.run();
         if let Err(ref error) = result {
             println!("{}", error);
@@ -293,7 +318,9 @@ mod tests {
     fn i64_variable_re_assignment() {
         let mut lang = Lang::new(Some(
             "let i: i64 = 0;
-            i = 100;",
+            assert(i == 0);
+            i = 100;
+            assert(i == 100);",
         ));
         let result = lang.run();
         if let Err(ref error) = result {

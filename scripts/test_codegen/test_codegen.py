@@ -9,6 +9,7 @@ from pathlib import Path
 from sortedcontainers import SortedDict
 from slugify import slugify
 
+""" TODO: Organize this differently, as benchmarks are running these asserts! We don't have anything like run flags to omit asserts """
 
 class LangTestSources(object):
     """
@@ -19,9 +20,12 @@ class LangTestSources(object):
     VARIABLE_DECLARATIONS = SortedDict({
         # Primitives
         "i64 Variable declaration": """let i: i64;""",
-        "i64 Variable declaration and assignment": """let i: i64 = 0;""",
+        "i64 Variable declaration and assignment": """let i: i64 = 0;
+        assert(i == 0);""",
         "i64 Variable re-assignment": """let i: i64 = 0;
-            i = 100;""",
+            assert(i == 0);
+            i = 100;
+            assert(i == 100);""",
         "i64 Variable re-assignment failure":
         """let i: i64 = 0;
         i = 100.00;""",
@@ -29,7 +33,9 @@ class LangTestSources(object):
         "f64 Variable declaration": """let i: f64;""",
         "f64 Variable declaration and assignment": """let i: f64 = 0.00;""",
         "f64 Variable re-assignment": """let i: f64 = 0.00;
-            i = 100.00;""",
+            assert(i == 0.00);
+            i = 100.00;
+            assert(i == 100.00);""",
         "f64 Variable re-assignment failure":
         """let i: f64 = 0;
         i = 100;""",
@@ -37,11 +43,25 @@ class LangTestSources(object):
         # Arrays
         "Array<i64> Variable declaration": """let i: Array<i64>;""",
         "Array<i64> Variable declaration empty": """let i: Array<i64> = [];""",
-        "Array<i64> Variable declaration and assignment": """let i: Array<i64> = [0, 1, 2];""",
-        "Array<i64> Variable re-assignment": """let i: Array<i64> = [];
-            i = [0, 1, 2];""",
+        "Array<i64> Variable declaration and assignment": """
+        let i: Array<i64> = [0, 1, 2];
+        assert(i[0] == 0);
+        assert(i[1] == 1);
+        assert(i[2] == 2);
+        """,
+        "Array<i64> Variable re-assignment": """
+        let i: Array<i64> = [];
+        i = [0, 1, 2];
+        assert(i[0] == 0);
+        assert(i[1] == 1);
+        assert(i[2] == 2);
+        """,
         "Array<i64> Variable re-assignment failure": """let i: Array<i64> = [];
-            i = [0.00, 1.00, 2.00];""",
+            i = [0.00, 1.00, 2.00];
+        assert(i[0] == 0.00);
+        assert(i[1] == 1.00);
+        assert(i[2] == 2.00);
+            """,
 
         # Struct
         "Struct declaration": """struct TestStruct {}""",
@@ -73,6 +93,9 @@ class LangTestSources(object):
         instance.field0 = 0;
         instance.field1 = 1.00;
         instance.field2 = false;
+        assert(instance.field0 == 0);
+        assert(instance.field1 == 1.00);
+        assert(instance.field2 == false);
         """,
         "Struct with field access failure": """
         struct TestStruct {}
@@ -121,6 +144,7 @@ class LangTestSources(object):
                 b = false;
             }
         }
+        assert(b == false);
         """
     })
 

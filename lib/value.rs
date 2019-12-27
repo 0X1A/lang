@@ -707,6 +707,7 @@ impl TypedValue {
     pub fn as_array_index(&self) -> Result<usize, LangError> {
         match self.value {
             Value::Int64(i) => Ok(i as usize),
+            Value::Int32(i) => Ok(i as usize),
             Value::Float64(f) => Ok(f.inner as usize),
             Value::Boolean(b) => Ok(b as usize),
             _ => Err(LangErrorType::new_runtime_error(
@@ -1094,13 +1095,13 @@ impl CallableTrait for Callable {
             }
             env.define_two(&env_id, arena, &it.0.identifier, it.1.clone());
         }
-        let return_value = TypedValue::default();
-        let value_from_block =
-            interpreter.execute_block(&self.function.body, &mut env_id, arena, env);
-        if let Err(err) = value_from_block {
-            if let LangErrorType::ControlFlow { .. } = err.context.get_context() {
-                // return_value = interpreter.pop()?;
-            }
+        let mut return_value = TypedValue::default();
+        if let Some(value_from_block) =
+            interpreter.execute_block(&self.function.body, &mut env_id, arena, env)?
+        {
+            let entry = &arena[value_from_block];
+            let value: TypedValue = entry.try_into()?;
+            return_value = value;
         }
         debug!("return from execute_block {:?}", return_value);
         if let Some(function_return_type) = self.get_return_type() {

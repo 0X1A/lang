@@ -737,27 +737,30 @@ impl Interpreter {
         env_id: &mut EnvironmentId,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
-    ) -> Result<(), LangError> {
+    ) -> Result<Option<ArenaEntryIndex>, LangError> {
         let previous = env_id.clone();
         for stmt in stmts {
             match stmt {
                 Stmt::Return(_) => {
                     // Set value and break early on a return
-                    self.execute(&stmt, arena, env)?;
-                    env.remove_entry(&env_id);
-                    *env_id = previous;
-                    return Err(LangError::from(LangErrorType::ControlFlow {
-                        subtype: ControlFlow::Break,
-                    }));
+                    if let Some(index) = self.execute(&stmt, arena, env)? {
+                        env.remove_entry(&env_id);
+                        *env_id = previous;
+                        return Ok(Some(index));
+                    }
                 }
                 _ => {
-                    self.execute(&stmt, arena, env)?;
+                    if let Some(index) = self.execute(&stmt, arena, env)? {
+                        env.remove_entry(&env_id);
+                        *env_id = previous;
+                        return Ok(Some(index));
+                    }
                 }
             }
         }
         env.remove_entry(&env_id);
         *env_id = previous;
-        Ok(())
+        Ok(None)
     }
 
     fn check_impl_trait_return_type(
