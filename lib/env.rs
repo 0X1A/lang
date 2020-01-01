@@ -12,16 +12,13 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-#[derive(Clone, Debug)]
-pub struct EnvironmentId {
-    pub index: usize,
-}
+pub type EnvironmentId = usize;
 
 // TODO: Generationl indices, memory management. Memory management will likely come along with
 // a VM
 #[derive(Clone, Debug)]
 pub struct EnvironmentEntry {
-    pub values_two: HashMap<String, ArenaEntryIndex>,
+    pub values: HashMap<String, ArenaEntryIndex>,
     pub enclosing: Option<EnvironmentId>,
 }
 
@@ -38,7 +35,7 @@ impl Debug for Environment {
                 f,
                 "{}",
                 entry
-                    .values_two
+                    .values
                     .iter()
                     .map(|ref kvp| format!("{} => {}", kvp.0, kvp.1))
                     .collect::<Vec<String>>()
@@ -53,37 +50,35 @@ impl Debug for Environment {
 impl Default for Environment {
     fn default() -> Environment {
         Environment {
-            root_entry_id: EnvironmentId { index: 0 },
+            root_entry_id: 0,
             entries: Vec::new(),
         }
     }
 }
 
-impl Index<&EnvironmentId> for Environment {
+impl Index<EnvironmentId> for Environment {
     type Output = EnvironmentEntry;
 
-    fn index(&self, env_id: &EnvironmentId) -> &Self::Output {
-        &self.entries[env_id.index]
+    fn index(&self, env_id: EnvironmentId) -> &Self::Output {
+        &self.entries[env_id]
     }
 }
 
-impl IndexMut<&EnvironmentId> for Environment {
-    fn index_mut<'a>(&'a mut self, env_id: &EnvironmentId) -> &'a mut EnvironmentEntry {
-        &mut self.entries[env_id.index]
+impl IndexMut<EnvironmentId> for Environment {
+    fn index_mut(&mut self, env_id: EnvironmentId) -> &mut EnvironmentEntry {
+        &mut self.entries[env_id]
     }
 }
 
 impl Environment {
     pub fn new() -> Environment {
         let mut env = Environment {
-            root_entry_id: EnvironmentId { index: 0 as usize },
+            root_entry_id: 0,
             entries: Vec::new(),
         };
-        env.root_entry_id = EnvironmentId {
-            index: env.entries.len(),
-        };
+        env.root_entry_id = env.entries.len();
         env.entries.push(EnvironmentEntry {
-            values_two: HashMap::new(),
+            values: HashMap::new(),
             enclosing: None,
         });
         env
@@ -91,13 +86,13 @@ impl Environment {
     pub fn new_entry(&mut self) -> EnvironmentId {
         let env_id = self.entries.len();
         self.entries.push(EnvironmentEntry {
-            values_two: HashMap::new(),
+            values: HashMap::new(),
             enclosing: None,
         });
-        EnvironmentId { index: env_id }
+        env_id
     }
 
-    pub fn get_at_two(&mut self, index: usize, name: &str) -> Result<ArenaEntryIndex, LangError> {
+    pub fn get_at(&mut self, index: usize, name: &str) -> Result<ArenaEntryIndex, LangError> {
         self.entries.get(index).map_or(
             Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
@@ -109,7 +104,7 @@ impl Environment {
                 },
             )),
             |env_entry| {
-                env_entry.values_two.get(name).map_or(
+                env_entry.values.get(name).map_or(
                     Err(LangErrorType::new_runtime_error(
                         RuntimeErrorType::UndefinedVariable {
                             reason: format!(
@@ -124,27 +119,23 @@ impl Environment {
         )
     }
 
-    pub fn get_two(
-        &self,
-        env_id: &EnvironmentId,
-        name: &str,
-    ) -> Result<ArenaEntryIndex, LangError> {
-        if self[env_id].values_two.contains_key(name) {
-            return Ok(self[env_id].values_two[name]);
-        } else if let Some(enclosing) = self[env_id].enclosing.clone() {
-            return Ok(self.get_two(&enclosing, name)?);
+    pub fn get(&self, env_id: EnvironmentId, name: &str) -> Result<ArenaEntryIndex, LangError> {
+        if self[env_id].values.contains_key(name) {
+            return Ok(self[env_id].values[name]);
+        } else if let Some(enclosing) = self[env_id].enclosing {
+            return Ok(self.get(enclosing, name)?);
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
         Err(LangErrorType::new_runtime_error(
             RuntimeErrorType::UndefinedVariable {
-                reason: format!("(get_two) Tried to get a variable: '{}'", name),
+                reason: format!("(get) Tried to get a variable: '{}'", name),
             },
         ))
     }
 
-    pub fn define_two(
+    pub fn define(
         &mut self,
-        env_id: &EnvironmentId,
+        env_id: EnvironmentId,
         arena: &mut Arena<TypedValue>,
         name: &str,
         value: TypedValue,
@@ -155,15 +146,15 @@ impl Environment {
             line!(),
             name,
             value,
-            env_id.index
+            env_id
         );
         let index = arena.insert(value);
-        self[env_id].values_two.insert(name.to_string(), index);
+        self[env_id].values.insert(name.to_string(), index);
     }
 
-    pub fn assign_two(
+    pub fn assign(
         &mut self,
-        env_id: &EnvironmentId,
+        env_id: EnvironmentId,
         name: &str,
         value: TypedValue,
         arena: &mut Arena<TypedValue>,
@@ -174,10 +165,10 @@ impl Environment {
             line!(),
             name,
             value,
-            env_id.index
+            env_id
         );
-        if self[env_id].values_two.contains_key(name) {
-            if let Some(existing_value_index) = self[env_id].values_two.get(name) {
+        if self[env_id].values.contains_key(name) {
+            if let Some(existing_value_index) = self[env_id].values.get(name) {
                 let existing_value_entry = &mut arena[*existing_value_index];
                 let existing_value: &mut TypedValue = existing_value_entry.try_into()?;
                 if !TypeChecker::can_convert_implicitly(existing_value, &value) {
@@ -186,8 +177,8 @@ impl Environment {
                 *existing_value = value;
             }
             return Ok(());
-        } else if let Some(enclosing) = self[env_id].enclosing.clone() {
-            self.assign_two(&enclosing, name, value, arena)?;
+        } else if let Some(enclosing) = self[env_id].enclosing {
+            self.assign(enclosing, name, value, arena)?;
             return Ok(());
         }
         // We error when an assignment is attempted on a variable that hasn't been instantiated
@@ -198,15 +189,15 @@ impl Environment {
         ))
     }
 
-    pub fn assign_index_entry_two(
+    pub fn assign_index_entry(
         &self,
-        env_id: &EnvironmentId,
+        env_id: EnvironmentId,
         name: &str,
         value: &TypedValue,
         arena: &mut Arena<TypedValue>,
         index: usize,
     ) -> Result<(), LangError> {
-        if let Some(arr_value_index) = self[env_id].values_two.get(name) {
+        if let Some(arr_value_index) = self[env_id].values.get(name) {
             let arr_value_entry = &mut arena[*arr_value_index];
             let arr_value: &mut TypedValue = arr_value_entry.try_into()?;
             match arr_value.value {
@@ -242,29 +233,29 @@ impl Environment {
         ))
     }
 
-    pub fn entry_from(&mut self, enclosing: &EnvironmentId) -> EnvironmentId {
+    pub fn entry_from(&mut self, enclosing: EnvironmentId) -> EnvironmentId {
         let new_entry = self.new_entry();
-        self[&new_entry].enclosing = Some(enclosing.clone());
+        self[new_entry].enclosing = Some(enclosing);
         new_entry
     }
 
-    pub fn remove_entry(&mut self, env_id: &EnvironmentId) {
-        self.entries.remove(env_id.index);
+    pub fn remove_entry(&mut self, env_id: EnvironmentId) {
+        self.entries.remove(env_id);
     }
 
-    pub fn is_defined_two(&self, env_id: &EnvironmentId, name: String) -> bool {
-        if self[env_id].values_two.contains_key(&name) {
+    pub fn is_defined(&self, env_id: EnvironmentId, name: String) -> bool {
+        if self[env_id].values.contains_key(&name) {
             return true;
         }
-        if let Some(ref enclosing) = self[env_id].enclosing {
-            return self.is_defined_two(enclosing, name);
+        if let Some(enclosing) = self[env_id].enclosing {
+            return self.is_defined(enclosing, name);
         }
         false
     }
 
-    pub fn update_value_two<Closure>(
+    pub fn update_value<Closure>(
         &mut self,
-        env_id: &EnvironmentId,
+        env_id: EnvironmentId,
         name: &str,
         arena: &mut Arena<TypedValue>,
         closure: Closure,
@@ -272,7 +263,7 @@ impl Environment {
     where
         Closure: FnOnce(&mut TypedValue) -> Result<(), LangError>,
     {
-        if let Some(value) = self[env_id].values_two.get(name) {
+        if let Some(value) = self[env_id].values.get(name) {
             let value_entry = &mut arena[*value];
             let value = match value_entry {
                 ArenaEntry::Occupied(v) => v,

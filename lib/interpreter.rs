@@ -31,7 +31,7 @@ impl Default for Interpreter {
         Interpreter {
             locals: HashMap::new(),
             arena: Arena::with_capacity(256),
-            env_id: EnvironmentId { index: 0 },
+            env_id: 0,
             env_entries: Environment::default(),
             ast_visitor: AstVisitor {},
             stack: Vec::new(),
@@ -108,8 +108,7 @@ impl Interpreter {
         if let Some(arena_entry_index) = self.evaluate(&assign.expr, arena, env)? {
             let arena_entry = &arena[arena_entry_index];
             let value: &TypedValue = arena_entry.try_into()?;
-            let root_entry_id = env.root_entry_id.clone();
-            env.assign_two(&root_entry_id, &assign.name, value.clone(), arena)?;
+            env.assign(env.root_entry_id, &assign.name, value.clone(), arena)?;
         }
         Ok(None)
     }
@@ -131,11 +130,11 @@ impl Interpreter {
             let callee: TypedValue = arena_entry.try_into()?;
             match &callee.value {
                 Value::Callable(callable) => {
-                    let value = callable.call_two(arena, env, self, args)?;
+                    let value = callable.call(arena, env, self, args)?;
                     return Ok(Some(arena.insert(value)));
                 }
                 Value::Struct(struct_value) => {
-                    let value = struct_value.call_two(arena, env, self, args)?;
+                    let value = struct_value.call(arena, env, self, args)?;
                     return Ok(Some(arena.insert(value)));
                 }
                 _ => {
@@ -163,14 +162,14 @@ impl Interpreter {
             match &value.value {
                 Value::Struct(_) => {
                     let struct_value: &dyn StructInstanceTrait = (&value.value).try_into()?;
-                    let field = struct_value.get_field_two(&get_expr.name, env, arena, self)?;
+                    let field = struct_value.get_field(&get_expr.name, env, arena, self)?;
                     index = Some(arena.insert(field));
                 }
                 Value::SelfIndex(s) => {
-                    let nvalue_entry = &arena[env.get_two(&s.env_id, &s.name)?];
+                    let nvalue_entry = &arena[env.get(s.env_id, &s.name)?];
                     let nvalue: TypedValue = nvalue_entry.try_into()?;
                     let struct_value: &dyn StructInstanceTrait = (&nvalue.value).try_into()?;
-                    let field = struct_value.get_field_two(&get_expr.name, env, arena, self)?;
+                    let field = struct_value.get_field(&get_expr.name, env, arena, self)?;
                     index = Some(arena.insert(field));
                 }
                 _ => {}
@@ -243,7 +242,7 @@ impl Interpreter {
             if let Stmt::Function(function_statement) = fn_impl {
                 let function = Value::Callable(Box::new(Callable::new(
                     *function_statement.clone(),
-                    &env.root_entry_id,
+                    env.root_entry_id,
                 )));
                 self.check_impl_trait(
                     &function_statement.name,
@@ -262,9 +261,8 @@ impl Interpreter {
                         )?;
                         Ok(())
                     };
-                let root_id = env.root_entry_id.clone();
-                env.update_value_two(
-                    &root_id,
+                env.update_value(
+                    env.root_entry_id,
                     &impl_trait_stmt.impl_name,
                     arena,
                     update_struct_decl_closure,
@@ -280,9 +278,8 @@ impl Interpreter {
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        let root_id = env.root_entry_id.clone();
-        env.define_two(
-            &root_id,
+        env.define(
+            env.root_entry_id,
             arena,
             &trait_stmt.name,
             TypedValue::new(Value::Unit, TypeAnnotation::Unit),
@@ -302,9 +299,8 @@ impl Interpreter {
                 }
             }
         }
-        let root_id = env.root_entry_id.clone();
-        env.assign_two(
-            &root_id,
+        env.assign(
+            env.root_entry_id,
             &trait_stmt.name,
             TypedValue::new(
                 Value::Trait(Box::new(trait_value.clone())),
@@ -328,7 +324,7 @@ impl Interpreter {
             if let Stmt::Function(function_statement) = fn_decl {
                 let function = Value::Callable(Box::new(Callable::new(
                     *function_statement.clone(),
-                    &env.root_entry_id,
+                    env.root_entry_id,
                 )));
                 let update_struct = |struct_value: &mut TypedValue| -> Result<(), LangError> {
                     let struct_value: &mut dyn StructInstanceTrait =
@@ -339,8 +335,7 @@ impl Interpreter {
                     )?;
                     Ok(())
                 };
-                let root_id = env.root_entry_id.clone();
-                env.update_value_two(&root_id, &impl_stmt.name, arena, update_struct)?;
+                env.update_value(env.root_entry_id, &impl_stmt.name, arena, update_struct)?;
             }
         }
         Ok(None)
@@ -352,9 +347,8 @@ impl Interpreter {
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        let root_id = env.root_entry_id.clone();
-        env.define_two(
-            &root_id,
+        env.define(
+            env.root_entry_id,
             arena,
             &struct_stmt.name,
             TypedValue::new(Value::Unit, TypeAnnotation::Unit),
@@ -374,9 +368,8 @@ impl Interpreter {
             fields,
             struct_stmt.name.clone(),
         )));
-        let root_id = env.root_entry_id.clone();
-        env.assign_two(
-            &root_id,
+        env.assign(
+            env.root_entry_id,
             &struct_stmt.name,
             TypedValue::new(struct_value, TypeAnnotation::User(struct_stmt.name.clone())),
             arena,
@@ -499,7 +492,7 @@ impl Interpreter {
                 let object_arena_entry = &mut arena[object_entry_index];
                 let object: &mut TypedValue = object_arena_entry.try_into()?;
                 if let Value::SelfIndex(ref s) = object.value {
-                    let prev_object_index = env.get_two(&s.env_id, &s.name)?;
+                    let prev_object_index = env.get(s.env_id, &s.name)?;
                     let prev_object_entry = &mut arena[prev_object_index];
                     let prev_object: &mut TypedValue = prev_object_entry.try_into()?;
                     if let Value::Struct(ref mut struct_value) = prev_object.value {
@@ -527,9 +520,8 @@ impl Interpreter {
                         ));
                     }
                     if let Expr::Variable(ref var) = set_expr.object {
-                        let root_id = env.root_entry_id.clone();
-                        env.update_value_two(
-                            &root_id,
+                        env.update_value(
+                            env.root_entry_id,
                             &var.name,
                             arena,
                             |struct_value: &mut TypedValue| -> Result<(), LangError> {
@@ -572,9 +564,8 @@ impl Interpreter {
         if let Some(value_entry_index) = self.evaluate(&set_array_element_expr.value, arena, env)? {
             let value_arena_entry = &arena[value_entry_index];
             let value: TypedValue = value_arena_entry.try_into()?;
-            let root_id = env.root_entry_id.clone();
-            env.assign_index_entry_two(
-                &root_id,
+            env.assign_index_entry(
+                env.root_entry_id,
                 &set_array_element_expr.name,
                 &value,
                 arena,
@@ -630,8 +621,7 @@ impl Interpreter {
             let index_arena_entry = &arena[index_entry_index];
             let index_value: &TypedValue = index_arena_entry.try_into()?;
             let index = index_value.as_array_index()?;
-            let root_id = env.root_entry_id.clone();
-            let value_entry_index = env.get_two(&root_id, &index_expr.from)?;
+            let value_entry_index = env.get(env.root_entry_id, &index_expr.from)?;
             let value_arena_entry = &mut arena[value_entry_index];
             let value: &mut TypedValue = value_arena_entry.try_into()?;
             let value_at_index = match value.value {
@@ -661,7 +651,7 @@ impl Interpreter {
     }
 
     #[inline(always)]
-    pub fn interpret_two(&self, stmts: Vec<Stmt>) -> Result<(), LangError> {
+    pub fn interpret(&self, stmts: Vec<Stmt>) -> Result<(), LangError> {
         let mut env = Environment::new();
         let mut arena: Arena<TypedValue> = Arena::new();
         for stmt in stmts {
@@ -696,12 +686,12 @@ impl Interpreter {
             self.pretty_print_locals()
         );
         if let Some(distance) = self.locals.get(token) {
-            if let Ok(value_index) = env.get_two(&EnvironmentId { index: *distance }, &token) {
+            if let Ok(value_index) = env.get(*distance, &token) {
                 let arena_entry = &arena[value_index];
                 let value: TypedValue = arena_entry.try_into()?;
                 let new_index = match value.value {
                     Value::SelfIndex(ref s) => {
-                        let str_val_index = env.get_two(&s.env_id, &s.name)?;
+                        let str_val_index = env.get(s.env_id, &s.name)?;
                         let str_val_entry = &arena[str_val_index];
                         let str_val: TypedValue = str_val_entry.try_into()?;
                         arena.insert(str_val)
@@ -710,19 +700,13 @@ impl Interpreter {
                 };
                 Ok(Some(new_index))
             } else {
-                let value_index = env.get_two(
-                    &EnvironmentId {
-                        index: *distance + 1,
-                    },
-                    &token,
-                )?;
+                let value_index = env.get(*distance + 1, &token)?;
                 let value_entry = &arena[value_index];
                 let value: TypedValue = value_entry.try_into()?;
                 Ok(Some(arena.insert(value)))
             }
         } else {
-            let root_id = env.root_entry_id.clone();
-            let value_index = env.get_two(&root_id, &token)?;
+            let value_index = env.get(env.root_entry_id, &token)?;
             let value_entry = &arena[value_index];
             let value: TypedValue = value_entry.try_into()?;
             Ok(Some(arena.insert(value)))
@@ -736,27 +720,27 @@ impl Interpreter {
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        let previous = env_id.clone();
+        let previous = *env_id;
         for stmt in stmts {
             match stmt {
                 Stmt::Return(_) => {
                     // Set value and break early on a return
                     if let Some(index) = self.execute(&stmt, arena, env)? {
-                        env.remove_entry(&env_id);
+                        env.remove_entry(*env_id);
                         *env_id = previous;
                         return Ok(Some(index));
                     }
                 }
                 _ => {
                     if let Some(index) = self.execute(&stmt, arena, env)? {
-                        env.remove_entry(&env_id);
+                        env.remove_entry(*env_id);
                         *env_id = previous;
                         return Ok(Some(index));
                     }
                 }
             }
         }
-        env.remove_entry(&env_id);
+        env.remove_entry(*env_id);
         *env_id = previous;
         Ok(None)
     }
@@ -833,8 +817,7 @@ impl Interpreter {
         arena: &Arena<TypedValue>,
         trait_token: &str,
     ) -> Result<bool, LangError> {
-        let root_id = env.root_entry_id.clone();
-        let typed_trait_value_idx = env.get_two(&root_id, trait_token)?;
+        let typed_trait_value_idx = env.get(env.root_entry_id, trait_token)?;
         let entry = &arena[typed_trait_value_idx];
         let typed_trait_value: &TypedValue = entry.try_into()?;
         let trait_value_type: &TraitValue = (&typed_trait_value.value).try_into()?;
@@ -924,8 +907,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         match literal.value.value_type {
             TypeAnnotation::User(ref user_type) => {
-                let root_id = env.root_entry_id.clone();
-                let value_index = env.get_two(&root_id, &user_type)?;
+                let value_index = env.get(env.root_entry_id, &user_type)?;
                 let value_entry = &arena[value_index];
                 let value: TypedValue = value_entry.try_into()?;
                 Ok(Some(arena.insert(value)))
@@ -1057,7 +1039,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        let mut env_id = env.entry_from(&env.root_entry_id.clone());
+        let mut env_id = env.entry_from(env.root_entry_id.clone());
         self.execute_block(&block.statements, &mut env_id, arena, env)?;
         Ok(None)
     }
@@ -1104,10 +1086,12 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        let root_id = env.root_entry_id.clone();
-        let function = Value::Callable(Box::new(Callable::new(function_stmt.clone(), &root_id)));
-        env.define_two(
-            &root_id,
+        let function = Value::Callable(Box::new(Callable::new(
+            function_stmt.clone(),
+            env.root_entry_id,
+        )));
+        env.define(
+            env.root_entry_id,
             arena,
             &function_stmt.name,
             TypedValue::new(function, TypeAnnotation::Fn),
@@ -1202,8 +1186,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
         if let Value::Struct(ref mut struct_value) = value.value {
             struct_value.set_instance_name(var_stmt.name.clone());
         }
-        let root_id = env.root_entry_id.clone();
-        env.define_two(&root_id, arena, &var_stmt.name, value);
+        env.define(env.root_entry_id, arena, &var_stmt.name, value);
         Ok(Some(arena.insert(TypedValue::new(
             Value::Unit,
             TypeAnnotation::Unit,

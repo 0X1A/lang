@@ -14,19 +14,19 @@ use std::{
 
 pub struct Lang<'a> {
     interpreter: Interpreter,
-    scanner_two: Option<Scanner<'a>>,
+    scanner: Option<Scanner<'a>>,
 }
 
 impl<'a> Lang<'a> {
     pub fn new(script: Option<&'a str>) -> Lang<'a> {
-        let scanner_two = if let Some(give_script) = script {
+        let scanner = if let Some(give_script) = script {
             Some(Scanner::new(give_script))
         } else {
             None
         };
         Lang {
             interpreter: Interpreter::new(),
-            scanner_two,
+            scanner,
         }
     }
 }
@@ -38,7 +38,7 @@ impl<'a> Lang<'a> {
     }
 
     pub fn print_tokens(&mut self) -> Result<(), LangError> {
-        if let Some(ref mut scanner) = self.scanner_two {
+        if let Some(ref mut scanner) = self.scanner {
             let tokens: Vec<Token> = scanner.scan_tokens()?;
             for token in tokens.iter() {
                 println!("{:?}", token);
@@ -48,7 +48,7 @@ impl<'a> Lang<'a> {
     }
 
     pub fn build_statements(&mut self) -> Result<Vec<Stmt>, LangError> {
-        if let Some(ref mut scanner) = self.scanner_two {
+        if let Some(ref mut scanner) = self.scanner {
             let source = scanner.source;
             let tokens: Vec<Token> = scanner.scan_tokens()?;
             let mut parser = Parser::new(source, tokens);
@@ -68,7 +68,7 @@ impl<'a> Lang<'a> {
                 let mut import_statements = dep_resolver.resolve(&s)?;
                 import_statements.append(&mut s);
                 resolver.resolve(&import_statements)?;
-                resolver.interpreter.interpret_two(import_statements)?;
+                resolver.interpreter.interpret(import_statements)?;
             }
             Err(e) => {
                 return Err(e);
@@ -86,7 +86,7 @@ impl<'a> Lang<'a> {
         let statements = parser.parse()?;
         dep_resolver.resolve(&statements)?;
         resolver.resolve(&statements)?;
-        resolver.interpreter.interpret_two(statements)?;
+        resolver.interpreter.interpret(statements)?;
         Ok(())
     }
 

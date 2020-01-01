@@ -641,7 +641,7 @@ impl Debug for Value {
             Value::SelfIndex(self_index) => write!(
                 f,
                 "Value::SelfIndex({}, {})",
-                self_index.name, self_index.env_id.index
+                self_index.name, self_index.env_id
             ),
             Value::Enum(_) => unimplemented!(),
             Value::Callable(callable_value) => {
@@ -770,7 +770,7 @@ impl CallableTrait for StructValue {
         Some(TypeAnnotation::User(self.struct_stmt.name.clone()))
     }
 
-    fn bind_two(
+    fn bind(
         &self,
         _: &dyn StructInstanceTrait,
         _: &mut Environment,
@@ -784,7 +784,7 @@ impl CallableTrait for StructValue {
     }
 
     // TODO: This should take constructor args
-    fn call_two(
+    fn call(
         &self,
         _: &mut Arena<TypedValue>,
         _: &mut Environment,
@@ -816,7 +816,7 @@ impl StructTrait for StructValue {
         self.fields.contains_key(name)
     }
 
-    fn get_field_two(
+    fn get_field(
         &self,
         name: &str,
         env: &mut Environment,
@@ -825,15 +825,12 @@ impl StructTrait for StructValue {
     ) -> Result<TypedValue, LangError> {
         self.fields.get(name).map_or(
             {
-                if let Ok(method) = self.get_method_two(name, env, arena) {
+                if let Ok(method) = self.get_method(name, env, arena) {
                     return Ok(method);
                 }
                 Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::UndefinedVariable {
-                        reason: format!(
-                            "get_field_two tried to get an undefined variable: '{}'",
-                            name
-                        ),
+                        reason: format!("get_field tried to get an undefined variable: '{}'", name),
                     },
                 ))
             },
@@ -846,7 +843,7 @@ impl StructTrait for StructValue {
         Ok(())
     }
 
-    fn get_method_two(
+    fn get_method(
         &self,
         name: &str,
         env: &mut Environment,
@@ -862,7 +859,7 @@ impl StructTrait for StructValue {
                 let callable_value = value.clone();
                 {
                     let callable: &dyn CallableTrait = (&callable_value.value).try_into()?;
-                    callable.bind_two(self, env, arena)?;
+                    callable.bind(self, env, arena)?;
                 }
                 Ok(callable_value)
             },
@@ -885,7 +882,7 @@ impl Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Value::Struct(s) => return write!(f, "{}", s.struct_trait().get_name()),
-            Value::SelfIndex(s) => return write!(f, "{}, {}", s.name, s.env_id.index),
+            Value::SelfIndex(s) => return write!(f, "{}, {}", s.name, s.env_id),
             Value::Enum(_) => unimplemented!(),
             Value::Callable(c) => return write!(f, "{}", c.get_name()),
             Value::String(v) => {
@@ -920,11 +917,8 @@ pub struct Callable {
 }
 
 impl Callable {
-    pub fn new(function: FunctionStmt, closure: &EnvironmentId) -> Callable {
-        Callable {
-            function,
-            closure: closure.clone(),
-        }
+    pub fn new(function: FunctionStmt, closure: EnvironmentId) -> Callable {
+        Callable { function, closure }
     }
 }
 
@@ -963,7 +957,7 @@ impl CallableTrait for Callable {
         self.function.params.len()
     }
 
-    fn bind_two(
+    fn bind(
         &self,
         struct_instance: &dyn StructInstanceTrait,
         env: &mut Environment,
@@ -972,11 +966,11 @@ impl CallableTrait for Callable {
         let value = TypedValue::new(
             Value::SelfIndex(SelfIndex {
                 name: struct_instance.get_instance_name(),
-                env_id: self.closure.clone(),
+                env_id: self.closure,
             }),
             TypeAnnotation::SelfIndex,
         );
-        env.define_two(&self.closure, arena, "self", value);
+        env.define(self.closure, arena, "self", value);
         Ok(())
     }
 
@@ -993,14 +987,14 @@ impl CallableTrait for Callable {
         }
     }
 
-    fn call_two(
+    fn call(
         &self,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
         interpreter: &Interpreter,
         args: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError> {
-        let mut env_id = env.entry_from(&self.closure);
+        let mut env_id = env.entry_from(self.closure);
 
         if args.len() != self.arity() {
             return Err(LangErrorType::new_runtime_error(
@@ -1034,7 +1028,7 @@ impl CallableTrait for Callable {
                     },
                 ));
             }
-            env.define_two(&env_id, arena, &it.0.identifier, it.1.clone());
+            env.define(env_id, arena, &it.0.identifier, it.1.clone());
         }
         let mut return_value = TypedValue::default();
         if let Some(value_from_block) =

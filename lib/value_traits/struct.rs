@@ -7,7 +7,7 @@ use crate::value::TypedValue;
 pub trait StructTrait {
     fn get_name(&self) -> String;
     fn box_clone(&self) -> Box<dyn StructTrait>;
-    fn get_field_two(
+    fn get_field(
         &self,
         name: &str,
         env: &mut Environment,
@@ -16,7 +16,7 @@ pub trait StructTrait {
     ) -> Result<TypedValue, LangError>;
     fn field_exists(&self, name: &str) -> bool;
     fn define_method(&mut self, name: &str, value: TypedValue) -> Result<(), LangError>;
-    fn get_method_two(
+    fn get_method(
         &self,
         name: &str,
         env: &mut Environment,

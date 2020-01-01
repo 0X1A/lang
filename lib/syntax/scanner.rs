@@ -438,7 +438,7 @@ impl<'a> Scanner<'a> {
 }
 
 #[cfg(test)]
-mod scanner_two_tests {
+mod scanner_tests {
     macro_rules! gen_lex_token_test {
         ($test_name:ident, $fn_name:ident, $test_string:literal, $token_type:expr, $result:literal) => {
             #[test]

@@ -22,7 +22,7 @@ pub struct TokenIR {
 }
 
 impl TokenIR {
-    fn from_token_two(token: &Token) -> TokenIR {
+    fn from_token(token: &Token) -> TokenIR {
         TokenIR {
             token_type: token.token_type.clone(),
             lexeme: token.span.content.input.to_string(),
@@ -457,7 +457,7 @@ impl<'a> Parser<'a> {
 
     /// Returns the token being the `cursor_position` position in source
     fn previous(&self) -> TokenIR {
-        TokenIR::from_token_two(&self.tokens[self.get_previous_index()])
+        TokenIR::from_token(&self.tokens[self.get_previous_index()])
     }
 
     fn synchronize(&mut self) {

@@ -12,14 +12,14 @@ pub trait CallableTrait {
     fn get_name(&self) -> String;
     fn arity(&self) -> usize;
     fn get_return_type(&self) -> Option<TypeAnnotation>;
-    fn call_two(
+    fn call(
         &self,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
         interpreter: &Interpreter,
         args: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError>;
-    fn bind_two(
+    fn bind(
         &self,
         struct_instance: &dyn StructInstanceTrait,
         env: &mut Environment,
