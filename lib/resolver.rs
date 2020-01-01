@@ -100,7 +100,7 @@ impl<'a> Resolver<'a> {
         fn_type: FunctionType,
     ) -> Result<(), LangError> {
         let enclosing = self.current_function_type.clone();
-        self.current_function_type = fn_type.clone();
+        self.current_function_type = fn_type;
         self.begin_scope();
         for param in &function.params {
             self.declare(&param.identifier)?;

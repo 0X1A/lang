@@ -75,7 +75,7 @@ impl<T> Index<ArenaEntryIndex> for Arena<T> {
 }
 
 impl<T> IndexMut<ArenaEntryIndex> for Arena<T> {
-    fn index_mut<'a>(&'a mut self, arena_id: ArenaEntryIndex) -> &'a mut ArenaEntry<T> {
+    fn index_mut(&mut self, arena_id: ArenaEntryIndex) -> &mut ArenaEntry<T> {
         &mut self.entries[arena_id]
     }
 }
@@ -120,6 +120,23 @@ impl<T> Arena<T> {
             len: 0,
             offset: 0,
         }
+    }
+
+    pub fn update_entry<Closure>(
+        &mut self,
+        index: ArenaEntryIndex,
+        closure: Closure,
+    ) -> Result<(), LangError>
+    where
+        Closure: FnOnce(&mut T) -> Result<(), LangError>,
+    {
+        let value_entry = &mut self.entries[index];
+        let value: &mut T = match value_entry {
+            ArenaEntry::Occupied(ref mut v) => v,
+            _ => panic!(),
+        };
+        closure(value)?;
+        Ok(())
     }
 }
 

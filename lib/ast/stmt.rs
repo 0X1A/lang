@@ -146,7 +146,7 @@ impl TryInto<ImplStmt> for Stmt {
     type Error = LangError;
     fn try_into(self) -> Result<ImplStmt, Self::Error> {
         match self {
-            Stmt::Impl(impl_stmt) => Ok(*impl_stmt.clone()),
+            Stmt::Impl(impl_stmt) => Ok(*impl_stmt),
             _ => Err(LangErrorType::new_iie_error("".to_string())),
         }
     }

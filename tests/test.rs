@@ -209,6 +209,60 @@ mod tests {
         assert_eq!(result.is_ok(), true)
     }
     #[test]
+    fn struct_with_impl_using_mutable_self() {
+        let mut lang = Lang::new(Some(
+            "
+        struct TestStruct {
+            i: i32,
+        }
+
+        impl TestStruct {
+            fn hello(other: TestStruct) -> () {
+                self.i = self.i + other.i;
+            }
+        }
+
+        let instance: TestStruct = TestStruct();
+        let other: TestStruct = TestStruct();
+        other.i = 100;
+        instance.i = 100;
+        instance.hello(other);
+        assert(instance.i == 200);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn struct_with_impl_using_self() {
+        let mut lang = Lang::new(Some(
+            "
+        struct TestStruct {
+            i: i32,
+        }
+
+        impl TestStruct {
+            fn hello() -> () {
+                print self.i;
+            }
+        }
+
+        let instance: TestStruct = TestStruct();
+        instance.i = 100;
+        assert(instance.i == 100);
+        instance.hello();
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
     fn struct_with_method_call_failure() {
         let mut lang = Lang::new(Some(
             "

@@ -368,7 +368,7 @@ fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
     } else {
         TokenType::Integer
     };
-    let value = match Value::from_str(value_type.clone(), digit.input) {
+    let value = match Value::from_str(value_type, digit.input) {
         Ok(v) => v,
         Err(e) => return Err(nom::Err::Failure::<LangError>(e)),
     };

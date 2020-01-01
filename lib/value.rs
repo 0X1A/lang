@@ -169,7 +169,7 @@ impl Value {
             ValueType::String => Value::String(lexeme.to_string()),
             ValueType::Integer => {
                 let integer_value = lexeme.to_string().parse::<i64>()?;
-                if integer_value as i32 <= std::i32::MAX && integer_value as i32 >= std::i32::MIN {
+                if integer_value <= std::i32::MAX.into() && integer_value >= std::i32::MIN.into() {
                     Value::Int32(integer_value as i32)
                 } else {
                     Value::Int64(integer_value)
@@ -292,17 +292,17 @@ impl<'a> Add for &'a Value {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs + rhs),
                 Value::Float64(rhs) => Value::Int64(lhs + rhs.inner as i64),
-                _ => Value::Int64(lhs.clone()),
+                _ => Value::Int64(*lhs),
             },
             Value::Int32(lhs) => match other {
                 Value::Int32(rhs) => Value::Int32(lhs + rhs),
                 Value::Float32(rhs) => Value::Int32(lhs + rhs.inner as i32),
-                _ => Value::Int32(lhs.clone()),
+                _ => Value::Int32(*lhs),
             },
             Value::Float64(lhs) => match other {
                 Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner + *rhs as f64)),
                 Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner + rhs.inner)),
-                _ => Value::Float64(lhs.clone()),
+                _ => Value::Float64(*lhs),
             },
             Value::String(lhs) => match other {
                 Value::String(rhs) => Value::String(format!("{}{}", lhs, rhs)),
@@ -343,12 +343,12 @@ impl<'a> Sub for &'a Value {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs - rhs),
                 Value::Float64(rhs) => Value::Int64(lhs - rhs.inner as i64),
-                _ => Value::Int64(lhs.clone()),
+                _ => Value::Int64(*lhs),
             },
             Value::Float64(lhs) => match other {
                 Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner - *rhs as f64)),
                 Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner - rhs.inner)),
-                _ => Value::Float64(lhs.clone()),
+                _ => Value::Float64(*lhs),
             },
             _ => self.clone(),
         }
@@ -385,12 +385,12 @@ impl<'a> Mul for &'a Value {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs * rhs),
                 Value::Float64(rhs) => Value::Int64(lhs * rhs.inner as i64),
-                _ => Value::Int64(lhs.clone()),
+                _ => Value::Int64(*lhs),
             },
             Value::Float64(lhs) => match other {
                 Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner * (*rhs as f64))),
                 Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner * rhs.inner)),
-                _ => Value::Float64(lhs.clone()),
+                _ => Value::Float64(*lhs),
             },
             _ => self.clone(),
         }
@@ -427,12 +427,12 @@ impl<'a> Div for &'a Value {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs / rhs),
                 Value::Float64(rhs) => Value::Int64(lhs / rhs.inner as i64),
-                _ => Value::Int64(lhs.clone()),
+                _ => Value::Int64(*lhs),
             },
             Value::Float64(lhs) => match other {
                 Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner / *rhs as f64)),
                 Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner / rhs.inner)),
-                _ => Value::Float64(lhs.clone()),
+                _ => Value::Float64(*lhs),
             },
             _ => self.clone(),
         }
@@ -770,10 +770,6 @@ impl CallableTrait for StructValue {
         Some(TypeAnnotation::User(self.struct_stmt.name.clone()))
     }
 
-    fn bind(&self, _: &dyn StructInstanceTrait, _: &mut Interpreter) -> Result<(), LangError> {
-        unimplemented!()
-    }
-
     fn bind_two(
         &self,
         _: &dyn StructInstanceTrait,
@@ -820,26 +816,6 @@ impl StructTrait for StructValue {
         self.fields.contains_key(name)
     }
 
-    fn get_field(
-        &self,
-        name: &str,
-        interpreter: &mut Interpreter,
-    ) -> Result<TypedValue, LangError> {
-        self.fields.get(name).map_or(
-            {
-                if let Ok(method) = self.get_method(name, interpreter) {
-                    return Ok(method);
-                }
-                Err(LangErrorType::new_runtime_error(
-                    RuntimeErrorType::UndefinedVariable {
-                        reason: format!("get_field tried to get an undefined variable: '{}'", name),
-                    },
-                ))
-            },
-            |value| Ok(value.clone()),
-        )
-    }
-
     fn get_field_two(
         &self,
         name: &str,
@@ -854,7 +830,10 @@ impl StructTrait for StructValue {
                 }
                 Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::UndefinedVariable {
-                        reason: format!("get_field tried to get an undefined variable: '{}'", name),
+                        reason: format!(
+                            "get_field_two tried to get an undefined variable: '{}'",
+                            name
+                        ),
                     },
                 ))
             },
@@ -865,28 +844,6 @@ impl StructTrait for StructValue {
     fn define_method(&mut self, name: &str, value: TypedValue) -> Result<(), LangError> {
         self.methods.insert(name.into(), value);
         Ok(())
-    }
-
-    fn get_method(
-        &self,
-        name: &str,
-        interpreter: &mut Interpreter,
-    ) -> Result<TypedValue, LangError> {
-        self.methods.get(name).map_or(
-            Err(LangErrorType::new_runtime_error(
-                RuntimeErrorType::UndefinedVariable {
-                    reason: format!("tried to get an undefined method: '{}'", name),
-                },
-            )),
-            |value| {
-                let callable_value = value.clone();
-                {
-                    let callable: &dyn CallableTrait = (&callable_value.value).try_into()?;
-                    callable.bind(self, interpreter)?;
-                }
-                Ok(callable_value)
-            },
-        )
     }
 
     fn get_method_two(
@@ -1004,22 +961,6 @@ impl CallableTrait for Callable {
     #[inline(always)]
     fn arity(&self) -> usize {
         self.function.params.len()
-    }
-
-    fn bind(
-        &self,
-        struct_instance: &dyn StructInstanceTrait,
-        interpreter: &mut Interpreter,
-    ) -> Result<(), LangError> {
-        let value = TypedValue::new(
-            Value::SelfIndex(SelfIndex {
-                name: struct_instance.get_instance_name(),
-                env_id: self.closure.clone(),
-            }),
-            TypeAnnotation::SelfIndex,
-        );
-        interpreter.env_entries.define(&self.closure, "self", value);
-        Ok(())
     }
 
     fn bind_two(

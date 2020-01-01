@@ -248,6 +248,8 @@ impl Interpreter {
                 self.check_impl_trait(
                     &function_statement.name,
                     &function,
+                    env,
+                    &arena,
                     &impl_trait_stmt.trait_name,
                 )?;
                 let update_struct_decl_closure =
@@ -376,10 +378,7 @@ impl Interpreter {
         env.assign_two(
             &root_id,
             &struct_stmt.name,
-            TypedValue::new(
-                struct_value.clone(),
-                TypeAnnotation::User(struct_stmt.name.clone()),
-            ),
+            TypedValue::new(struct_value, TypeAnnotation::User(struct_stmt.name.clone())),
             arena,
         )?;
         Ok(None)
@@ -466,14 +465,12 @@ impl Interpreter {
         if let Some(arena_entry_index) = self.evaluate(&logical_expr.left, arena, env)? {
             let arena_entry = &arena[arena_entry_index];
             let left: TypedValue = arena_entry.try_into()?;
-            if logical_expr.operator == TokenType::Or {
-                if self.is_truthy(&left.value) {
-                    let index = arena.insert(left.clone());
-                    return Ok(Some(index));
-                }
+            if logical_expr.operator == TokenType::Or && self.is_truthy(&left.value) {
+                let index = arena.insert(left);
+                return Ok(Some(index));
             }
             if !self.is_truthy(&left.value) {
-                let index = arena.insert(left.clone());
+                let index = arena.insert(left);
                 return Ok(Some(index));
             }
             return Ok(self.evaluate(&logical_expr.right, arena, env)?);
@@ -481,7 +478,7 @@ impl Interpreter {
         Ok(None)
     }
 
-    // TODO: this shit is a mess
+    // TODO: this shit is _still_ a mess
     fn visit_set_expr(
         &self,
         set_expr: &SetExpr,
@@ -498,6 +495,26 @@ impl Interpreter {
             ));
         }
         if let Some(object_entry_index) = self.evaluate(&set_expr.object, arena, env)? {
+            {
+                let object_arena_entry = &mut arena[object_entry_index];
+                let object: &mut TypedValue = object_arena_entry.try_into()?;
+                if let Value::SelfIndex(ref s) = object.value {
+                    let prev_object_index = env.get_two(&s.env_id, &s.name)?;
+                    let prev_object_entry = &mut arena[prev_object_index];
+                    let prev_object: &mut TypedValue = prev_object_entry.try_into()?;
+                    if let Value::Struct(ref mut struct_value) = prev_object.value {
+                        if !struct_value.field_exists(&set_expr.name) {
+                            return Err(LangErrorType::new_runtime_error(
+                                RuntimeErrorType::UndefinedVariable {
+                                    reason: "Tried to set an undefined struct field".to_string(),
+                                },
+                            ));
+                        }
+                        struct_value.set_field(&set_expr.name, &value)?;
+                        return Ok(None);
+                    }
+                }
+            }
             let object_arena_entry = &mut arena[object_entry_index];
             let object: &mut TypedValue = object_arena_entry.try_into()?;
             match object.value {
@@ -521,31 +538,6 @@ impl Interpreter {
                                 struct_value.set_field(&set_expr.name, &value)?;
                                 Ok(())
                             },
-                        )?;
-                    }
-                }
-                Value::SelfIndex(ref mut s) => {
-                    let nvalue = env.get(&s.env_id, &s.name)?;
-                    let struct_value: &dyn StructInstanceTrait = (&nvalue.value).try_into()?;
-                    if !struct_value.field_exists(&set_expr.name) {
-                        return Err(LangErrorType::new_runtime_error(
-                            RuntimeErrorType::UndefinedVariable {
-                                reason: "Tried to set an undefined struct field".to_string(),
-                            },
-                        ));
-                    }
-                    let update_struct_closure =
-                        |typed_value: &mut TypedValue| -> Result<(), LangError> {
-                            let struct_value: &mut dyn StructInstanceTrait =
-                                (&mut typed_value.value).try_into()?;
-                            struct_value.set_field(&set_expr.name, &value)?;
-                            Ok(())
-                        };
-                    if let Expr::SelfIdent(_) = set_expr.object.clone() {
-                        env.update_value(
-                            &s.env_id,
-                            &struct_value.get_instance_name(),
-                            update_struct_closure,
                         )?;
                     }
                 }
@@ -579,9 +571,15 @@ impl Interpreter {
         }
         if let Some(value_entry_index) = self.evaluate(&set_array_element_expr.value, arena, env)? {
             let value_arena_entry = &arena[value_entry_index];
-            let value: &TypedValue = value_arena_entry.try_into()?;
+            let value: TypedValue = value_arena_entry.try_into()?;
             let root_id = env.root_entry_id.clone();
-            env.assign_index_entry(&root_id, &set_array_element_expr.name, &value, index)?;
+            env.assign_index_entry_two(
+                &root_id,
+                &set_array_element_expr.name,
+                &value,
+                arena,
+                index,
+            )?;
         }
         Ok(None)
     }
@@ -614,7 +612,7 @@ impl Interpreter {
             type_annotation = type_annotation_set.to_type_annotation()?;
         }
         if type_annotation == TypeAnnotation::Unit {
-            type_annotation = TypeAnnotation::Array(Box::new(array_element_type.clone()));
+            type_annotation = TypeAnnotation::Array(Box::new(array_element_type));
         }
         Ok(Some(arena.insert(TypedValue::new(
             Value::Array(elements),
@@ -703,16 +701,16 @@ impl Interpreter {
                 let value: TypedValue = arena_entry.try_into()?;
                 let new_index = match value.value {
                     Value::SelfIndex(ref s) => {
-                        let str_val_index = self.env_entries.get_two(&s.env_id, &s.name)?;
+                        let str_val_index = env.get_two(&s.env_id, &s.name)?;
                         let str_val_entry = &arena[str_val_index];
                         let str_val: TypedValue = str_val_entry.try_into()?;
                         arena.insert(str_val)
                     }
-                    _ => arena.insert(value.clone()),
+                    _ => arena.insert(value),
                 };
                 Ok(Some(new_index))
             } else {
-                let value_index = self.env_entries.get_two(
+                let value_index = env.get_two(
                     &EnvironmentId {
                         index: *distance + 1,
                     },
@@ -724,7 +722,7 @@ impl Interpreter {
             }
         } else {
             let root_id = env.root_entry_id.clone();
-            let value_index = self.env_entries.get_two(&root_id, &token)?;
+            let value_index = env.get_two(&root_id, &token)?;
             let value_entry = &arena[value_index];
             let value: TypedValue = value_entry.try_into()?;
             Ok(Some(arena.insert(value)))
@@ -831,9 +829,14 @@ impl Interpreter {
         &self,
         impl_trait: &str,
         fn_value: &Value,
+        env: &Environment,
+        arena: &Arena<TypedValue>,
         trait_token: &str,
     ) -> Result<bool, LangError> {
-        let typed_trait_value = self.env_entries.get_ref(&self.env_id, trait_token)?;
+        let root_id = env.root_entry_id.clone();
+        let typed_trait_value_idx = env.get_two(&root_id, trait_token)?;
+        let entry = &arena[typed_trait_value_idx];
+        let typed_trait_value: &TypedValue = entry.try_into()?;
         let trait_value_type: &TraitValue = (&typed_trait_value.value).try_into()?;
         if let Some(trait_fn_decl) = trait_value_type.fn_declarations.get(impl_trait) {
             if let Value::TraitFunction(ref trait_function) = trait_fn_decl.value {
@@ -925,11 +928,9 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
                 let value_index = env.get_two(&root_id, &user_type)?;
                 let value_entry = &arena[value_index];
                 let value: TypedValue = value_entry.try_into()?;
-                return Ok(Some(arena.insert(value)));
+                Ok(Some(arena.insert(value)))
             }
-            _ => {
-                return Ok(Some(arena.insert(literal.value.clone())));
-            }
+            _ => Ok(Some(arena.insert(literal.value.clone()))),
         }
     }
     fn visit_logical(
@@ -1109,7 +1110,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
             &root_id,
             arena,
             &function_stmt.name,
-            TypedValue::new(function.clone(), TypeAnnotation::Fn),
+            TypedValue::new(function, TypeAnnotation::Fn),
         );
         Ok(None)
     }

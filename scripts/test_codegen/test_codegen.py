@@ -11,6 +11,7 @@ from slugify import slugify
 
 """ TODO: Organize this differently, as benchmarks are running these asserts! We don't have anything like run flags to omit asserts """
 
+
 class LangTestSources(object):
     """
     Contains all sources and methods used for generating tests and benchmarks for the Lang interpreter
@@ -115,6 +116,40 @@ class LangTestSources(object):
 
         let instance: TestStruct = TestStruct();
         instance.hello();
+        """,
+        "Struct with impl using self": """
+        struct TestStruct {
+            i: i32,
+        }
+
+        impl TestStruct {
+            fn hello() -> () {
+                print self.i;
+            }
+        }
+
+        let instance: TestStruct = TestStruct();
+        instance.i = 100;
+        assert(instance.i == 100);
+        instance.hello();
+        """,
+        "Struct with impl using mutable self": """
+        struct TestStruct {
+            i: i32,
+        }
+
+        impl TestStruct {
+            fn hello(other: TestStruct) -> () {
+                self.i = self.i + other.i;
+            }
+        }
+
+        let instance: TestStruct = TestStruct();
+        let other: TestStruct = TestStruct();
+        other.i = 100;
+        instance.i = 100;
+        instance.hello(other);
+        assert(instance.i == 200);
         """,
         "Struct with method call failure": """
         struct TestStruct {

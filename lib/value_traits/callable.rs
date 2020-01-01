@@ -19,11 +19,6 @@ pub trait CallableTrait {
         interpreter: &Interpreter,
         args: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError>;
-    fn bind(
-        &self,
-        struct_instance: &dyn StructInstanceTrait,
-        interpreter: &mut Interpreter,
-    ) -> Result<(), LangError>;
     fn bind_two(
         &self,
         struct_instance: &dyn StructInstanceTrait,
