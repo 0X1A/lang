@@ -73,6 +73,34 @@ mod tests {
         assert_eq!(result.is_ok(), false)
     }
     #[test]
+    fn assertion() {
+        let mut lang = Lang::new(Some(
+            "
+        assert(100 == 100);
+        assert(true == true);
+        assert(1.05 == 1.05);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn assertion_failure() {
+        let mut lang = Lang::new(Some(
+            "
+        assert(0 == 100);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), false)
+    }
+    #[test]
     fn for_loop() {
         let mut lang = Lang::new(Some(
             "
@@ -82,6 +110,25 @@ mod tests {
         for (let b: bool = false; b == true; b = false) {
             print b;
         }
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn return_from_block() {
+        let mut lang = Lang::new(Some(
+            "
+        fn test() -> i32 {
+            {
+                return 100;
+            }
+        }
+        let value: i32 = test();
+        assert(value == 100);
         ",
         ));
         let result = lang.run();

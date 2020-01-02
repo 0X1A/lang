@@ -180,7 +180,24 @@ class LangTestSources(object):
             }
         }
         assert(b == false);
-        """
+        """,
+        "Return from block": """
+        fn test() -> i32 {
+            {
+                return 100;
+            }
+        }
+        let value: i32 = test();
+        assert(value == 100);
+        """,
+        "Assertion failure": """
+        assert(0 == 100);
+        """,
+        "Assertion": """
+        assert(100 == 100);
+        assert(true == true);
+        assert(1.05 == 1.05);
+        """,
     })
 
     def generate_files(self, path):
