@@ -74,7 +74,7 @@ pub struct Enum {
 #[derive(Debug, Clone)]
 pub struct SelfIndex {
     pub name: String,
-    pub env_id: EnvironmentId,
+    pub env_id: EnvironmentEntryIndex,
 }
 
 pub enum Value {
@@ -913,11 +913,11 @@ impl Display for Value {
 #[derive(Clone)]
 pub struct Callable {
     function: FunctionStmt,
-    closure: EnvironmentId,
+    closure: EnvironmentEntryIndex,
 }
 
 impl Callable {
-    pub fn new(function: FunctionStmt, closure: EnvironmentId) -> Callable {
+    pub fn new(function: FunctionStmt, closure: EnvironmentEntryIndex) -> Callable {
         Callable { function, closure }
     }
 }
@@ -1031,12 +1031,16 @@ impl CallableTrait for Callable {
             env.define(env_id, arena, &it.0.identifier, it.1.clone());
         }
         let mut return_value = TypedValue::default();
-        if let Some(value_from_block) =
-            interpreter.execute_block(&self.function.body, &mut env_id, arena, env)?
+        if let Err(value_from_block) =
+            interpreter.execute_block(&self.function.body, &mut env_id, arena, env)
         {
-            let entry = &arena[value_from_block];
-            let value: TypedValue = entry.try_into()?;
-            return_value = value;
+            if let LangErrorType::ControlFlow { subtype } = value_from_block.context.get_context() {
+                if let ControlFlow::Return { index } = subtype {
+                    let entry = &arena[*index];
+                    let value: TypedValue = entry.try_into()?;
+                    return_value = value;
+                }
+            }
         }
         debug!("return from execute_block {:?}", return_value);
         if let Some(function_return_type) = self.get_return_type() {

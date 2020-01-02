@@ -4,6 +4,8 @@ use std::{
     io, num, str, time,
 };
 
+use crate::mem::*;
+
 use nom::error::ErrorKind;
 use nom::error::ParseError;
 
@@ -62,6 +64,8 @@ pub enum ControlFlow {
     Break,
     #[fail(display = "Assert")]
     Assert,
+    #[fail(display = "Assert")]
+    Return { index: ArenaEntryIndex },
 }
 
 impl Debug for RuntimeErrorType {

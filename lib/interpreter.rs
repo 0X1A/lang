@@ -18,7 +18,7 @@ pub struct AstVisitor {}
 
 #[derive(Debug)]
 pub struct Interpreter {
-    pub env_id: EnvironmentId,
+    pub env_id: EnvironmentEntryIndex,
     pub locals: HashMap<String, usize>,
     pub arena: Arena<TypedValue>,
     pub env_entries: Environment,
@@ -716,7 +716,7 @@ impl Interpreter {
     pub fn execute_block(
         &self,
         stmts: &[Stmt],
-        env_id: &mut EnvironmentId,
+        env_id: &mut EnvironmentEntryIndex,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
@@ -726,14 +726,18 @@ impl Interpreter {
                 Stmt::Return(_) => {
                     // Set value and break early on a return
                     if let Some(index) = self.execute(&stmt, arena, env)? {
+                        debug!("return value: idx {} value {:?}", index, arena[index]);
                         env.remove_entry(*env_id);
                         *env_id = previous;
-                        return Ok(Some(index));
+                        return Err(LangError::from(LangErrorType::ControlFlow {
+                            subtype: ControlFlow::Return { index },
+                        }));
                     }
                 }
                 _ => {
                     if let Some(index) = self.execute(&stmt, arena, env)? {
                         env.remove_entry(*env_id);
+                        arena.remove(index);
                         *env_id = previous;
                         return Ok(Some(index));
                     }

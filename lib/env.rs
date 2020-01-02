@@ -12,18 +12,18 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-pub type EnvironmentId = usize;
+pub type EnvironmentEntryIndex = usize;
 
 // TODO: Generationl indices, memory management. Memory management will likely come along with
 // a VM
 #[derive(Clone, Debug)]
 pub struct EnvironmentEntry {
     pub values: HashMap<String, ArenaEntryIndex>,
-    pub enclosing: Option<EnvironmentId>,
+    pub enclosing: Option<EnvironmentEntryIndex>,
 }
 
 pub struct Environment {
-    pub root_entry_id: EnvironmentId,
+    pub root_entry_id: EnvironmentEntryIndex,
     pub entries: Vec<EnvironmentEntry>,
 }
 
@@ -56,16 +56,16 @@ impl Default for Environment {
     }
 }
 
-impl Index<EnvironmentId> for Environment {
+impl Index<EnvironmentEntryIndex> for Environment {
     type Output = EnvironmentEntry;
 
-    fn index(&self, env_id: EnvironmentId) -> &Self::Output {
+    fn index(&self, env_id: EnvironmentEntryIndex) -> &Self::Output {
         &self.entries[env_id]
     }
 }
 
-impl IndexMut<EnvironmentId> for Environment {
-    fn index_mut(&mut self, env_id: EnvironmentId) -> &mut EnvironmentEntry {
+impl IndexMut<EnvironmentEntryIndex> for Environment {
+    fn index_mut(&mut self, env_id: EnvironmentEntryIndex) -> &mut EnvironmentEntry {
         &mut self.entries[env_id]
     }
 }
@@ -83,7 +83,7 @@ impl Environment {
         });
         env
     }
-    pub fn new_entry(&mut self) -> EnvironmentId {
+    pub fn new_entry(&mut self) -> EnvironmentEntryIndex {
         let env_id = self.entries.len();
         self.entries.push(EnvironmentEntry {
             values: HashMap::new(),
@@ -119,7 +119,11 @@ impl Environment {
         )
     }
 
-    pub fn get(&self, env_id: EnvironmentId, name: &str) -> Result<ArenaEntryIndex, LangError> {
+    pub fn get(
+        &self,
+        env_id: EnvironmentEntryIndex,
+        name: &str,
+    ) -> Result<ArenaEntryIndex, LangError> {
         if self[env_id].values.contains_key(name) {
             return Ok(self[env_id].values[name]);
         } else if let Some(enclosing) = self[env_id].enclosing {
@@ -135,7 +139,7 @@ impl Environment {
 
     pub fn define(
         &mut self,
-        env_id: EnvironmentId,
+        env_id: EnvironmentEntryIndex,
         arena: &mut Arena<TypedValue>,
         name: &str,
         value: TypedValue,
@@ -154,7 +158,7 @@ impl Environment {
 
     pub fn assign(
         &mut self,
-        env_id: EnvironmentId,
+        env_id: EnvironmentEntryIndex,
         name: &str,
         value: TypedValue,
         arena: &mut Arena<TypedValue>,
@@ -191,7 +195,7 @@ impl Environment {
 
     pub fn assign_index_entry(
         &self,
-        env_id: EnvironmentId,
+        env_id: EnvironmentEntryIndex,
         name: &str,
         value: &TypedValue,
         arena: &mut Arena<TypedValue>,
@@ -233,17 +237,17 @@ impl Environment {
         ))
     }
 
-    pub fn entry_from(&mut self, enclosing: EnvironmentId) -> EnvironmentId {
+    pub fn entry_from(&mut self, enclosing: EnvironmentEntryIndex) -> EnvironmentEntryIndex {
         let new_entry = self.new_entry();
         self[new_entry].enclosing = Some(enclosing);
         new_entry
     }
 
-    pub fn remove_entry(&mut self, env_id: EnvironmentId) {
+    pub fn remove_entry(&mut self, env_id: EnvironmentEntryIndex) {
         self.entries.remove(env_id);
     }
 
-    pub fn is_defined(&self, env_id: EnvironmentId, name: String) -> bool {
+    pub fn is_defined(&self, env_id: EnvironmentEntryIndex, name: String) -> bool {
         if self[env_id].values.contains_key(&name) {
             return true;
         }
@@ -255,7 +259,7 @@ impl Environment {
 
     pub fn update_value<Closure>(
         &mut self,
-        env_id: EnvironmentId,
+        env_id: EnvironmentEntryIndex,
         name: &str,
         arena: &mut Arena<TypedValue>,
         closure: Closure,
