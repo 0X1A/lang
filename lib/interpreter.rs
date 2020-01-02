@@ -18,23 +18,15 @@ pub struct AstVisitor {}
 
 #[derive(Debug)]
 pub struct Interpreter {
-    pub env_id: EnvironmentEntryIndex,
     pub locals: HashMap<String, usize>,
-    pub arena: Arena<TypedValue>,
-    pub env_entries: Environment,
     pub ast_visitor: AstVisitor,
-    pub stack: Vec<TypedValue>,
 }
 
 impl Default for Interpreter {
     fn default() -> Interpreter {
         Interpreter {
             locals: HashMap::new(),
-            arena: Arena::with_capacity(256),
-            env_id: 0,
-            env_entries: Environment::default(),
             ast_visitor: AstVisitor {},
-            stack: Vec::new(),
         }
     }
 }
@@ -54,28 +46,21 @@ impl Interpreter {
     }
 
     pub fn new() -> Interpreter {
-        let mut env_entries = Environment::default();
-        let env_id = env_entries.new_entry();
         Interpreter {
             locals: HashMap::new(),
-            arena: Arena::with_capacity(256),
-            env_id,
-            env_entries,
             ast_visitor: AstVisitor {},
-            stack: Vec::new(),
         }
     }
 
     pub fn resolve(&mut self, token: &str, idx: usize) {
         self.locals.insert(token.into(), idx);
         debug!(
-            "{}:{} Inserting expr '{:?}' at index '{}' into locals '{:?}' and env '{:?}'",
+            "{}:{} Inserting expr '{:?}' at index '{}' into locals '{:?}'",
             file!(),
             line!(),
             token,
             idx,
             self.locals,
-            self.env_entries
         );
     }
 
@@ -653,7 +638,7 @@ impl Interpreter {
     #[inline(always)]
     pub fn interpret(&self, stmts: Vec<Stmt>) -> Result<(), LangError> {
         let mut env = Environment::new();
-        let mut arena: Arena<TypedValue> = Arena::new();
+        let mut arena: Arena<TypedValue> = Arena::with_capacity(256);
         for stmt in stmts {
             self.execute(&stmt, &mut arena, &mut env)?;
         }
