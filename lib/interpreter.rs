@@ -14,19 +14,14 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 
 #[derive(Debug)]
-pub struct AstVisitor {}
-
-#[derive(Debug)]
 pub struct Interpreter {
     pub locals: HashMap<String, usize>,
-    pub ast_visitor: AstVisitor,
 }
 
 impl Default for Interpreter {
     fn default() -> Interpreter {
         Interpreter {
             locals: HashMap::new(),
-            ast_visitor: AstVisitor {},
         }
     }
 }
@@ -48,7 +43,6 @@ impl Interpreter {
     pub fn new() -> Interpreter {
         Interpreter {
             locals: HashMap::new(),
-            ast_visitor: AstVisitor {},
         }
     }
 
