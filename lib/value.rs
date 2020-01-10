@@ -455,17 +455,22 @@ impl PartialEq for Value {
             },
             Value::Int32(lhs) => match other {
                 Value::Int32(rhs) => lhs == rhs,
+                Value::Float32(rhs) => *lhs == rhs.inner as i32,
                 _ => false,
             },
             Value::Int64(lhs) => match other {
+                Value::Int32(rhs) => *lhs == *rhs as i64,
+                Value::Float32(rhs) => *lhs == rhs.inner as i64,
                 Value::Int64(rhs) => lhs == rhs,
                 _ => false,
             },
             Value::Float32(lhs) => match other {
                 Value::Float32(rhs) => lhs == rhs,
+                Value::Int32(rhs) => lhs.inner == *rhs as f32,
                 _ => false,
             },
             Value::Float64(lhs) => match other {
+                Value::Int64(rhs) => lhs.inner == *rhs as f64,
                 Value::Float64(rhs) => lhs == rhs,
                 _ => false,
             },

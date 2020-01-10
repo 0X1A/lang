@@ -19,6 +19,118 @@ class LangTestSources(object):
 
     FILE_GENERATION_COMMENT = "// This file is auto-generated. Please do not edit it manually."
     VARIABLE_DECLARATIONS = SortedDict({
+        # Comparisons
+        # i64
+        "i64 equal": """
+        let a: i64 = 100;
+        let b: i64 = 100;
+        assert(a == b);
+        """,
+        "i64 not equal": """
+        let a: i64 = 300;
+        let b: i64 = 100;
+        assert(a != b);
+        """,
+        "i64 greater": """
+        let a: i64 = 300;
+        let b: i64 = 100;
+        assert(a > b);
+        """,
+        "i64 greater or equal": """
+        let a: i64 = 300;
+        let b: i64 = 300;
+        assert(a >= b);
+        """,
+        "i64 less": """
+        let a: i64 = 300;
+        let b: i64 = 500;
+        assert(a < b);
+        """,
+        "i64 less or equal": """
+        let a: i64 = 300;
+        let b: i64 = 300;
+        assert(a <= b);
+        """,
+        # f64
+        "f64 equal": """
+        let a: f64 = 100.00;
+        let b: f64 = 100.00;
+        assert(a == b);
+        """,
+        "f64 not equal": """
+        let a: f64 = 300.00;
+        let b: f64 = 100.00;
+        assert(a != b);
+        """,
+        "f64 greater": """
+        let a: f64 = 300.00;
+        let b: f64 = 100.00;
+        assert(a > b);
+        """,
+        "f64 greater or equal": """
+        let a: f64 = 300.00;
+        let b: f64 = 300.00;
+        assert(a >= b);
+        """,
+        "f64 less": """
+        let a: f64 = 300.00;
+        let b: f64 = 500.00;
+        assert(a < b);
+        """,
+        "f64 less or equal": """
+        let a: f64 = 300.00;
+        let b: f64 = 300.00;
+        assert(a <= b);
+        """,
+        # bool
+        "bool equal": """
+        let a: bool = false;
+        let b: bool = false;
+        assert(a == b);
+        """,
+        "bool not equal": """
+        let a: bool = false;
+        let b: bool = true;
+        assert(a != b);
+        """,
+        # array
+        "array equal": """
+        let a: Array<i32> = [0, 1, 2];
+        let b: Array<i32> = [0, 1, 2];
+        assert(a == b);
+        """,
+        "array not equal": """
+        let a: Array<i32> = [0, 1, 2];
+        let b: Array<i32> = [0, 1, 4];
+        assert(a != b);
+        """,
+        # struct vars
+        "struct vars equal": """
+        struct Test {
+            a: i32,
+            b: bool,
+            c: f64,
+        }
+        let instance: Test = Test();
+        instance.a = 100;
+        instance.b = true;
+        instance.c = 10.05;
+        assert(instance.a == 100);
+        assert(instance.b == true);
+        """,
+        "struct vars not equal": """
+        struct Test {
+            a: i32,
+            b: bool,
+            c: f64,
+        }
+        let instance: Test = Test();
+        instance.a = 100;
+        instance.b = true;
+        instance.c = 10.05;
+        assert(instance.a != 101);
+        assert(instance.b != false);
+        """,
         # Primitives
         "i64 Variable declaration": """let i: i64;""",
         "i64 Variable declaration and assignment": """let i: i64 = 0;

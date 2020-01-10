@@ -351,6 +351,66 @@ mod tests {
         assert_eq!(result.is_ok(), true)
     }
     #[test]
+    fn array_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: Array<i32> = [0, 1, 2];
+        let b: Array<i32> = [0, 1, 2];
+        assert(a == b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn array_not_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: Array<i32> = [0, 1, 2];
+        let b: Array<i32> = [0, 1, 4];
+        assert(a != b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn bool_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: bool = false;
+        let b: bool = false;
+        assert(a == b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn bool_not_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: bool = false;
+        let b: bool = true;
+        assert(a != b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
     fn f64_variable_declaration() {
         let mut lang = Lang::new(Some("let i: f64;"));
         let result = lang.run();
@@ -393,6 +453,96 @@ mod tests {
             println!("{}", error);
         }
         assert_eq!(result.is_ok(), false)
+    }
+    #[test]
+    fn f64_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: f64 = 100.00;
+        let b: f64 = 100.00;
+        assert(a == b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn f64_greater() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: f64 = 300.00;
+        let b: f64 = 100.00;
+        assert(a > b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn f64_greater_or_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: f64 = 300.00;
+        let b: f64 = 300.00;
+        assert(a >= b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn f64_less() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: f64 = 300.00;
+        let b: f64 = 500.00;
+        assert(a < b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn f64_less_or_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: f64 = 300.00;
+        let b: f64 = 300.00;
+        assert(a <= b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn f64_not_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: f64 = 300.00;
+        let b: f64 = 100.00;
+        assert(a != b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
     }
     #[test]
     fn i64_variable_declaration() {
@@ -440,5 +590,141 @@ mod tests {
             println!("{}", error);
         }
         assert_eq!(result.is_ok(), false)
+    }
+    #[test]
+    fn i64_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: i64 = 100;
+        let b: i64 = 100;
+        assert(a == b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn i64_greater() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: i64 = 300;
+        let b: i64 = 100;
+        assert(a > b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn i64_greater_or_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: i64 = 300;
+        let b: i64 = 300;
+        assert(a >= b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn i64_less() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: i64 = 300;
+        let b: i64 = 500;
+        assert(a < b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn i64_less_or_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: i64 = 300;
+        let b: i64 = 300;
+        assert(a <= b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn i64_not_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: i64 = 300;
+        let b: i64 = 100;
+        assert(a != b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn struct_vars_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        struct Test {
+            a: i32,
+            b: bool,
+            c: f64,
+        }
+        let instance: Test = Test();
+        instance.a = 100;
+        instance.b = true;
+        instance.c = 10.05;
+        assert(instance.a == 100);
+        assert(instance.b == true);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn struct_vars_not_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        struct Test {
+            a: i32,
+            b: bool,
+            c: f64,
+        }
+        let instance: Test = Test();
+        instance.a = 100;
+        instance.b = true;
+        instance.c = 10.05;
+        assert(instance.a != 101);
+        assert(instance.b != false);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
     }
 }
