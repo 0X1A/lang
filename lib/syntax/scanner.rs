@@ -11,8 +11,9 @@ use nom::branch::*;
 use nom::bytes::complete::*;
 use nom::multi::many1;
 use nom::{
-    bytes::complete::take_while1, character::complete::multispace0, character::is_alphanumeric,
-    character::is_digit, sequence::preceded, IResult,
+    bytes::complete::take_while1, character::complete::digit1, character::complete::multispace0,
+    character::is_alphanumeric, character::is_digit, combinator::recognize, sequence::delimited,
+    sequence::preceded, IResult,
 };
 use std::collections::HashMap;
 
@@ -341,34 +342,37 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError
     Ok((input, type_annotation))
 }
 
-fn lis_digit(i: char) -> bool {
-    is_digit(i as u8) || i == '.'
+fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, result) = alt((lex_float, lex_integer))(input)?;
+    Ok((input, result))
 }
 
-fn lex_digit<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+fn lex_float<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, begin) = preceded(multispace0, position)(input)?;
-    let (input, digit) = preceded(multispace0, take_while1(lis_digit))(input)?;
+    let (input, digit) =
+        preceded(multispace0, recognize(delimited(digit1, tag("."), digit1)))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
-    // TODO: Fix this parser function, we shouldn't have to waste cycles on goofy shit like this
-    if digit.input.len() == 1 && digit.input.contains('.') {
-        return Err(nom::Err::<LangError>::Error(LangError::from(
-            LangErrorType::ParserError {
-                reason: "Attempted to lex a digit that was only '.'".into(),
-            },
-        )));
-    }
-    let is_float = digit.input.contains('.');
-    let value_type = if is_float {
-        ValueType::Float
-    } else {
-        ValueType::Integer
+    let token_type = TokenType::Float;
+    let value = match Value::from_str(ValueType::Float, digit.input) {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure::<LangError>(e)),
     };
-    let token_type = if is_float {
-        TokenType::Float
-    } else {
-        TokenType::Integer
-    };
-    let value = match Value::from_str(value_type, digit.input) {
+    Ok((
+        input,
+        Token {
+            token_type,
+            span: SourceSpan::new(begin, digit, end),
+            value,
+        },
+    ))
+}
+
+fn lex_integer<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, digit) = preceded(multispace0, digit1)(input)?;
+    let (input, end) = preceded(multispace0, position)(input)?;
+    let token_type = TokenType::Integer;
+    let value = match Value::from_str(ValueType::Integer, digit.input) {
         Ok(v) => v,
         Err(e) => return Err(nom::Err::Failure::<LangError>(e)),
     };
@@ -444,6 +448,7 @@ mod scanner_tests {
             #[test]
             fn $test_name() {
                 let span = Span::new($test_string, 0, 1, 0);
+                println!("{:?}", span);
                 let result = $fn_name(span);
                 assert_eq!(result.is_ok(), $result);
                 if $result {
@@ -474,6 +479,14 @@ mod scanner_tests {
         assert_eq!(result.is_ok(), false);
     }
 
+    gen_lex_token_test!(test_lex_float, lex_float, "100.00", TokenType::Float, true);
+    gen_lex_token_test!(
+        test_lex_integer,
+        lex_integer,
+        "10",
+        TokenType::Integer,
+        true
+    );
     gen_lex_token_test!(
         test_long_lex,
         entry,
