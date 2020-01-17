@@ -400,10 +400,9 @@ impl Interpreter {
                         ))
                     }
                     Value::Float64(f) => {
-                        return Ok(Some(arena.insert(TypedValue::new(
-                            Value::Float64(Float64::from(-f.inner)),
-                            TypeAnnotation::F64,
-                        ))))
+                        return Ok(Some(
+                            arena.insert(TypedValue::new(Value::Float64(-f), TypeAnnotation::F64)),
+                        ))
                     }
                     _ => {
                         return Ok(Some(

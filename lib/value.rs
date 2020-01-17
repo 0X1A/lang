@@ -17,55 +17,9 @@ use std::{
 
 use crate::type_checker::TypeChecker;
 
-#[derive(Clone, Copy, PartialOrd, Debug)]
-pub struct Float64 {
-    pub inner: f64,
-}
+type Float64 = f64;
 
-impl Float64 {
-    #[inline(always)]
-    pub fn from(f: f64) -> Float64 {
-        Float64 { inner: f }
-    }
-}
-
-impl PartialEq for Float64 {
-    #[inline(always)]
-    fn eq(&self, other: &Float64) -> bool {
-        self.inner == other.inner
-    }
-}
-
-impl Display for Float64 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.inner)
-    }
-}
-
-#[derive(Clone, Copy, PartialOrd, Debug)]
-pub struct Float32 {
-    pub inner: f32,
-}
-
-impl Float32 {
-    #[inline(always)]
-    pub fn from(f: f32) -> Float32 {
-        Float32 { inner: f }
-    }
-}
-
-impl PartialEq for Float32 {
-    #[inline(always)]
-    fn eq(&self, other: &Float32) -> bool {
-        self.inner == other.inner
-    }
-}
-
-impl Display for Float32 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.inner)
-    }
-}
+type Float32 = f32;
 
 pub struct Enum {
     pub values: HashMap<String, Value>,
@@ -178,11 +132,9 @@ impl Value {
             ValueType::Float => {
                 let value = lexeme.to_string().parse::<f64>()?;
                 if value as f32 <= std::f32::MAX && value as f32 >= std::f32::MIN {
-                    Value::Float32(Float32 {
-                        inner: value as f32,
-                    })
+                    Value::Float32(value as f32)
                 } else {
-                    Value::Float64(Float64 { inner: value })
+                    Value::Float64(value)
                 }
             }
             ValueType::Boolean => {
@@ -232,7 +184,7 @@ impl Value {
     pub fn as_array_index(&self) -> Result<usize, LangError> {
         match self {
             Value::Int64(i) => Ok(*i as usize),
-            Value::Float64(f) => Ok(f.inner as usize),
+            Value::Float64(f) => Ok(*f as usize),
             Value::Boolean(b) => Ok(*b as usize),
             _ => Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
@@ -261,17 +213,17 @@ impl Add for Value {
         match self {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs + rhs),
-                Value::Float64(rhs) => Value::Int64(lhs + rhs.inner as i64),
+                Value::Float64(rhs) => Value::Int64(lhs + rhs as i64),
                 _ => Value::Int64(lhs),
             },
             Value::Int32(lhs) => match other {
                 Value::Int32(rhs) => Value::Int32(lhs + rhs),
-                Value::Float32(rhs) => Value::Int32(lhs + rhs.inner as i32),
+                Value::Float32(rhs) => Value::Int32(lhs + rhs as i32),
                 _ => Value::Int32(lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner + rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner + rhs.inner)),
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs + rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs + rhs)),
                 _ => Value::Float64(lhs),
             },
             Value::String(lhs) => match other {
@@ -291,17 +243,17 @@ impl<'a> Add for &'a Value {
         match self {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs + rhs),
-                Value::Float64(rhs) => Value::Int64(lhs + rhs.inner as i64),
+                Value::Float64(rhs) => Value::Int64(lhs + *rhs as i64),
                 _ => Value::Int64(*lhs),
             },
             Value::Int32(lhs) => match other {
                 Value::Int32(rhs) => Value::Int32(lhs + rhs),
-                Value::Float32(rhs) => Value::Int32(lhs + rhs.inner as i32),
+                Value::Float32(rhs) => Value::Int32(lhs + *rhs as i32),
                 _ => Value::Int32(*lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner + *rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner + rhs.inner)),
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs + *rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs + rhs)),
                 _ => Value::Float64(*lhs),
             },
             Value::String(lhs) => match other {
@@ -321,12 +273,12 @@ impl Sub for Value {
         match self {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs - rhs),
-                Value::Float64(rhs) => Value::Int64(lhs - rhs.inner as i64),
+                Value::Float64(rhs) => Value::Int64(lhs - rhs as i64),
                 _ => Value::Int64(lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner - rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner - rhs.inner)),
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs - rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs - rhs)),
                 _ => Value::Float64(lhs),
             },
             _ => self,
@@ -342,12 +294,12 @@ impl<'a> Sub for &'a Value {
         match self {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs - rhs),
-                Value::Float64(rhs) => Value::Int64(lhs - rhs.inner as i64),
+                Value::Float64(rhs) => Value::Int64(lhs - *rhs as i64),
                 _ => Value::Int64(*lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner - *rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner - rhs.inner)),
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs - *rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs - rhs)),
                 _ => Value::Float64(*lhs),
             },
             _ => self.clone(),
@@ -363,12 +315,12 @@ impl Mul for Value {
         match self {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs * rhs),
-                Value::Float64(rhs) => Value::Int64(lhs * rhs.inner as i64),
+                Value::Float64(rhs) => Value::Int64(lhs * rhs as i64),
                 _ => Value::Int64(lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner * rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner * rhs.inner)),
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs * rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs * rhs)),
                 _ => Value::Float64(lhs),
             },
             _ => self,
@@ -384,12 +336,12 @@ impl<'a> Mul for &'a Value {
         match self {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs * rhs),
-                Value::Float64(rhs) => Value::Int64(lhs * rhs.inner as i64),
+                Value::Float64(rhs) => Value::Int64(lhs * (*rhs) as i64),
                 _ => Value::Int64(*lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner * (*rhs as f64))),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner * rhs.inner)),
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs * (*rhs as f64))),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs * rhs)),
                 _ => Value::Float64(*lhs),
             },
             _ => self.clone(),
@@ -405,12 +357,12 @@ impl Div for Value {
         match self {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs / rhs),
-                Value::Float64(rhs) => Value::Int64(lhs / rhs.inner as i64),
+                Value::Float64(rhs) => Value::Int64(lhs / rhs as i64),
                 _ => Value::Int64(lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner / rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner / rhs.inner)),
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs / rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs / rhs)),
                 _ => Value::Float64(lhs),
             },
             _ => self,
@@ -426,12 +378,12 @@ impl<'a> Div for &'a Value {
         match self {
             Value::Int64(lhs) => match other {
                 Value::Int64(rhs) => Value::Int64(lhs / rhs),
-                Value::Float64(rhs) => Value::Int64(lhs / rhs.inner as i64),
+                Value::Float64(rhs) => Value::Int64(lhs / *rhs as i64),
                 _ => Value::Int64(*lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs.inner / *rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs.inner / rhs.inner)),
+                Value::Int64(rhs) => Value::Float64(Float64::from(lhs / *rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(Float64::from(lhs / rhs)),
                 _ => Value::Float64(*lhs),
             },
             _ => self.clone(),
@@ -455,22 +407,22 @@ impl PartialEq for Value {
             },
             Value::Int32(lhs) => match other {
                 Value::Int32(rhs) => lhs == rhs,
-                Value::Float32(rhs) => *lhs == rhs.inner as i32,
+                Value::Float32(rhs) => *lhs == *rhs as i32,
                 _ => false,
             },
             Value::Int64(lhs) => match other {
                 Value::Int32(rhs) => *lhs == *rhs as i64,
-                Value::Float32(rhs) => *lhs == rhs.inner as i64,
+                Value::Float32(rhs) => *lhs == *rhs as i64,
                 Value::Int64(rhs) => lhs == rhs,
                 _ => false,
             },
             Value::Float32(lhs) => match other {
                 Value::Float32(rhs) => lhs == rhs,
-                Value::Int32(rhs) => lhs.inner == *rhs as f32,
+                Value::Int32(rhs) => *lhs == *rhs as f32,
                 _ => false,
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => lhs.inner == *rhs as f64,
+                Value::Int64(rhs) => *lhs == *rhs as f64,
                 Value::Float64(rhs) => lhs == rhs,
                 _ => false,
             },
@@ -713,7 +665,7 @@ impl TypedValue {
         match self.value {
             Value::Int64(i) => Ok(i as usize),
             Value::Int32(i) => Ok(i as usize),
-            Value::Float64(f) => Ok(f.inner as usize),
+            Value::Float64(f) => Ok(f as usize),
             Value::Boolean(b) => Ok(b as usize),
             _ => Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::GenericError {
@@ -924,16 +876,6 @@ pub struct Callable {
 impl Callable {
     pub fn new(function: FunctionStmt, closure: EnvironmentEntryIndex) -> Callable {
         Callable { function, closure }
-    }
-}
-
-impl Hash for Float64 {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: Hasher,
-    {
-        let addr = self as *const Float64 as u64;
-        addr.hash(state);
     }
 }
 
