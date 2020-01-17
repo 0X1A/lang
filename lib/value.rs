@@ -149,8 +149,8 @@ impl Value {
         match type_annotation {
             TypeAnnotation::I32 => Value::Int32(0),
             TypeAnnotation::I64 => Value::Int64(0),
-            TypeAnnotation::F32 => Value::Float32(Float32::from(0.0)),
-            TypeAnnotation::F64 => Value::Float64(Float64::from(0.0)),
+            TypeAnnotation::F32 => Value::Float32(0.0),
+            TypeAnnotation::F64 => Value::Float64(0.0),
             TypeAnnotation::Bool => Value::Boolean(false),
             TypeAnnotation::String => Value::String(String::new()),
             TypeAnnotation::Array(_) => Value::Array(Vec::new()),
@@ -222,8 +222,8 @@ impl Add for Value {
                 _ => Value::Int32(lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs + rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs + rhs)),
+                Value::Int64(rhs) => Value::Float64(lhs + rhs as f64),
+                Value::Float64(rhs) => Value::Float64(lhs + rhs),
                 _ => Value::Float64(lhs),
             },
             Value::String(lhs) => match other {
@@ -252,8 +252,8 @@ impl<'a> Add for &'a Value {
                 _ => Value::Int32(*lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs + *rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs + rhs)),
+                Value::Int64(rhs) => Value::Float64(lhs + *rhs as f64),
+                Value::Float64(rhs) => Value::Float64(lhs + rhs),
                 _ => Value::Float64(*lhs),
             },
             Value::String(lhs) => match other {
@@ -277,8 +277,8 @@ impl Sub for Value {
                 _ => Value::Int64(lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs - rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs - rhs)),
+                Value::Int64(rhs) => Value::Float64(lhs - rhs as f64),
+                Value::Float64(rhs) => Value::Float64(lhs - rhs),
                 _ => Value::Float64(lhs),
             },
             _ => self,
@@ -298,8 +298,8 @@ impl<'a> Sub for &'a Value {
                 _ => Value::Int64(*lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs - *rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs - rhs)),
+                Value::Int64(rhs) => Value::Float64(lhs - *rhs as f64),
+                Value::Float64(rhs) => Value::Float64(lhs - rhs),
                 _ => Value::Float64(*lhs),
             },
             _ => self.clone(),
@@ -319,8 +319,8 @@ impl Mul for Value {
                 _ => Value::Int64(lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs * rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs * rhs)),
+                Value::Int64(rhs) => Value::Float64(lhs * rhs as f64),
+                Value::Float64(rhs) => Value::Float64(lhs * rhs),
                 _ => Value::Float64(lhs),
             },
             _ => self,
@@ -340,8 +340,8 @@ impl<'a> Mul for &'a Value {
                 _ => Value::Int64(*lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs * (*rhs as f64))),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs * rhs)),
+                Value::Int64(rhs) => Value::Float64(lhs * (*rhs as f64)),
+                Value::Float64(rhs) => Value::Float64(lhs * rhs),
                 _ => Value::Float64(*lhs),
             },
             _ => self.clone(),
@@ -361,8 +361,8 @@ impl Div for Value {
                 _ => Value::Int64(lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs / rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs / rhs)),
+                Value::Int64(rhs) => Value::Float64(lhs / rhs as f64),
+                Value::Float64(rhs) => Value::Float64(lhs / rhs),
                 _ => Value::Float64(lhs),
             },
             _ => self,
@@ -382,8 +382,8 @@ impl<'a> Div for &'a Value {
                 _ => Value::Int64(*lhs),
             },
             Value::Float64(lhs) => match other {
-                Value::Int64(rhs) => Value::Float64(Float64::from(lhs / *rhs as f64)),
-                Value::Float64(rhs) => Value::Float64(Float64::from(lhs / rhs)),
+                Value::Int64(rhs) => Value::Float64(lhs / *rhs as f64),
+                Value::Float64(rhs) => Value::Float64(lhs / rhs),
                 _ => Value::Float64(*lhs),
             },
             _ => self.clone(),
