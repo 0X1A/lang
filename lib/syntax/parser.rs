@@ -238,6 +238,14 @@ impl<'a> Parser<'a> {
                 Value::Boolean(false),
                 TypeAnnotation::Bool,
             )))));
+        } else if self.matches(&[TokenType::Char]) {
+            let value = self.previous().value;
+            if let Value::Char(ch) = value {
+                return Ok(Expr::Literal(Box::new(LiteralExpr::new(TypedValue::new(
+                    Value::Char(ch),
+                    TypeAnnotation::Char,
+                )))));
+            }
         } else if self.matches(&[TokenType::True]) {
             return Ok(Expr::Literal(Box::new(LiteralExpr::new(TypedValue::new(
                 Value::Boolean(true),

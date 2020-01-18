@@ -11,10 +11,10 @@ use nom::branch::*;
 use nom::bytes::complete::*;
 use nom::multi::many1;
 use nom::{
-    bytes::complete::escaped, bytes::complete::take_while1, character::complete::alphanumeric1,
-    character::complete::digit1, character::complete::multispace0, character::complete::one_of,
-    character::is_alphanumeric, character::is_digit, combinator::recognize, sequence::delimited,
-    sequence::preceded, IResult,
+    bytes::complete::escaped, bytes::complete::take, bytes::complete::take_while1,
+    character::complete::alphanumeric1, character::complete::digit1,
+    character::complete::multispace0, character::complete::one_of, character::is_alphanumeric,
+    character::is_digit, combinator::recognize, sequence::delimited, sequence::preceded, IResult,
 };
 use std::collections::HashMap;
 
@@ -140,6 +140,7 @@ gen_lex_token!(lex_star, "*", TokenType::Star);
 gen_lex_token!(lex_equal, "=", TokenType::Equal);
 gen_lex_token!(lex_slash, "/", TokenType::Slash);
 gen_lex_token!(lex_return_type, "->", TokenType::ReturnType);
+gen_lex_token!(lex_single_quote, "'", TokenType::SingleQuote);
 gen_lex_token!(lex_double_quote, "\"", TokenType::DoubleQuote);
 
 // Logical
@@ -177,6 +178,7 @@ fn entry<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
         lex_ident,
         lex_keyword,
         lex_string,
+        lex_char,
         lex_symbol,
     ))(input)?;
     Ok((input, result))
@@ -272,6 +274,36 @@ fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
             value,
         },
     ))
+}
+
+fn lex_char_content<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, begin) = preceded(multispace0, position)(input)?;
+    let (input, content) = take(1usize)(input)?;
+    let (input, end) = preceded(multispace0, position)(input)?;
+    if let Some(ch) = content.input.chars().nth(0) {
+        let value = Value::Char(ch);
+        Ok((
+            input,
+            Token {
+                token_type: TokenType::Char,
+                span: SourceSpan::new(begin, content, end),
+                value,
+            },
+        ))
+    } else {
+        Err(nom::Err::<LangError>::Error(LangError::from(
+            LangErrorType::ParserError {
+                reason: "Tried to lex a character but failed".into(),
+            },
+        )))
+    }
+}
+
+fn lex_char<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
+    let (input, _) = lex_single_quote(input)?;
+    let (input, ch) = lex_char_content(input)?;
+    let (input, _) = lex_single_quote(input)?;
+    Ok((input, ch))
 }
 
 fn lex_string_content<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
@@ -478,6 +510,7 @@ mod scanner_tests {
         assert_eq!(result.is_ok(), false);
     }
 
+    gen_lex_token_test!(test_lex_char, lex_char, "'a'", TokenType::Char, true);
     gen_lex_token_test!(test_lex_float, lex_float, "100.00", TokenType::Float, true);
     gen_lex_token_test!(
         test_lex_integer,
