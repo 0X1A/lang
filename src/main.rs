@@ -19,6 +19,8 @@ fn main() -> Result<(), LangError> {
                     result = Lang::new(Some(&content)).print_ast();
                 } else if arg_matches.is_present("print_tokens") {
                     result = Lang::new(Some(&content)).print_tokens();
+                } else if arg_matches.is_present("print_statements") {
+                    result = Lang::new(Some(&content)).print_statements();
                 } else {
                     result = Lang::new(Some(&content)).run();
                 }

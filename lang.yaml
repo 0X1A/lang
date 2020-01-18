@@ -9,7 +9,10 @@ args:
       help: Print debug information inline
   - print_tokens:
       long: print_tokens
-      help: Print the tokens
+      help: Print the for the source file given
+  - print_statements:
+      long: print_statements
+      help: Print the statements for the source file given
   - print_ast:
       short: p
       long: printast

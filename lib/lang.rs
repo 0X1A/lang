@@ -47,6 +47,19 @@ impl<'a> Lang<'a> {
         Ok(())
     }
 
+    pub fn print_statements(&mut self) -> Result<(), LangError> {
+        if let Some(ref mut scanner) = self.scanner {
+            let source = scanner.source;
+            let tokens: Vec<Token> = scanner.scan_tokens()?;
+            let mut parser = Parser::new(source, tokens);
+            let statements = parser.parse()?;
+            for statement in statements.iter() {
+                println!("{:?}", statement)
+            }
+        }
+        Ok(())
+    }
+
     pub fn build_statements(&mut self) -> Result<Vec<Stmt>, LangError> {
         if let Some(ref mut scanner) = self.scanner {
             let source = scanner.source;
