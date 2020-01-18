@@ -11,7 +11,8 @@ use nom::branch::*;
 use nom::bytes::complete::*;
 use nom::multi::many1;
 use nom::{
-    bytes::complete::take_while1, character::complete::digit1, character::complete::multispace0,
+    bytes::complete::escaped, bytes::complete::take_while1, character::complete::alphanumeric1,
+    character::complete::digit1, character::complete::multispace0, character::complete::one_of,
     character::is_alphanumeric, character::is_digit, combinator::recognize, sequence::delimited,
     sequence::preceded, IResult,
 };
@@ -160,6 +161,7 @@ gen_lex_token!(lex_i32_type, "i32", TokenType::Type(TypeAnnotation::I32));
 gen_lex_token!(lex_i64_type, "i64", TokenType::Type(TypeAnnotation::I64));
 gen_lex_token!(lex_f32_type, "f32", TokenType::Type(TypeAnnotation::F32));
 gen_lex_token!(lex_f64_type, "f64", TokenType::Type(TypeAnnotation::F64));
+gen_lex_token!(lex_char_type, "char", TokenType::Type(TypeAnnotation::Char));
 gen_lex_token!(lex_bool_type, "bool", TokenType::Type(TypeAnnotation::Bool));
 //gen_lex_token!(lex_fn_type, "fn", TokenType::Type(TypeAnnotation::Fn));
 gen_lex_token!(
@@ -272,13 +274,9 @@ fn lex_ident<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangErro
     ))
 }
 
-fn is_allowable_string_content(input: char) -> bool {
-    input != '"'
-}
-
 fn lex_string_content<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError> {
     let (input, begin) = preceded(multispace0, position)(input)?;
-    let (input, content) = take_while1(is_allowable_string_content)(input)?;
+    let (input, content) = escaped(alt((alphanumeric1, tag(" "))), '\\', one_of("\"n\\"))(input)?;
     let (input, end) = preceded(multispace0, position)(input)?;
     let value = match Value::from_str(ValueType::String, content.input) {
         Ok(v) => v,
@@ -334,6 +332,7 @@ fn lex_type<'a>(input: Span<&'a str>) -> IResult<Span<&'a str>, Token, LangError
         lex_i64_type,
         lex_f32_type,
         lex_f64_type,
+        lex_char_type,
         lex_bool_type,
         // lex_fn_type,
         lex_array,

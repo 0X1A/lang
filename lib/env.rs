@@ -273,9 +273,18 @@ impl Environment {
                 ArenaEntry::Occupied(v) => v,
                 ArenaEntry::Emtpy => panic!(),
             };
+            debug!(
+                "{}:{} Updating value in env with identifier '{}'",
+                file!(),
+                line!(),
+                name
+            );
             closure(value)?;
         } else {
-            debug!("{}:{} Didn't find the thing :O", file!(), line!());
+            return Err(Lang::error_s(
+                name,
+                &format!("Tried to update an undefined identifier: '{}'", name),
+            ));
         }
         Ok(())
     }

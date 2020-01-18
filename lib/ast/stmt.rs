@@ -57,10 +57,14 @@ pub struct ImplStmt {
     pub fn_declarations: Vec<Stmt>,
 }
 
+/// Implementation of a trait by a instance of a type with identifier 'impl_name'
 #[derive(Clone, Debug)]
 pub struct ImplTraitStmt {
+    /// Name of trait to be implemented
     pub trait_name: String,
+    /// Identifier of type that will implement trait_name
     pub impl_name: String,
+    /// Function declarations for trait
     pub fn_declarations: Vec<Stmt>,
 }
 

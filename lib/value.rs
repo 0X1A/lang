@@ -36,6 +36,7 @@ pub enum Value {
     Callable(Box<dyn CallableTrait>),
     Enum(Box<Enum>),
     String(String),
+    Char(char),
     Int32(i32),
     Int64(i64),
     Float32(Float32),
@@ -164,6 +165,7 @@ impl Value {
     pub fn type_to_str(&self) -> &str {
         match self {
             Value::Struct(_) => "struct",
+            Value::Char(_) => "char",
             Value::SelfIndex(_) => "self",
             Value::Callable(_) => "callable",
             Value::String(_) => "string",
@@ -397,6 +399,10 @@ impl Eq for Value {}
 impl PartialEq for Value {
     fn eq(&self, other: &Value) -> bool {
         match self {
+            Value::Char(lhs) => match other {
+                Value::Char(rhs) => lhs == rhs,
+                _ => false,
+            },
             Value::Struct(_) => false,
             Value::SelfIndex(_) => false,
             Value::Callable(_) => false,
@@ -494,6 +500,10 @@ impl Clone for Box<dyn StructInstanceTrait> {
 impl Ord for Value {
     fn cmp(&self, other: &Value) -> Ordering {
         match self {
+            Value::Char(lhs) => match other {
+                Value::Char(rhs) => lhs.cmp(rhs),
+                _ => Ordering::Less,
+            },
             Value::Struct(_) => Ordering::Less,
             Value::SelfIndex(_) => Ordering::Less,
             Value::Callable(_) => Ordering::Less,
@@ -569,6 +579,7 @@ impl Clone for Value {
     fn clone(&self) -> Value {
         match self {
             Value::Struct(s) => Value::Struct(s.clone()),
+            Value::Char(ch) => Value::Char(*ch),
             Value::SelfIndex(s) => Value::SelfIndex(s.clone()),
             Value::Enum(_) => unimplemented!(),
             Value::Callable(c) => Value::Callable(c.clone()),
@@ -595,6 +606,7 @@ impl Debug for Value {
                 "Value::Struct({})",
                 struct_value.struct_trait().get_name()
             ),
+            Value::Char(ch) => write!(f, "Value::Char({})", ch),
             Value::SelfIndex(self_index) => write!(
                 f,
                 "Value::SelfIndex({}, {})",
@@ -838,6 +850,7 @@ impl StructTrait for StructValue {
 impl Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Value::Char(c) => return write!(f, "{}", c),
             Value::Struct(s) => return write!(f, "{}", s.struct_trait().get_name()),
             Value::SelfIndex(s) => return write!(f, "{}, {}", s.name, s.env_id),
             Value::Enum(_) => unimplemented!(),

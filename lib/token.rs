@@ -13,6 +13,7 @@ pub enum TypeAnnotation {
     F32,
     F64,
     String,
+    Char,
     Bool,
     Trait,
     Unit,
@@ -81,6 +82,7 @@ impl Display for TypeAnnotation {
             TypeAnnotation::Unit => write!(f, "()"),
             TypeAnnotation::Fn => write!(f, "fn"),
             TypeAnnotation::String => write!(f, "String"),
+            TypeAnnotation::Char => write!(f, "char"),
             TypeAnnotation::Array(array) => write!(f, "Array<{}>", array.to_string()),
             TypeAnnotation::User(user_type) => write!(f, "{}", user_type.clone()),
         }
@@ -90,6 +92,10 @@ impl Display for TypeAnnotation {
 impl PartialEq for TypeAnnotation {
     fn eq(&self, other: &TypeAnnotation) -> bool {
         match self {
+            TypeAnnotation::Char => match other {
+                TypeAnnotation::Char => true,
+                _ => false,
+            },
             TypeAnnotation::I32 => match other {
                 TypeAnnotation::I32 => true,
                 _ => false,
@@ -184,6 +190,8 @@ pub enum TokenType {
     Integer,
     And,
     Struct,
+    SingleQuote,
+    Char,
     DoubleQuote,
     Else,
     False,
@@ -246,6 +254,8 @@ impl Display for TokenType {
             TokenType::EqualEqual => write!(f, "=="),
             TokenType::Greater => write!(f, ">"),
             TokenType::GreaterEqual => write!(f, ">="),
+            TokenType::Char => write!(f, "char"),
+            TokenType::SingleQuote => write!(f, "'"),
             TokenType::DoubleQuote => write!(f, "\""),
             TokenType::Less => write!(f, "<"),
             TokenType::LessEqual => write!(f, "<="),
