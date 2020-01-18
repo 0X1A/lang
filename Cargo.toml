@@ -18,7 +18,7 @@ name = "lang"
 path = "lib/lib.rs"
 
 [dev-dependencies]
-criterion = "0.2.11"
+criterion = "0.3"
 
 [[bench]]
 name = "lib"
