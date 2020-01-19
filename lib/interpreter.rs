@@ -655,14 +655,16 @@ impl Interpreter {
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         debug!(
-            "{}:{} Looking for token '{:?}' within env '{:?}', arena '{:?}' and locals\n'{}'",
+            "{}:{} Looking for token '{:?}' within env '{:?}', locals\n'{}'\n and arena:",
             file!(),
             line!(),
             token,
             env,
-            arena,
             self.pretty_print_locals()
         );
+        for entry in arena.entries().iter() {
+            debug!("{:?}", entry);
+        }
         if let Some(distance) = self.locals.get(token) {
             if let Ok(value_index) = env.get(*distance, &token) {
                 let arena_entry = &arena[value_index];

@@ -110,6 +110,10 @@ impl<T> Arena<T> {
         }
     }
 
+    pub fn entries(&self) -> &Vec<ArenaEntry<T>> {
+        &self.entries
+    }
+
     pub fn reserve(&mut self, capacity: usize) {
         self.entries.reserve_exact(capacity)
     }
