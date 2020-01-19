@@ -20,6 +20,37 @@ class LangTestSources(object):
     FILE_GENERATION_COMMENT = "// This file is auto-generated. Please do not edit it manually."
     VARIABLE_DECLARATIONS = SortedDict({
         # Comparisons
+        # char
+        "char equal": """
+        let a: char = 'a';
+        let b: char = 'a';
+        assert(a == b);
+        """,
+        "char not equal": """
+        let a: char = 'a';
+        let b: char = 'b';
+        assert(a != b);
+        """,
+        "char greater": """
+        let a: i64 = 300;
+        let b: i64 = 100;
+        assert(a > b);
+        """,
+        "char greater or equal": """
+        let a: char = 'b';
+        let b: char = 'b';
+        assert(a >= b);
+        """,
+        "char less": """
+        let a: char = 'a';
+        let b: char = 'c';
+        assert(a < b);
+        """,
+        "char less or equal": """
+        let a: char = 'd';
+        let b: char = 'd';
+        assert(a <= b);
+        """,
         # i64
         "i64 equal": """
         let a: i64 = 100;

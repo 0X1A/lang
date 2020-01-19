@@ -411,6 +411,96 @@ mod tests {
         assert_eq!(result.is_ok(), true)
     }
     #[test]
+    fn char_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: char = 'a';
+        let b: char = 'a';
+        assert(a == b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn char_greater() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: i64 = 300;
+        let b: i64 = 100;
+        assert(a > b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn char_greater_or_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: char = 'b';
+        let b: char = 'b';
+        assert(a >= b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn char_less() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: char = 'a';
+        let b: char = 'c';
+        assert(a < b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn char_less_or_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: char = 'd';
+        let b: char = 'd';
+        assert(a <= b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn char_not_equal() {
+        let mut lang = Lang::new(Some(
+            "
+        let a: char = 'a';
+        let b: char = 'b';
+        assert(a != b);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
     fn f64_variable_declaration() {
         let mut lang = Lang::new(Some("let i: f64;"));
         let result = lang.run();
