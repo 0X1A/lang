@@ -141,15 +141,19 @@ impl Interpreter {
             match &value.value {
                 Value::Struct(_) => {
                     let struct_value: &dyn StructInstanceTrait = (&value.value).try_into()?;
-                    let field = struct_value.get_field(&get_expr.name, env, arena, self)?;
-                    index = Some(arena.insert(field));
+                    let field = struct_value.get_field(&get_expr.name)?;
+                    let field_value_entry = &arena[field];
+                    let field_value: TypedValue = field_value_entry.try_into()?;
+                    index = Some(arena.insert(field_value));
                 }
                 Value::SelfIndex(s) => {
                     let nvalue_entry = &arena[env.get(s.env_id, &s.name)?];
                     let nvalue: TypedValue = nvalue_entry.try_into()?;
                     let struct_value: &dyn StructInstanceTrait = (&nvalue.value).try_into()?;
-                    let field = struct_value.get_field(&get_expr.name, env, arena, self)?;
-                    index = Some(arena.insert(field));
+                    let field = struct_value.get_field(&get_expr.name)?;
+                    let field_value_entry = &arena[field];
+                    let field_value: TypedValue = field_value_entry.try_into()?;
+                    index = Some(arena.insert(field_value));
                 }
                 _ => {}
             }
@@ -230,14 +234,12 @@ impl Interpreter {
                     &arena,
                     &impl_trait_stmt.trait_name,
                 )?;
+                let fn_index = arena.insert(TypedValue::new(function.clone(), TypeAnnotation::Fn));
                 let update_struct_decl_closure =
                     |struct_value: &mut TypedValue| -> Result<(), LangError> {
                         let struct_value: &mut dyn StructInstanceTrait =
                             (&mut struct_value.value).try_into()?;
-                        struct_value.define_method(
-                            &function_statement.name,
-                            TypedValue::new(function.clone(), TypeAnnotation::Fn),
-                        )?;
+                        struct_value.define_method(&function_statement.name, fn_index)?;
                         Ok(())
                     };
                 env.update_value(
@@ -305,13 +307,11 @@ impl Interpreter {
                     *function_statement.clone(),
                     env.root_entry_id,
                 )));
+                let fn_index = arena.insert(TypedValue::new(function, TypeAnnotation::Fn));
                 let update_struct = |struct_value: &mut TypedValue| -> Result<(), LangError> {
                     let struct_value: &mut dyn StructInstanceTrait =
                         (&mut struct_value.value).try_into()?;
-                    struct_value.define_method(
-                        &function_statement.name,
-                        TypedValue::new(function, TypeAnnotation::Fn),
-                    )?;
+                    struct_value.define_method(&function_statement.name, fn_index)?;
                     Ok(())
                 };
                 env.update_value(env.root_entry_id, &impl_stmt.name, arena, update_struct)?;
@@ -334,13 +334,7 @@ impl Interpreter {
         );
         let mut fields = HashMap::new();
         for field in struct_stmt.fields.iter() {
-            fields.insert(
-                field.identifier.clone(),
-                TypedValue::new(
-                    Value::default_value(&field.type_annotation),
-                    field.type_annotation.clone(),
-                ),
-            );
+            fields.insert(field.identifier.clone(), 0);
         }
         let struct_value = Value::Struct(Box::new(StructValue::new(
             struct_stmt.clone(),
@@ -481,7 +475,8 @@ impl Interpreter {
                                 },
                             ));
                         }
-                        struct_value.set_field(&set_expr.name, &value)?;
+                        let field_index = struct_value.get_field(&set_expr.name)?;
+                        arena[field_index] = ArenaEntry::Occupied(value);
                         return Ok(None);
                     }
                 }
@@ -497,19 +492,8 @@ impl Interpreter {
                             },
                         ));
                     }
-                    if let Expr::Variable(ref var) = set_expr.object {
-                        env.update_value(
-                            env.root_entry_id,
-                            &var.name,
-                            arena,
-                            |struct_value: &mut TypedValue| -> Result<(), LangError> {
-                                let struct_value: &mut dyn StructInstanceTrait =
-                                    (&mut struct_value.value).try_into()?;
-                                struct_value.set_field(&set_expr.name, &value)?;
-                                Ok(())
-                            },
-                        )?;
-                    }
+                    let field_value = struct_value.get_field(&set_expr.name)?;
+                    arena[field_value] = ArenaEntry::Occupied(value);
                 }
                 _ => {
                     return Err(LangErrorType::new_runtime_error(

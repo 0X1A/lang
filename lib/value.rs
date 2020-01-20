@@ -706,15 +706,15 @@ impl TypedValue {
 #[derive(Clone, Debug)]
 pub struct StructValue {
     struct_stmt: StructStmt,
-    fields: HashMap<String, TypedValue>,
-    methods: HashMap<String, TypedValue>,
+    fields: HashMap<String, ArenaEntryIndex>,
+    methods: HashMap<String, ArenaEntryIndex>,
     instance_name: String,
 }
 
 impl StructValue {
     pub fn new(
         struct_stmt: StructStmt,
-        fields: HashMap<String, TypedValue>,
+        fields: HashMap<String, ArenaEntryIndex>,
         instance_name: String,
     ) -> StructValue {
         StructValue {
@@ -755,13 +755,18 @@ impl CallableTrait for StructValue {
     // TODO: This should take constructor args
     fn call(
         &self,
-        _: &mut Arena<TypedValue>,
+        arena: &mut Arena<TypedValue>,
         _: &mut Environment,
         _: &Interpreter,
-        _: Vec<ArenaEntryIndex>,
+        args: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError> {
+        let mut new_instance = self.clone();
+        for field in new_instance.fields.iter_mut() {
+            let field_index = arena.insert(TypedValue::default());
+            *field.1 = field_index;
+        }
         Ok(TypedValue::new(
-            Value::Struct(Box::new(self.clone())),
+            Value::Struct(Box::new(new_instance)),
             TypeAnnotation::User(CallableTrait::get_name(self)),
         ))
     }
@@ -785,16 +790,10 @@ impl StructTrait for StructValue {
         self.fields.contains_key(name)
     }
 
-    fn get_field(
-        &self,
-        name: &str,
-        env: &mut Environment,
-        arena: &mut Arena<TypedValue>,
-        _: &Interpreter,
-    ) -> Result<TypedValue, LangError> {
+    fn get_field(&self, name: &str) -> Result<ArenaEntryIndex, LangError> {
         self.fields.get(name).map_or(
             {
-                if let Ok(method) = self.get_method(name, env, arena) {
+                if let Ok(method) = self.get_method(name) {
                     return Ok(method);
                 }
                 Err(LangErrorType::new_runtime_error(
@@ -803,47 +802,36 @@ impl StructTrait for StructValue {
                     },
                 ))
             },
-            |value| Ok(value.clone()),
+            |value| Ok(*value),
         )
     }
 
-    fn define_method(&mut self, name: &str, value: TypedValue) -> Result<(), LangError> {
-        self.methods.insert(name.into(), value);
+    fn define_method(&mut self, name: &str, value_index: ArenaEntryIndex) -> Result<(), LangError> {
+        self.methods.insert(name.into(), value_index);
         Ok(())
     }
 
-    fn get_method(
-        &self,
-        name: &str,
-        env: &mut Environment,
-        arena: &mut Arena<TypedValue>,
-    ) -> Result<TypedValue, LangError> {
+    fn get_method(&self, name: &str) -> Result<ArenaEntryIndex, LangError> {
         self.methods.get(name).map_or(
             Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::UndefinedVariable {
                     reason: format!("tried to get an undefined method: '{}'", name),
                 },
             )),
-            |value| {
-                let callable_value = value.clone();
-                {
-                    let callable: &dyn CallableTrait = (&callable_value.value).try_into()?;
-                    callable.bind(self, env, arena)?;
-                }
-                Ok(callable_value)
-            },
+            |value| Ok(*value),
         )
     }
 
     fn set_field(&mut self, name: &str, value: &TypedValue) -> Result<(), LangError> {
-        self.fields.get_mut(name).map_or(
+        Ok(())
+        /*self.fields.get_mut(name).map_or(
             Err(LangErrorType::new_runtime_error(
                 RuntimeErrorType::UndefinedVariable {
                     reason: format!("tried to set an undefined variable: '{}'", name),
                 },
             )),
             |field| field.assign_checked(value),
-        )
+        )*/
     }
 }
 
