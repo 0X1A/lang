@@ -758,7 +758,7 @@ impl CallableTrait for StructValue {
         arena: &mut Arena<TypedValue>,
         _: &mut Environment,
         _: &Interpreter,
-        args: Vec<ArenaEntryIndex>,
+        _: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError> {
         let mut new_instance = self.clone();
         for field in new_instance.fields.iter_mut() {
@@ -822,16 +822,8 @@ impl StructTrait for StructValue {
         )
     }
 
-    fn set_field(&mut self, name: &str, value: &TypedValue) -> Result<(), LangError> {
+    fn set_field(&mut self, _: &str, _: &TypedValue) -> Result<(), LangError> {
         Ok(())
-        /*self.fields.get_mut(name).map_or(
-            Err(LangErrorType::new_runtime_error(
-                RuntimeErrorType::UndefinedVariable {
-                    reason: format!("tried to set an undefined variable: '{}'", name),
-                },
-            )),
-            |field| field.assign_checked(value),
-        )*/
     }
 }
 

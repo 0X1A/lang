@@ -1,6 +1,4 @@
-use crate::env::*;
 use crate::error::*;
-use crate::interpreter::Interpreter;
 use crate::mem::*;
 use crate::value::TypedValue;
 
