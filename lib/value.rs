@@ -705,7 +705,7 @@ impl TypedValue {
 
 #[derive(Clone, Debug)]
 pub struct StructValue {
-    struct_stmt: StructStmt,
+    struct_name: String,
     fields: HashMap<String, ArenaEntryIndex>,
     methods: HashMap<String, ArenaEntryIndex>,
     instance_name: String,
@@ -713,12 +713,12 @@ pub struct StructValue {
 
 impl StructValue {
     pub fn new(
-        struct_stmt: StructStmt,
+        struct_stmt: &StructStmt,
         fields: HashMap<String, ArenaEntryIndex>,
         instance_name: String,
     ) -> StructValue {
         StructValue {
-            struct_stmt,
+            struct_name: struct_stmt.name.clone(),
             methods: HashMap::new(),
             fields,
             instance_name,
@@ -728,7 +728,7 @@ impl StructValue {
 
 impl CallableTrait for StructValue {
     fn get_name(&self) -> String {
-        self.struct_stmt.name.clone()
+        self.struct_name.clone()
     }
 
     fn arity(&self) -> usize {
@@ -736,7 +736,7 @@ impl CallableTrait for StructValue {
     }
 
     fn get_return_type(&self) -> Option<TypeAnnotation> {
-        Some(TypeAnnotation::User(self.struct_stmt.name.clone()))
+        Some(TypeAnnotation::User(self.struct_name.clone()))
     }
 
     fn bind(

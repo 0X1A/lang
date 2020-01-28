@@ -337,7 +337,7 @@ impl Interpreter {
             fields.insert(field.identifier.clone(), 0);
         }
         let struct_value = Value::Struct(Box::new(StructValue::new(
-            struct_stmt.clone(),
+            struct_stmt,
             fields,
             struct_stmt.name.clone(),
         )));
