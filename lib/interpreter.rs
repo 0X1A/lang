@@ -141,19 +141,13 @@ impl Interpreter {
             match &value.value {
                 Value::Struct(_) => {
                     let struct_value: &dyn StructInstanceTrait = (&value.value).try_into()?;
-                    let field = struct_value.get_field(&get_expr.name)?;
-                    let field_value_entry = &arena[field];
-                    let field_value: TypedValue = field_value_entry.try_into()?;
-                    index = Some(arena.insert(field_value));
+                    index = Some(struct_value.get_field(&get_expr.name)?);
                 }
                 Value::SelfIndex(s) => {
                     let nvalue_entry = &arena[env.get(s.env_id, &s.name)?];
                     let nvalue: TypedValue = nvalue_entry.try_into()?;
                     let struct_value: &dyn StructInstanceTrait = (&nvalue.value).try_into()?;
-                    let field = struct_value.get_field(&get_expr.name)?;
-                    let field_value_entry = &arena[field];
-                    let field_value: TypedValue = field_value_entry.try_into()?;
-                    index = Some(arena.insert(field_value));
+                    index = Some(struct_value.get_field(&get_expr.name)?);
                 }
                 _ => {}
             }
@@ -651,29 +645,14 @@ impl Interpreter {
         }
         if let Some(distance) = self.locals.get(token) {
             if let Ok(value_index) = env.get(*distance, &token) {
-                let arena_entry = &arena[value_index];
-                let value: TypedValue = arena_entry.try_into()?;
-                let new_index = match value.value {
-                    Value::SelfIndex(ref s) => {
-                        let str_val_index = env.get(s.env_id, &s.name)?;
-                        let str_val_entry = &arena[str_val_index];
-                        let str_val: TypedValue = str_val_entry.try_into()?;
-                        arena.insert(str_val)
-                    }
-                    _ => arena.insert(value),
-                };
-                Ok(Some(new_index))
+                return Ok(Some(value_index));
             } else {
                 let value_index = env.get(*distance + 1, &token)?;
-                let value_entry = &arena[value_index];
-                let value: TypedValue = value_entry.try_into()?;
-                Ok(Some(arena.insert(value)))
+                Ok(Some(value_index))
             }
         } else {
             let value_index = env.get(env.root_entry_id, &token)?;
-            let value_entry = &arena[value_index];
-            let value: TypedValue = value_entry.try_into()?;
-            Ok(Some(arena.insert(value)))
+            Ok(Some(value_index))
         }
     }
 
