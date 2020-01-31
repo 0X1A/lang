@@ -143,7 +143,7 @@ impl Environment {
         arena: &mut Arena<TypedValue>,
         name: &str,
         value: TypedValue,
-    ) {
+    ) -> ArenaEntryIndex {
         debug!(
             "{}:{} Defining '{}' with value '{:?}' at index '{}'",
             file!(),
@@ -154,6 +154,7 @@ impl Environment {
         );
         let index = arena.insert(value);
         self[env_id].values.insert(name.to_string(), index);
+        index
     }
 
     pub fn assign(

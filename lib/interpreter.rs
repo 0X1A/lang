@@ -1108,36 +1108,52 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        let mut value = TypedValue::new(Value::Unit, TypeAnnotation::Unit);
+        // A variable can be instantiated without being initialized
         if let Some(ref initializer) = var_stmt.initializer {
             if let Some(value_index) = self.evaluate(&initializer, arena, env)? {
-                let value_entry = &arena[value_index];
-                value = match value_entry {
-                    ArenaEntry::Occupied(v) => v.clone(),
-                    ArenaEntry::Emtpy => panic!(),
-                };
-            }
-        }
-        let var_type_annotation = var_stmt.type_annotation.clone();
-        if var_type_annotation != value.value_type {
-            return Err(LangErrorType::new_runtime_error(
-                RuntimeErrorType::InvalidTypeAssignmentError {
-                    reason: format!(
+                let value_entry = &mut arena[value_index];
+                let value: &mut TypedValue = value_entry.try_into()?;
+                let var_type_annotation = var_stmt.type_annotation.clone();
+                if var_type_annotation != value.value_type {
+                    return Err(LangErrorType::new_runtime_error(
+                        RuntimeErrorType::InvalidTypeAssignmentError {
+                            reason: format!(
                         "Tried to assign a variable of type {} with an initializer of type {}",
                         var_type_annotation.to_string(),
                         value.value_type.to_string()
                     ),
-                },
-            ));
+                        },
+                    ));
+                }
+                if let Value::Struct(ref mut struct_value) = value.value {
+                    struct_value.set_instance_name(var_stmt.name.clone());
+                }
+                // Var vaue has already been put into the arena, so we just have to do an insert into the env
+                let env_id = env.root_entry_id;
+                env[env_id]
+                    .values
+                    .insert(var_stmt.name.clone(), value_index);
+                return Ok(Some(value_index));
+            }
+        } else {
+            let value = TypedValue::new(Value::Unit, TypeAnnotation::Unit);
+            let var_type_annotation = var_stmt.type_annotation.clone();
+            // TODO: this is basically a bogus check, since all Unit value types can be reassigned to a non-Unit value type
+            if var_type_annotation != value.value_type {
+                return Err(LangErrorType::new_runtime_error(
+                    RuntimeErrorType::InvalidTypeAssignmentError {
+                        reason: format!(
+                            "Tried to assign a variable of type {} with an initializer of type {}",
+                            var_type_annotation.to_string(),
+                            value.value_type.to_string()
+                        ),
+                    },
+                ));
+            }
+            let value_index = env.define(env.root_entry_id, arena, &var_stmt.name, value);
+            return Ok(Some(value_index));
         }
-        if let Value::Struct(ref mut struct_value) = value.value {
-            struct_value.set_instance_name(var_stmt.name.clone());
-        }
-        env.define(env.root_entry_id, arena, &var_stmt.name, value);
-        Ok(Some(arena.insert(TypedValue::new(
-            Value::Unit,
-            TypeAnnotation::Unit,
-        ))))
+        Ok(None)
     }
     fn visit_while(
         &self,
