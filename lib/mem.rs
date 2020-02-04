@@ -82,7 +82,6 @@ impl<T> IndexMut<ArenaEntryIndex> for Arena<T> {
 
 impl<T: std::fmt::Debug> Arena<T> {
     pub fn insert(&mut self, element: T) -> ArenaEntryIndex {
-        println!("Arena::insert {:?}", element);
         let arena_index = self.offset;
         self.offset += 1;
         self.entries

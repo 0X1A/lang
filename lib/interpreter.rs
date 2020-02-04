@@ -253,7 +253,7 @@ impl Interpreter {
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        env.define(
+        let trait_value_index = env.define_and_insert(
             env.root_entry_id,
             arena,
             &trait_stmt.name,
@@ -283,10 +283,7 @@ impl Interpreter {
             ),
             arena,
         )?;
-        Ok(Some(arena.insert(TypedValue::new(
-            Value::Trait(Box::new(trait_value)),
-            TypeAnnotation::Trait,
-        ))))
+        Ok(Some(trait_value_index))
     }
 
     fn visit_impl_stmt(
@@ -320,7 +317,7 @@ impl Interpreter {
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        env.define(
+        let struct_value_index = env.define_and_insert(
             env.root_entry_id,
             arena,
             &struct_stmt.name,
@@ -341,7 +338,7 @@ impl Interpreter {
             TypedValue::new(struct_value, TypeAnnotation::User(struct_stmt.name.clone())),
             arena,
         )?;
-        Ok(None)
+        Ok(Some(struct_value_index))
     }
 
     // Visit Expr stuff
@@ -1037,13 +1034,13 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
             function_stmt.clone(),
             env.root_entry_id,
         )));
-        env.define(
+        let function_value_index = env.define_and_insert(
             env.root_entry_id,
             arena,
             &function_stmt.name,
             TypedValue::new(function, TypeAnnotation::Fn),
         );
-        Ok(None)
+        Ok(Some(function_value_index))
     }
     fn visit_if(
         &self,
@@ -1150,7 +1147,8 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
                     },
                 ));
             }
-            let value_index = env.define(env.root_entry_id, arena, &var_stmt.name, value);
+            let value_index =
+                env.define_and_insert(env.root_entry_id, arena, &var_stmt.name, value);
             return Ok(Some(value_index));
         }
         Ok(None)

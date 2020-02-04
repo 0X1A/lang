@@ -910,7 +910,7 @@ impl CallableTrait for Callable {
             }),
             TypeAnnotation::SelfIndex,
         );
-        env.define(self.closure, arena, "self", value);
+        env.define_and_insert(self.closure, arena, "self", value);
         Ok(())
     }
 
@@ -951,24 +951,22 @@ impl CallableTrait for Callable {
         let mut evaluated_args = Vec::new();
         for arg in args {
             let arg_value_entry = &arena[arg];
-            match arg_value_entry {
-                ArenaEntry::Occupied(v) => evaluated_args.push(v.clone()),
-                ArenaEntry::Emtpy => panic!(),
-            };
+            let arg_value: &TypedValue = arg_value_entry.try_into()?;
+            evaluated_args.push((arg, arg_value))
         }
         for it in self.function.params.iter().zip(evaluated_args.iter()) {
-            if it.0.type_annotation != it.1.value_type {
+            if it.0.type_annotation != (it.1).1.value_type {
                 return Err(LangErrorType::new_runtime_error(
                     RuntimeErrorType::InvalidFunctionArgumentType {
                         reason: format!(
                             "Tried pass an argument of type {:?} for function which takes type {:?}",
-                            it.1.value_type.to_string(),
+                            (it.1).1.value_type.to_string(),
                             it.0.type_annotation.to_string()
                         ),
                     },
                 ));
             }
-            env.define(env_id, arena, &it.0.identifier, it.1.clone());
+            env.define(env_id, &it.0.identifier, (it.1).0)
         }
         let mut return_value = TypedValue::default();
         if let Err(value_from_block) =

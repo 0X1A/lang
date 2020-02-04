@@ -137,7 +137,11 @@ impl Environment {
         ))
     }
 
-    pub fn define(
+    pub fn define(&mut self, env_id: EnvironmentEntryIndex, name: &str, index: ArenaEntryIndex) {
+        self[env_id].values.insert(name.to_string(), index);
+    }
+
+    pub fn define_and_insert(
         &mut self,
         env_id: EnvironmentEntryIndex,
         arena: &mut Arena<TypedValue>,
