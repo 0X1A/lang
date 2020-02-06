@@ -341,6 +341,40 @@ class LangTestSources(object):
         assert(true == true);
         assert(1.05 == 1.05);
         """,
+        # Functions
+        "Function returns bool": """
+        fn test() -> bool {
+            return false;
+        }
+        assert(false == test());
+        """,
+        "Function returns bool with args": """
+        fn test(a: i32, b: f64) -> bool {
+            return false;
+        }
+        assert(false == test(100, 100.00));
+        """,
+        "Function assert failure": """
+        fn test(a: i32, b: f64) -> bool {
+            if (!(a > 1000)) {
+                assert(false);
+            }
+            return false;
+        }
+        test(1, 0.0);
+        """,
+        "Function nested return": """
+        fn test() -> bool {
+            {
+                {
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        assert(false == test());
+        """,
     })
 
     def generate_files(self, path):

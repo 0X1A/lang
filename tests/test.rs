@@ -119,6 +119,79 @@ mod tests {
         assert_eq!(result.is_ok(), true)
     }
     #[test]
+    fn function_assert_failure() {
+        let mut lang = Lang::new(Some(
+            "
+        fn test(a: i32, b: f64) -> bool {
+            if (!(a > 1000)) {
+                assert(false);
+            }
+            return false;
+        }
+        test(1, 0.0);
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), false)
+    }
+    #[test]
+    fn function_nested_return() {
+        let mut lang = Lang::new(Some(
+            "
+        fn test() -> bool {
+            {
+                {
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        assert(false == test());
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn function_returns_bool() {
+        let mut lang = Lang::new(Some(
+            "
+        fn test() -> bool {
+            return false;
+        }
+        assert(false == test());
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
+    fn function_returns_bool_with_args() {
+        let mut lang = Lang::new(Some(
+            "
+        fn test(a: i32, b: f64) -> bool {
+            return false;
+        }
+        assert(false == test(100, 100.00));
+        ",
+        ));
+        let result = lang.run();
+        if let Err(ref error) = result {
+            println!("{}", error);
+        }
+        assert_eq!(result.is_ok(), true)
+    }
+    #[test]
     fn return_from_block() {
         let mut lang = Lang::new(Some(
             "

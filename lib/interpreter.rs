@@ -675,12 +675,7 @@ impl Interpreter {
                     }
                 }
                 _ => {
-                    if let Some(index) = self.execute(&stmt, arena, env)? {
-                        env.remove_entry(*env_id);
-                        arena.remove(index);
-                        *env_id = previous;
-                        return Ok(Some(index));
-                    }
+                    self.execute(&stmt, arena, env)?;
                 }
             }
         }
@@ -837,11 +832,11 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_grouping(
         &self,
-        _: &GroupingExpr,
-        _: &mut Arena<TypedValue>,
-        _: &mut Environment,
+        grouping_expr: &GroupingExpr,
+        arena: &mut Arena<TypedValue>,
+        env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(None)
+        Ok(self.evaluate(&grouping_expr.expression, arena, env)?)
     }
     fn visit_literal(
         &self,
@@ -984,8 +979,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         let mut env_id = env.entry_from(env.root_entry_id.clone());
-        self.execute_block(&block.statements, &mut env_id, arena, env)?;
-        Ok(None)
+        Ok(self.execute_block(&block.statements, &mut env_id, arena, env)?)
     }
     fn visit_struct(
         &self,
