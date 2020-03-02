@@ -121,7 +121,7 @@ impl<'a> Resolver<'a> {
             name,
             self.scopes
         );
-        for scope_index in (0..self.scopes.len()).rev() {
+        for scope_index in (0..(self.scopes.len() - 1)).rev() {
             if self.scopes[scope_index].contains_key(name) {
                 self.interpreter.resolve(name, scope_index);
                 return;

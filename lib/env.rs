@@ -24,6 +24,7 @@ pub struct EnvironmentEntry {
 
 pub struct Environment {
     pub root_entry_id: EnvironmentEntryIndex,
+    pub current_index: EnvironmentEntryIndex,
     pub entries: Vec<EnvironmentEntry>,
 }
 
@@ -51,6 +52,7 @@ impl Default for Environment {
     fn default() -> Environment {
         Environment {
             root_entry_id: 0,
+            current_index: 0,
             entries: Vec::new(),
         }
     }
@@ -74,6 +76,7 @@ impl Environment {
     pub fn new() -> Environment {
         let mut env = Environment {
             root_entry_id: 0,
+            current_index: 0,
             entries: Vec::new(),
         };
         env.root_entry_id = env.entries.len();
