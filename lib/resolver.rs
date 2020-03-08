@@ -112,22 +112,6 @@ impl<'a> Resolver<'a> {
         self.current_function_type = enclosing;
         Ok(())
     }
-
-    fn resolve_local(&mut self, name: &str) {
-        debug!(
-            "{}:{} Attempting to resolve expr '{:?}' within scopes '{:?}'",
-            file!(),
-            line!(),
-            name,
-            self.scopes
-        );
-        for scope_index in (0..(self.scopes.len() - 1)).rev() {
-            if self.scopes[scope_index].contains_key(name) {
-                self.interpreter.resolve(name, scope_index);
-                return;
-            }
-        }
-    }
 }
 
 impl<'a> VisitorMut<()> for Resolver<'a> {
@@ -140,7 +124,6 @@ impl<'a> VisitorMut<()> for Resolver<'a> {
 
     fn visit_assign(&mut self, assign: &AssignExpr) -> Result<(), LangError> {
         self.resolve_expr(&assign.expr)?;
-        self.resolve_local(&assign.name);
         Ok(())
     }
     fn visit_binary(&mut self, binary: &BinaryExpr) -> Result<(), LangError> {
@@ -200,11 +183,9 @@ impl<'a> VisitorMut<()> for Resolver<'a> {
                 }
             }
         }
-        self.resolve_local(&variable.name);
         Ok(())
     }
-    fn visit_self_ident(&mut self, self_ident: &SelfIdentExpr) -> Result<(), LangError> {
-        self.resolve_local(&self_ident.keyword);
+    fn visit_self_ident(&mut self, _: &SelfIdentExpr) -> Result<(), LangError> {
         Ok(())
     }
 

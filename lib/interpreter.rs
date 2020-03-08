@@ -14,48 +14,17 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 
 #[derive(Debug)]
-pub struct Interpreter {
-    pub locals: HashMap<String, usize>,
-}
+pub struct Interpreter {}
 
 impl Default for Interpreter {
     fn default() -> Interpreter {
-        Interpreter {
-            locals: HashMap::new(),
-        }
+        Interpreter {}
     }
 }
 
 impl Interpreter {
-    fn pretty_print_locals(&self) -> String {
-        let mut format = String::from("ident: idx\n");
-        format.push_str(
-            &self
-                .locals
-                .iter()
-                .map(|ref kvp| format!("{:?} => {}", kvp.0, kvp.1))
-                .collect::<Vec<String>>()
-                .join(",\n"),
-        );
-        format
-    }
-
     pub fn new() -> Interpreter {
-        Interpreter {
-            locals: HashMap::new(),
-        }
-    }
-
-    pub fn resolve(&mut self, token: &str, idx: usize) {
-        self.locals.insert(token.into(), idx);
-        debug!(
-            "{}:{} Inserting expr '{:?}' at index '{}' into locals '{:?}'",
-            file!(),
-            line!(),
-            token,
-            idx,
-            self.locals,
-        );
+        Interpreter {}
     }
 
     fn evaluate(
@@ -630,27 +599,25 @@ impl Interpreter {
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         debug!(
-            "{}:{} Looking for token '{:?}' within env '{:?}', locals\n'{}'\n and arena:",
+            "{}:{} Looking for token '{:?}' within env '{:?}', and arena:",
             file!(),
             line!(),
             token,
             env,
-            self.pretty_print_locals()
         );
         for entry in arena.entries().iter() {
             debug!("{:?}", entry);
         }
-        if let Some(distance) = self.locals.get(token) {
-            if let Ok(value_index) = env.get(*distance, &token) {
-                return Ok(Some(value_index));
-            } else {
-                let value_index = env.get(*distance + 1, &token)?;
-                Ok(Some(value_index))
+        for entry in (0..env.entries.len()).rev() {
+            if env[entry].values.contains_key(token) {
+                return Ok(Some(env[entry].values[token]));
             }
-        } else {
-            let value_index = env.get(env.current_index, &token)?;
-            Ok(Some(value_index))
         }
+        Err(LangErrorType::new_runtime_error(
+            RuntimeErrorType::UndefinedVariable {
+                reason: format!("could not find variable {}", token),
+            },
+        ))
     }
 
     pub fn execute_block(
