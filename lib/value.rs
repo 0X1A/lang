@@ -821,10 +821,6 @@ impl StructTrait for StructValue {
             |value| Ok(*value),
         )
     }
-
-    fn set_field(&mut self, _: &str, _: &TypedValue) -> Result<(), LangError> {
-        Ok(())
-    }
 }
 
 impl Display for Value {

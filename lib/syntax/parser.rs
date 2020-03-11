@@ -858,24 +858,25 @@ impl<'a> Parser<'a> {
         let mut parameters = Vec::new();
         if !self.check(&TokenType::RightParen) {
             loop {
-                let identifier =
-                    self.pop_expect(&TokenType::Identifier, "Expect parameter name")?;
-                self.pop_expect(&TokenType::Colon, "Expected colon after paramter name")?;
-                let type_annotation_token = self.advance();
-                if TypeAnnotation::check_token_type2(&type_annotation_token).is_err() {
-                    return Err(self.parse_error(
-                        &self.peek(),
-                        &format!(
-                            "invalid type annotation, expected a type annotation but found {}",
-                            &type_annotation_token.token_type.to_string()
-                        ),
+                if self.matches(&[TokenType::SelfIdent, TokenType::Identifier]) {
+                    let identifier = self.previous();
+                    self.pop_expect(&TokenType::Colon, "Expected colon after paramter name")?;
+                    let type_annotation_token = self.advance();
+                    if TypeAnnotation::check_token_type2(&type_annotation_token).is_err() {
+                        return Err(self.parse_error(
+                            &self.peek(),
+                            &format!(
+                                "invalid type annotation, expected a type annotation but found {}",
+                                &type_annotation_token.token_type.to_string()
+                            ),
+                        ));
+                    }
+                    // We only pass down the type annotation
+                    parameters.push(VariableData::new(
+                        identifier.lexeme,
+                        type_annotation_token.token_type.to_type_annotation()?,
                     ));
                 }
-                // We only pass down the type annotation
-                parameters.push(VariableData::new(
-                    identifier.lexeme,
-                    type_annotation_token.token_type.to_type_annotation()?,
-                ));
                 if !self.matches(&[TokenType::Comma]) {
                     break;
                 }
@@ -916,24 +917,25 @@ impl<'a> Parser<'a> {
         let mut parameters = Vec::new();
         if !self.check(&TokenType::RightParen) {
             loop {
-                let identifier =
-                    self.pop_expect(&TokenType::Identifier, "Expect parameter name")?;
-                self.pop_expect(&TokenType::Colon, "Expected colon after paramter name")?;
-                let type_annotation_token = self.advance();
-                if TypeAnnotation::check_token_type2(&type_annotation_token).is_err() {
-                    return Err(self.parse_error(
-                        &self.peek(),
-                        &format!(
-                            "invalid type annotation, expected a type annotation but found {}",
-                            &type_annotation_token.token_type.to_string()
-                        ),
+                if self.matches(&[TokenType::SelfIdent, TokenType::Identifier]) {
+                    let identifier = self.previous();
+                    self.pop_expect(&TokenType::Colon, "Expected colon after paramter name")?;
+                    let type_annotation_token = self.advance();
+                    if TypeAnnotation::check_token_type2(&type_annotation_token).is_err() {
+                        return Err(self.parse_error(
+                            &self.peek(),
+                            &format!(
+                                "invalid type annotation, expected a type annotation but found {}",
+                                &type_annotation_token.token_type.to_string()
+                            ),
+                        ));
+                    }
+                    // We only pass down the type annotation
+                    parameters.push(VariableData::new(
+                        identifier.lexeme,
+                        type_annotation_token.token_type.to_type_annotation()?,
                     ));
                 }
-                // We only pass down the type annotation
-                parameters.push(VariableData::new(
-                    identifier.lexeme,
-                    type_annotation_token.token_type.to_type_annotation()?,
-                ));
                 if !self.matches(&[TokenType::Comma]) {
                     break;
                 }
