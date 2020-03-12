@@ -691,7 +691,7 @@ impl<'a> Parser<'a> {
         let name = self.pop_expect(&TokenType::Identifier, "Expected variable name")?;
         self.pop_expect(&TokenType::Colon, "Expected colon after variable name")?;
         let type_annotation_token = self.advance();
-        if TypeAnnotation::check_token_type2(&type_annotation_token).is_err() {
+        if TypeAnnotation::check_token_type(&type_annotation_token).is_err() {
             return Err(self.parse_error(
                 &self.peek(),
                 &format!(
@@ -862,7 +862,7 @@ impl<'a> Parser<'a> {
                     let identifier = self.previous();
                     self.pop_expect(&TokenType::Colon, "Expected colon after paramter name")?;
                     let type_annotation_token = self.advance();
-                    if TypeAnnotation::check_token_type2(&type_annotation_token).is_err() {
+                    if TypeAnnotation::check_token_type(&type_annotation_token).is_err() {
                         return Err(self.parse_error(
                             &self.peek(),
                             &format!(
@@ -871,11 +871,14 @@ impl<'a> Parser<'a> {
                             ),
                         ));
                     }
+                    let type_annotation;
+                    if identifier.token_type == TokenType::SelfIdent {
+                        type_annotation = TypeAnnotation::SelfIndex;
+                    } else {
+                        type_annotation = type_annotation_token.token_type.to_type_annotation()?;
+                    }
                     // We only pass down the type annotation
-                    parameters.push(VariableData::new(
-                        identifier.lexeme,
-                        type_annotation_token.token_type.to_type_annotation()?,
-                    ));
+                    parameters.push(VariableData::new(identifier.lexeme, type_annotation));
                 }
                 if !self.matches(&[TokenType::Comma]) {
                     break;
@@ -885,7 +888,7 @@ impl<'a> Parser<'a> {
         self.pop_expect(&TokenType::RightParen, "Expect ')' after parameter list.")?;
         self.pop_expect(&TokenType::ReturnType, "Expected '->' after ')'")?;
         let return_type_annotation_token = self.advance();
-        if TypeAnnotation::check_token_type2(&return_type_annotation_token).is_err() {
+        if TypeAnnotation::check_token_type(&return_type_annotation_token).is_err() {
             return Err(self.parse_error(
                 &self.peek(),
                 &format!(
@@ -921,7 +924,7 @@ impl<'a> Parser<'a> {
                     let identifier = self.previous();
                     self.pop_expect(&TokenType::Colon, "Expected colon after paramter name")?;
                     let type_annotation_token = self.advance();
-                    if TypeAnnotation::check_token_type2(&type_annotation_token).is_err() {
+                    if TypeAnnotation::check_token_type(&type_annotation_token).is_err() {
                         return Err(self.parse_error(
                             &self.peek(),
                             &format!(
@@ -930,11 +933,14 @@ impl<'a> Parser<'a> {
                             ),
                         ));
                     }
+                    let type_annotation;
+                    if identifier.token_type == TokenType::SelfIdent {
+                        type_annotation = TypeAnnotation::SelfIndex;
+                    } else {
+                        type_annotation = type_annotation_token.token_type.to_type_annotation()?;
+                    }
                     // We only pass down the type annotation
-                    parameters.push(VariableData::new(
-                        identifier.lexeme,
-                        type_annotation_token.token_type.to_type_annotation()?,
-                    ));
+                    parameters.push(VariableData::new(identifier.lexeme, type_annotation));
                 }
                 if !self.matches(&[TokenType::Comma]) {
                     break;
@@ -944,7 +950,7 @@ impl<'a> Parser<'a> {
         self.pop_expect(&TokenType::RightParen, "Expect ')' after parameter list.")?;
         self.pop_expect(&TokenType::ReturnType, "Expected '->' after ')'")?;
         let return_type_annotation_token = self.advance();
-        if TypeAnnotation::check_token_type2(&return_type_annotation_token).is_err() {
+        if TypeAnnotation::check_token_type(&return_type_annotation_token).is_err() {
             return Err(self.parse_error(
                 &self.peek(),
                 &format!(
@@ -980,7 +986,7 @@ impl<'a> Parser<'a> {
             let field = self.pop_expect(&TokenType::Identifier, "Expected identifier")?;
             self.pop_expect(&TokenType::Colon, "Expected ':' after field identifier")?;
             let type_annotation = self.advance();
-            if TypeAnnotation::check_token_type2(&type_annotation).is_err() {
+            if TypeAnnotation::check_token_type(&type_annotation).is_err() {
                 return Err(self.parse_error(
                     &self.peek(),
                     &format!(

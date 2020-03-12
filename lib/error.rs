@@ -1,5 +1,4 @@
 use std::{
-    error::Error,
     fmt::{self, Debug},
     io, num, str, time,
 };
@@ -64,7 +63,7 @@ pub enum ControlFlow {
     Break,
     #[fail(display = "Assert")]
     Assert,
-    #[fail(display = "Assert")]
+    #[fail(display = "Return")]
     Return { index: ArenaEntryIndex },
 }
 
@@ -133,7 +132,7 @@ impl From<io::Error> for LangError {
         LangError::from(LangErrorType::RuntimeError {
             subtype: {
                 RuntimeErrorType::IoError {
-                    reason: err.description().to_string(),
+                    reason: err.to_string(),
                 }
             },
         })
@@ -145,7 +144,7 @@ impl From<log::SetLoggerError> for LangError {
         LangError::from(LangErrorType::RuntimeError {
             subtype: {
                 RuntimeErrorType::LogError {
-                    reason: err.description().to_string(),
+                    reason: err.to_string(),
                 }
             },
         })
@@ -155,7 +154,7 @@ impl From<log::SetLoggerError> for LangError {
 impl From<num::ParseFloatError> for LangError {
     fn from(err: num::ParseFloatError) -> LangError {
         LangError::from(LangErrorType::ParserError {
-            reason: err.description().to_string(),
+            reason: err.to_string(),
         })
     }
 }
@@ -163,7 +162,7 @@ impl From<num::ParseFloatError> for LangError {
 impl From<num::ParseIntError> for LangError {
     fn from(err: num::ParseIntError) -> LangError {
         LangError::from(LangErrorType::ParserError {
-            reason: err.description().to_string(),
+            reason: err.to_string(),
         })
     }
 }
@@ -171,7 +170,7 @@ impl From<num::ParseIntError> for LangError {
 impl From<str::ParseBoolError> for LangError {
     fn from(err: str::ParseBoolError) -> LangError {
         LangError::from(LangErrorType::ParserError {
-            reason: err.description().to_string(),
+            reason: err.to_string(),
         })
     }
 }
@@ -181,7 +180,7 @@ impl From<time::SystemTimeError> for LangErrorType {
         LangErrorType::RuntimeError {
             subtype: {
                 RuntimeErrorType::GenericError {
-                    reason: err.description().to_string(),
+                    reason: err.to_string(),
                 }
             },
         }

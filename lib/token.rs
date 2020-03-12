@@ -50,7 +50,7 @@ impl TypeAnnotation {
     }
 
     /// Checks `token`'s `token_type` to ensure that it has been lexed as a type annotation
-    pub fn check_token_type2(token: &TokenIR) -> Result<(), ()> {
+    pub fn check_token_type(token: &TokenIR) -> Result<(), ()> {
         match token.token_type {
             TokenType::Type(_) => Ok(()),
             TokenType::Identifier => Ok(()),
@@ -101,6 +101,8 @@ impl PartialEq for TypeAnnotation {
                 _ => false,
             },
             TypeAnnotation::SelfIndex => match other {
+                TypeAnnotation::SelfIndex => true,
+                TypeAnnotation::User(_) => true,
                 _ => false,
             },
             TypeAnnotation::I64 => match other {
