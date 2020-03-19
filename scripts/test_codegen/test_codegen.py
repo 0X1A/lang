@@ -282,7 +282,7 @@ class LangTestSources(object):
         }
 
         impl TestStruct {
-            fn hello(other: TestStruct) -> () {
+            fn hello(self: TestStruct, other: TestStruct) -> () {
                 self.i = self.i + other.i;
             }
         }

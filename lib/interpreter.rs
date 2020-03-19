@@ -61,6 +61,7 @@ impl Interpreter {
         Ok(None)
     }
 
+    // TODO: Clean this up. The nested iflets are an eyesore
     fn visit_call_expr(
         &self,
         call: &CallExpr,
@@ -78,7 +79,23 @@ impl Interpreter {
             let callee: TypedValue = arena_entry.try_into()?;
             match &callee.value {
                 Value::Callable(callable) => {
-                    let value = callable.call(arena, env, self, args)?;
+                    let mut actual_args = Vec::new();
+                    if let Some(first) = callable.get_params().first() {
+                        // TODO: This is a string comparison, fuckin' gross
+                        if let TypeAnnotation::User(_) = first.type_annotation {
+                            if let Expr::Get(get_expr) = &call.callee {
+                                if let Expr::Variable(var) = &get_expr.object {
+                                    if let Some(arena_index) =
+                                        env[env.current_index].values.get(&var.name)
+                                    {
+                                        actual_args.push(*arena_index);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    actual_args.append(&mut args);
+                    let value = callable.call(arena, env, self, actual_args)?;
                     return Ok(Some(arena.insert(value)));
                 }
                 Value::Struct(struct_value) => {
