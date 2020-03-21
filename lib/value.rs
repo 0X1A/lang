@@ -6,6 +6,9 @@ use crate::mem::*;
 use crate::token::{GetTypeAnnotation, TokenType, TypeAnnotation};
 use crate::value_traits::callable::CallableTrait;
 use crate::value_traits::r#struct::StructTrait;
+use inkwell::context::Context;
+use inkwell::types::*;
+use inkwell::values::*;
 use std::{
     cmp::Ordering,
     collections::HashMap,
@@ -651,6 +654,12 @@ pub struct TypedValue {
     pub value_type: TypeAnnotation,
 }
 
+#[derive(Clone, Debug)]
+pub struct TypedValue2<'context> {
+    pub value: AnyValueEnum<'context>,
+    pub value_type: AnyTypeEnum<'context>,
+}
+
 impl Default for TypedValue {
     fn default() -> TypedValue {
         TypedValue {
@@ -755,6 +764,7 @@ impl CallableTrait for StructValue {
     // TODO: This should take constructor args
     fn call(
         &self,
+        _: &Context,
         arena: &mut Arena<TypedValue>,
         _: &mut Environment,
         _: &Interpreter,
@@ -932,6 +942,7 @@ impl CallableTrait for Callable {
 
     fn call(
         &self,
+        context: &Context,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
         interpreter: &Interpreter,
@@ -973,7 +984,7 @@ impl CallableTrait for Callable {
         }
         let mut return_value = TypedValue::default();
         if let Err(value_from_block) =
-            interpreter.execute_block(&self.function.body, &mut env_id, arena, env)
+            interpreter.execute_block(context, &self.function.body, &mut env_id, arena, env)
         {
             if let LangErrorType::ControlFlow { subtype } = value_from_block.context.get_context() {
                 if let ControlFlow::Return { index } = subtype {

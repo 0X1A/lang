@@ -10,8 +10,19 @@ use crate::type_checker::*;
 use crate::value::*;
 use crate::value_traits::callable::*;
 use crate::visitor::*;
+use inkwell::builder::Builder;
+use inkwell::context::Context;
+use inkwell::execution_engine::ExecutionEngine;
+use inkwell::module::Module;
 use std::collections::HashMap;
 use std::convert::TryInto;
+
+pub struct IRGenerator<'context> {
+    context: &'context Context,
+    module: Module<'context>,
+    builder: Builder<'context>,
+    exec_engine: ExecutionEngine<'context>,
+}
 
 #[derive(Debug)]
 pub struct Interpreter {}
@@ -29,11 +40,12 @@ impl Interpreter {
 
     fn evaluate(
         &self,
+        context: &Context,
         expr: &Expr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_expr(expr, arena, env)?)
+        Ok(self.visit_expr(context, expr, arena, env)?)
     }
 
     fn is_truthy(&self, val: &Value) -> bool {
@@ -49,11 +61,12 @@ impl Interpreter {
 
     fn visit_assign_expr(
         &self,
+        context: &Context,
         assign: &AssignExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        if let Some(arena_entry_index) = self.evaluate(&assign.expr, arena, env)? {
+        if let Some(arena_entry_index) = self.evaluate(context, &assign.expr, arena, env)? {
             let arena_entry = &arena[arena_entry_index];
             let value: &TypedValue = arena_entry.try_into()?;
             env.assign(env.current_index, &assign.name, value.clone(), arena)?;
@@ -64,17 +77,18 @@ impl Interpreter {
     // TODO: Clean this up. The nested iflets are an eyesore
     fn visit_call_expr(
         &self,
+        context: &Context,
         call: &CallExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         let mut args = Vec::new();
         for arg in &call.arguments {
-            if let Some(arg_entry_index) = self.evaluate(&arg, arena, env)? {
+            if let Some(arg_entry_index) = self.evaluate(context, &arg, arena, env)? {
                 args.push(arg_entry_index);
             }
         }
-        if let Some(arena_entry_index) = self.evaluate(&call.callee, arena, env)? {
+        if let Some(arena_entry_index) = self.evaluate(context, &call.callee, arena, env)? {
             let arena_entry = &arena[arena_entry_index];
             let callee: TypedValue = arena_entry.try_into()?;
             match &callee.value {
@@ -95,11 +109,11 @@ impl Interpreter {
                         }
                     }
                     actual_args.append(&mut args);
-                    let value = callable.call(arena, env, self, actual_args)?;
+                    let value = callable.call(context, arena, env, self, actual_args)?;
                     return Ok(Some(arena.insert(value)));
                 }
                 Value::Struct(struct_value) => {
-                    let value = struct_value.call(arena, env, self, args)?;
+                    let value = struct_value.call(context, arena, env, self, args)?;
                     return Ok(Some(arena.insert(value)));
                 }
                 _ => {
@@ -116,11 +130,12 @@ impl Interpreter {
 
     fn visit_get_expr(
         &self,
+        context: &Context,
         get_expr: &GetExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        if let Some(arena_entry_index) = self.evaluate(&get_expr.object, arena, env)? {
+        if let Some(arena_entry_index) = self.evaluate(context, &get_expr.object, arena, env)? {
             let arena_entry = &arena[arena_entry_index];
             let value: TypedValue = arena_entry.try_into()?;
             let mut index = None;
@@ -197,6 +212,7 @@ impl Interpreter {
 
     fn visit_impl_trait_stmt(
         &self,
+        context: &Context,
         impl_trait_stmt: &ImplTraitStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -235,6 +251,7 @@ impl Interpreter {
 
     fn visit_trait_stmt(
         &self,
+        context: &Context,
         trait_stmt: &TraitStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -250,7 +267,7 @@ impl Interpreter {
             fn_declarations: HashMap::new(),
         };
         for fn_decl in trait_stmt.trait_fn_declarations.iter() {
-            if let Some(fn_decl_index) = self.execute(&fn_decl, arena, env)? {
+            if let Some(fn_decl_index) = self.execute(context, &fn_decl, arena, env)? {
                 let fn_decl_entry = &arena[fn_decl_index];
                 let trait_fn: &TypedValue = fn_decl_entry.try_into()?;
                 if let Stmt::TraitFunction(trait_fn_decl) = fn_decl {
@@ -296,6 +313,7 @@ impl Interpreter {
 
     fn visit_struct_stmt(
         &self,
+        context: &Context,
         struct_stmt: &StructStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -310,7 +328,7 @@ impl Interpreter {
         for field in struct_stmt.fields.iter() {
             fields.insert(field.identifier.clone(), 0);
         }
-        let struct_value = Value::Struct(Box::new(StructValue::new(
+        let struct_value = Value::Struct(Box::new(crate::value::StructValue::new(
             struct_stmt,
             fields,
             struct_stmt.name.clone(),
@@ -328,12 +346,15 @@ impl Interpreter {
 
     fn visit_binary_expr(
         &self,
+        context: &Context,
         expr: &BinaryExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        if let Some(left_arena_entry_index) = self.evaluate(&expr.left, arena, env)? {
-            if let Some(right_arena_entry_index) = self.evaluate(&expr.right, arena, env)? {
+        if let Some(left_arena_entry_index) = self.evaluate(context, &expr.left, arena, env)? {
+            if let Some(right_arena_entry_index) =
+                self.evaluate(context, &expr.right, arena, env)?
+            {
                 let left_arena_entry = &arena[left_arena_entry_index];
                 let left: &TypedValue = left_arena_entry.try_into()?;
                 let right_arena_entry = &arena[right_arena_entry_index];
@@ -348,11 +369,12 @@ impl Interpreter {
 
     fn visit_unary_expr(
         &self,
+        context: &Context,
         unary_expr: &UnaryExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        if let Some(right_arena_index) = self.evaluate(&unary_expr.right, arena, env)? {
+        if let Some(right_arena_index) = self.evaluate(context, &unary_expr.right, arena, env)? {
             let right_arena_entry = &arena[right_arena_index];
             let right: &TypedValue = right_arena_entry.try_into()?;
             match unary_expr.operator {
@@ -397,11 +419,12 @@ impl Interpreter {
 
     fn visit_logical_expr(
         &self,
+        context: &Context,
         logical_expr: &LogicalExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        if let Some(arena_entry_index) = self.evaluate(&logical_expr.left, arena, env)? {
+        if let Some(arena_entry_index) = self.evaluate(context, &logical_expr.left, arena, env)? {
             let arena_entry = &arena[arena_entry_index];
             let left: TypedValue = arena_entry.try_into()?;
             if logical_expr.operator == TokenType::Or && self.is_truthy(&left.value) {
@@ -412,7 +435,7 @@ impl Interpreter {
                 let index = arena.insert(left);
                 return Ok(Some(index));
             }
-            return Ok(self.evaluate(&logical_expr.right, arena, env)?);
+            return Ok(self.evaluate(context, &logical_expr.right, arena, env)?);
         }
         Ok(None)
     }
@@ -420,12 +443,13 @@ impl Interpreter {
     // TODO: this shit is _still_ a mess
     fn visit_set_expr(
         &self,
+        context: &Context,
         set_expr: &SetExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         let value: TypedValue;
-        if let Some(value_entry_index) = self.evaluate(&set_expr.value, arena, env)? {
+        if let Some(value_entry_index) = self.evaluate(context, &set_expr.value, arena, env)? {
             let value_arena_entry = &arena[value_entry_index];
             value = value_arena_entry.try_into()?;
         } else {
@@ -433,7 +457,7 @@ impl Interpreter {
                 "Set expr failed to retrieve the value to set".into(),
             ));
         }
-        if let Some(object_entry_index) = self.evaluate(&set_expr.object, arena, env)? {
+        if let Some(object_entry_index) = self.evaluate(context, &set_expr.object, arena, env)? {
             {
                 let object_arena_entry = &mut arena[object_entry_index];
                 let object: &mut TypedValue = object_arena_entry.try_into()?;
@@ -483,12 +507,15 @@ impl Interpreter {
 
     fn visit_set_array_element_expr(
         &self,
+        context: &Context,
         set_array_element_expr: &SetArrayElementExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         let index: usize;
-        if let Some(index_entry_index) = self.evaluate(&set_array_element_expr.index, arena, env)? {
+        if let Some(index_entry_index) =
+            self.evaluate(context, &set_array_element_expr.index, arena, env)?
+        {
             let index_arena_entry = &arena[index_entry_index];
             let index_value: &TypedValue = index_arena_entry.try_into()?;
             index = index_value.as_array_index()?;
@@ -497,7 +524,9 @@ impl Interpreter {
                 "could not set array element".into(),
             ));
         }
-        if let Some(value_entry_index) = self.evaluate(&set_array_element_expr.value, arena, env)? {
+        if let Some(value_entry_index) =
+            self.evaluate(context, &set_array_element_expr.value, arena, env)?
+        {
             let value_arena_entry = &arena[value_entry_index];
             let value: TypedValue = value_arena_entry.try_into()?;
             env.assign_index_entry(
@@ -513,6 +542,7 @@ impl Interpreter {
 
     fn visit_array_expr(
         &self,
+        context: &Context,
         array_expr: &ArrayExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -523,7 +553,7 @@ impl Interpreter {
         // Invariant used in order evaluate the initial array element only once
         let mut first_element = true;
         for item in array_expr.elements.iter() {
-            if let Some(item_index) = self.evaluate(&item, arena, env)? {
+            if let Some(item_index) = self.evaluate(context, &item, arena, env)? {
                 let item_arena_entry = &arena[item_index];
                 let element: &TypedValue = item_arena_entry.try_into()?;
                 if first_element {
@@ -549,11 +579,12 @@ impl Interpreter {
 
     fn visit_index_expr(
         &self,
+        context: &Context,
         index_expr: &IndexExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        if let Some(index_entry_index) = self.evaluate(&index_expr.index, arena, env)? {
+        if let Some(index_entry_index) = self.evaluate(context, &index_expr.index, arena, env)? {
             let index_arena_entry = &arena[index_entry_index];
             let index_value: &TypedValue = index_arena_entry.try_into()?;
             let index = index_value.as_array_index()?;
@@ -587,11 +618,11 @@ impl Interpreter {
     }
 
     #[inline(always)]
-    pub fn interpret(&self, stmts: Vec<Stmt>) -> Result<(), LangError> {
+    pub fn interpret(&self, context: &Context, stmts: Vec<Stmt>) -> Result<(), LangError> {
         let mut env = Environment::new();
         let mut arena: Arena<TypedValue> = Arena::with_capacity(256);
         for stmt in stmts {
-            self.execute(&stmt, &mut arena, &mut env)?;
+            self.execute(context, &stmt, &mut arena, &mut env)?;
         }
         Ok(())
     }
@@ -599,11 +630,12 @@ impl Interpreter {
     #[inline(always)]
     fn execute(
         &self,
+        context: &Context,
         stmt: &Stmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_stmt(stmt, arena, env)?)
+        Ok(self.visit_stmt(context, stmt, arena, env)?)
     }
 
     fn look_up_variable(
@@ -636,6 +668,7 @@ impl Interpreter {
 
     pub fn execute_block(
         &self,
+        context: &Context,
         stmts: &[Stmt],
         env_id: &mut EnvironmentEntryIndex,
         arena: &mut Arena<TypedValue>,
@@ -647,7 +680,7 @@ impl Interpreter {
             match stmt {
                 Stmt::Return(_) => {
                     // Set value and break early on a return
-                    if let Some(index) = self.execute(&stmt, arena, env)? {
+                    if let Some(index) = self.execute(context, &stmt, arena, env)? {
                         debug!("return value: idx {} value {:?}", index, arena[index]);
                         env.remove_entry(env.current_index);
                         env.current_index = previous;
@@ -657,7 +690,7 @@ impl Interpreter {
                     }
                 }
                 _ => {
-                    self.execute(&stmt, arena, env)?;
+                    self.execute(context, &stmt, arena, env)?;
                 }
             }
         }
@@ -757,55 +790,62 @@ impl Interpreter {
 impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     fn visit_expr(
         &self,
+        context: &Context,
         expr: &Expr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(visit_expr(self, expr, arena, env)?)
+        Ok(visit_expr(self, context, expr, arena, env)?)
     }
     fn visit_stmt(
         &self,
+        context: &Context,
         stmt: &Stmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(visit_stmt(self, stmt, arena, env)?)
+        Ok(visit_stmt(self, context, stmt, arena, env)?)
     }
 
     fn visit_assign(
         &self,
+        context: &Context,
         assign: &AssignExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_assign_expr(assign, arena, env)?)
+        Ok(self.visit_assign_expr(context, assign, arena, env)?)
     }
     fn visit_binary(
         &self,
+        context: &Context,
         binary: &BinaryExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_binary_expr(binary, arena, env)?)
+        Ok(self.visit_binary_expr(context, binary, arena, env)?)
     }
     fn visit_call(
         &self,
+        context: &Context,
         call: &CallExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_call_expr(call, arena, env)?)
+        Ok(self.visit_call_expr(context, call, arena, env)?)
     }
     fn visit_get(
         &self,
+        context: &Context,
         get: &GetExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_get_expr(get, arena, env)?)
+        Ok(self.visit_get_expr(context, get, arena, env)?)
     }
     fn visit_enum_path(
         &self,
+        _: &Context,
         _: &EnumPathExpr,
         _: &mut Arena<TypedValue>,
         _: &mut Environment,
@@ -814,14 +854,16 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_grouping(
         &self,
+        context: &Context,
         grouping_expr: &GroupingExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.evaluate(&grouping_expr.expression, arena, env)?)
+        Ok(self.evaluate(context, &grouping_expr.expression, arena, env)?)
     }
     fn visit_literal(
         &self,
+        context: &Context,
         literal: &LiteralExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -838,54 +880,61 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_logical(
         &self,
+        context: &Context,
         logical: &LogicalExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_logical_expr(logical, arena, env)?)
+        Ok(self.visit_logical_expr(context, logical, arena, env)?)
     }
     fn visit_set(
         &self,
+        context: &Context,
         set: &SetExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_set_expr(set, arena, env)?)
+        Ok(self.visit_set_expr(context, set, arena, env)?)
     }
     fn visit_unary(
         &self,
+        context: &Context,
         unary: &UnaryExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_unary_expr(unary, arena, env)?)
+        Ok(self.visit_unary_expr(context, unary, arena, env)?)
     }
     fn visit_array(
         &self,
+        context: &Context,
         array: &ArrayExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_array_expr(array, arena, env)?)
+        Ok(self.visit_array_expr(context, array, arena, env)?)
     }
     fn visit_index(
         &self,
+        context: &Context,
         index: &IndexExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_index_expr(index, arena, env)?)
+        Ok(self.visit_index_expr(context, index, arena, env)?)
     }
     fn visit_set_array_element(
         &self,
+        context: &Context,
         set_array_element: &SetArrayElementExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_set_array_element_expr(set_array_element, arena, env)?)
+        Ok(self.visit_set_array_element_expr(context, set_array_element, arena, env)?)
     }
     fn visit_variable(
         &self,
+        context: &Context,
         variable: &VariableExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -894,6 +943,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_self_ident(
         &self,
+        context: &Context,
         self_ident: &SelfIdentExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -909,11 +959,14 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
 
     fn visit_assert(
         &self,
+        context: &Context,
         assert_stmt: &AssertStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        if let Some(assert_stmt_index) = self.evaluate(&assert_stmt.condition, arena, env)? {
+        if let Some(assert_stmt_index) =
+            self.evaluate(context, &assert_stmt.condition, arena, env)?
+        {
             let arena_entry = &arena[assert_stmt_index];
             let eval = match arena_entry {
                 ArenaEntry::Occupied(v) => v,
@@ -932,6 +985,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_enum(
         &self,
+        _: &Context,
         _: &EnumStmt,
         _: &mut Arena<TypedValue>,
         _: &mut Environment,
@@ -940,6 +994,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_impl(
         &self,
+        context: &Context,
         impl_stmt: &ImplStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -948,47 +1003,53 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_impl_trait(
         &self,
+        context: &Context,
         impl_trait: &ImplTraitStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_impl_trait_stmt(impl_trait, arena, env)?)
+        Ok(self.visit_impl_trait_stmt(context, impl_trait, arena, env)?)
     }
     fn visit_block(
         &self,
+        context: &Context,
         block: &BlockStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         let mut env_id = env.entry_from(env.current_index.clone());
-        Ok(self.execute_block(&block.statements, &mut env_id, arena, env)?)
+        Ok(self.execute_block(context, &block.statements, &mut env_id, arena, env)?)
     }
     fn visit_struct(
         &self,
+        context: &Context,
         block: &StructStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_struct_stmt(&block, arena, env)?)
+        Ok(self.visit_struct_stmt(context, &block, arena, env)?)
     }
     fn visit_expression(
         &self,
+        context: &Context,
         block: &ExpressionStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_expr(&block.expression, arena, env)?)
+        Ok(self.visit_expr(context, &block.expression, arena, env)?)
     }
     fn visit_trait(
         &self,
+        context: &Context,
         block: &TraitStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_trait_stmt(block, arena, env)?)
+        Ok(self.visit_trait_stmt(context, block, arena, env)?)
     }
     fn visit_trait_function(
         &self,
+        context: &Context,
         trait_fn_stmt: &TraitFunctionStmt,
         arena: &mut Arena<TypedValue>,
         _: &mut Environment,
@@ -1002,6 +1063,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_function(
         &self,
+        context: &Context,
         function_stmt: &FunctionStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1020,33 +1082,35 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_if(
         &self,
+        context: &Context,
         if_stmt: &IfStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         debug!("if_stmt condition {:#?}", if_stmt.condition);
-        if let Some(if_stmt_index) = self.evaluate(&if_stmt.condition, arena, env)? {
+        if let Some(if_stmt_index) = self.evaluate(context, &if_stmt.condition, arena, env)? {
             let arena_entry = &arena[if_stmt_index];
             let eval = match arena_entry {
                 ArenaEntry::Occupied(v) => v,
                 ArenaEntry::Emtpy => panic!(),
             };
             if self.is_truthy(&eval.value) {
-                return Ok(self.execute(&if_stmt.then_branch, arena, env)?);
+                return Ok(self.execute(context, &if_stmt.then_branch, arena, env)?);
             }
             if let Some(ref else_branch) = if_stmt.else_branch {
-                return Ok(self.execute(&else_branch, arena, env)?);
+                return Ok(self.execute(context, &else_branch, arena, env)?);
             }
         }
         Ok(None)
     }
     fn visit_print(
         &self,
+        context: &Context,
         print_stmt: &PrintStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        if let Some(expr_index) = self.evaluate(&print_stmt.expression, arena, env)? {
+        if let Some(expr_index) = self.evaluate(context, &print_stmt.expression, arena, env)? {
             let arena_entry = &arena[expr_index];
             let value: &TypedValue = arena_entry.try_into()?;
             println!("{}", value.value);
@@ -1055,6 +1119,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_return(
         &self,
+        context: &Context,
         return_stmt: &ReturnStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1064,7 +1129,9 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
             TypeAnnotation::Unit,
         ))));
         let return_value = if return_stmt.value != value {
-            if let Some(return_value_index) = self.evaluate(&return_stmt.value, arena, env)? {
+            if let Some(return_value_index) =
+                self.evaluate(context, &return_stmt.value, arena, env)?
+            {
                 let return_value_entry = &arena[return_value_index];
                 return_value_entry.try_into()?
             } else {
@@ -1077,13 +1144,14 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_var(
         &self,
+        context: &Context,
         var_stmt: &VarStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         // A variable can be instantiated without being initialized
         if let Some(ref initializer) = var_stmt.initializer {
-            if let Some(value_index) = self.evaluate(&initializer, arena, env)? {
+            if let Some(value_index) = self.evaluate(context, &initializer, arena, env)? {
                 let value_entry = &mut arena[value_index];
                 let value: &mut TypedValue = value_entry.try_into()?;
                 let var_type_annotation = var_stmt.type_annotation.clone();
@@ -1131,15 +1199,16 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_while(
         &self,
+        context: &Context,
         while_stmt: &WhileStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        if let Some(condition_index) = self.evaluate(&while_stmt.condition, arena, env)? {
+        if let Some(condition_index) = self.evaluate(context, &while_stmt.condition, arena, env)? {
             let condition_entry = &arena[condition_index];
             let mut while_condition: &TypedValue = condition_entry.try_into()?;
             while self.is_truthy(&while_condition.value) {
-                if let Err(error) = self.execute(&while_stmt.body, arena, env) {
+                if let Err(error) = self.execute(context, &while_stmt.body, arena, env) {
                     match error.context.get_context() {
                         LangErrorType::ControlFlow { .. } => {
                             break;
@@ -1149,8 +1218,9 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
                         }
                     }
                 }
-                let while_condition_index =
-                    self.evaluate(&while_stmt.condition, arena, env)?.unwrap();
+                let while_condition_index = self
+                    .evaluate(context, &while_stmt.condition, arena, env)?
+                    .unwrap();
                 let while_condition_entry = &arena[while_condition_index];
                 while_condition = match while_condition_entry {
                     ArenaEntry::Occupied(v) => v,
@@ -1162,6 +1232,7 @@ impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
     }
     fn visit_import(
         &self,
+        _: &Context,
         _: &ImportStmt,
         _: &mut Arena<TypedValue>,
         _: &mut Environment,

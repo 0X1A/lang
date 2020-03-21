@@ -4,6 +4,8 @@ extern crate log;
 #[macro_use]
 extern crate lazy_static;
 
+extern crate inkwell;
+
 pub mod ast;
 pub mod ast_printer;
 pub mod depresolver;

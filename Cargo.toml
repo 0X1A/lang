@@ -12,6 +12,7 @@ env_logger = "*"
 nom = "5.0.1"
 lazy_static = "*"
 bytecount = { version = "0.6.0" }
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "llvm3-7" }
 
 [lib]
 name = "lang"

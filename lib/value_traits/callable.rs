@@ -6,6 +6,7 @@ use crate::mem::*;
 use crate::token::TypeAnnotation;
 use crate::value::StructInstanceTrait;
 use crate::value::TypedValue;
+use inkwell::context::Context;
 use std::fmt::{self, Debug};
 
 pub trait CallableTrait {
@@ -14,6 +15,7 @@ pub trait CallableTrait {
     fn get_return_type(&self) -> Option<TypeAnnotation>;
     fn call(
         &self,
+        context: &Context,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
         interpreter: &Interpreter,

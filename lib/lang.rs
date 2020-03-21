@@ -6,6 +6,7 @@ use crate::resolver::*;
 use crate::syntax::parser::Parser;
 use crate::syntax::scanner::*;
 use crate::syntax::token::*;
+use inkwell::context::Context;
 
 use std::{
     fs::File,
@@ -80,8 +81,11 @@ impl<'a> Lang<'a> {
             Ok(mut s) => {
                 let mut import_statements = dep_resolver.resolve(&s)?;
                 import_statements.append(&mut s);
+                let context = Context::create();
                 resolver.resolve(&import_statements)?;
-                resolver.interpreter.interpret(import_statements)?;
+                resolver
+                    .interpreter
+                    .interpret(&context, import_statements)?;
             }
             Err(e) => {
                 return Err(e);
@@ -99,7 +103,8 @@ impl<'a> Lang<'a> {
         let statements = parser.parse()?;
         dep_resolver.resolve(&statements)?;
         resolver.resolve(&statements)?;
-        resolver.interpreter.interpret(statements)?;
+        let context = Context::create();
+        resolver.interpreter.interpret(&context, statements)?;
         Ok(())
     }
 
