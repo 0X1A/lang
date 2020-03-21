@@ -263,10 +263,7 @@ impl Interpreter {
         env.assign(
             env.current_index,
             &trait_stmt.name,
-            TypedValue::new(
-                Value::Trait(Box::new(trait_value.clone())),
-                TypeAnnotation::Trait,
-            ),
+            TypedValue::new(Value::Trait(Box::new(trait_value)), TypeAnnotation::Trait),
             arena,
         )?;
         Ok(Some(trait_value_index))

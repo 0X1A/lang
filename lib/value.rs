@@ -807,6 +807,13 @@ impl StructTrait for StructValue {
     }
 
     fn define_method(&mut self, name: &str, value_index: ArenaEntryIndex) -> Result<(), LangError> {
+        if self.methods.contains_key(name) {
+            return Err(LangErrorType::new_runtime_error(
+                RuntimeErrorType::GenericError {
+                    reason: format!("method '{}' already defined", name),
+                },
+            ));
+        }
         self.methods.insert(name.into(), value_index);
         Ok(())
     }

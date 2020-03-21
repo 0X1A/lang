@@ -113,6 +113,7 @@ impl Debug for LangErrorType {
     }
 }
 
+// TODO: Some errors do not return context as to their errors similarly to that of ParserError
 impl LangErrorType {
     pub fn new_parser_error(reason: String) -> LangError {
         LangError::from(LangErrorType::ParserError { reason })
