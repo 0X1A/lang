@@ -17,13 +17,6 @@ use inkwell::module::Module;
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-pub struct IRGenerator<'context> {
-    context: &'context Context,
-    module: Module<'context>,
-    builder: Builder<'context>,
-    exec_engine: ExecutionEngine<'context>,
-}
-
 #[derive(Debug)]
 pub struct Interpreter {}
 
@@ -787,7 +780,7 @@ impl Interpreter {
     }
 }
 
-impl Visitor<Option<ArenaEntryIndex>> for Interpreter {
+impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     fn visit_expr(
         &self,
         context: &Context,

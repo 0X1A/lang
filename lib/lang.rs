@@ -2,6 +2,7 @@ use crate::ast::stmt::*;
 use crate::depresolver::*;
 use crate::error::*;
 use crate::interpreter::Interpreter;
+use crate::interpreterjit::InterpreterJIT;
 use crate::resolver::*;
 use crate::syntax::parser::Parser;
 use crate::syntax::scanner::*;
@@ -77,12 +78,14 @@ impl<'a> Lang<'a> {
         let statements = self.build_statements();
         let mut dep_resolver = DependencyResolver::default();
         let mut resolver = Resolver::new(&mut self.interpreter);
+        let mut interpreterjit = InterpreterJIT::default();
         match statements {
             Ok(mut s) => {
                 let mut import_statements = dep_resolver.resolve(&s)?;
                 import_statements.append(&mut s);
                 let context = Context::create();
                 resolver.resolve(&import_statements)?;
+                interpreterjit.interpret(&context, import_statements.clone())?;
                 resolver
                     .interpreter
                     .interpret(&context, import_statements)?;
