@@ -1,8 +1,8 @@
 use crate::ast::stmt::*;
 use crate::env::*;
 use crate::error::*;
-use crate::interpreter::*;
 use crate::interpreterjit::IRGenerator;
+use crate::interpreterjit::*;
 use crate::mem::*;
 use crate::token::{GetTypeAnnotation, TokenType, TypeAnnotation};
 use crate::value_traits::callable::CallableTrait;
@@ -775,7 +775,7 @@ impl CallableTrait for StructValue {
         _: &IRGenerator,
         arena: &mut Arena<TypedValue>,
         _: &mut Environment,
-        _: &Interpreter,
+        _: &InterpreterJIT,
         _: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError> {
         let mut new_instance = self.clone();
@@ -953,69 +953,9 @@ impl CallableTrait for Callable {
         context: &IRGenerator,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
-        interpreter: &Interpreter,
+        interpreter: &InterpreterJIT,
         args: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError> {
-        let mut env_id = env.entry_from(self.closure);
-
-        if args.len() != self.arity() {
-            return Err(LangErrorType::new_runtime_error(
-                RuntimeErrorType::FnArityError {
-                    reason: format!(
-                        "Function {} requires {} arg(s), passed {}",
-                        self.get_name(),
-                        self.arity(),
-                        args.len()
-                    ),
-                },
-            ));
-        }
-        let mut evaluated_args = Vec::new();
-        for arg in args {
-            let arg_value_entry = &arena[arg];
-            let arg_value: &TypedValue = arg_value_entry.try_into()?;
-            evaluated_args.push((arg, arg_value))
-        }
-        for it in self.function.params.iter().zip(evaluated_args.iter()) {
-            if it.0.type_annotation != (it.1).1.value_type {
-                return Err(LangErrorType::new_runtime_error(
-                    RuntimeErrorType::InvalidFunctionArgumentType {
-                        reason: format!(
-                            "Tried pass an argument of type {:?} for function which takes type {:?}",
-                            (it.1).1.value_type.to_string(),
-                            it.0.type_annotation.to_string()
-                        ),
-                    },
-                ));
-            }
-            env.define(env_id, &it.0.identifier, (it.1).0)
-        }
-        let mut return_value = TypedValue::default();
-        if let Err(value_from_block) =
-            interpreter.execute_block(context, &self.function.body, &mut env_id, arena, env)
-        {
-            if let LangErrorType::ControlFlow { subtype } = value_from_block.context.get_context() {
-                if let ControlFlow::Return { index } = subtype {
-                    let entry = &arena[*index];
-                    let value: TypedValue = entry.try_into()?;
-                    return_value = value;
-                }
-            }
-        }
-        debug!("return from execute_block {:?}", return_value);
-        if let Some(function_return_type) = self.get_return_type() {
-            if function_return_type != return_value.value_type {
-                return Err(LangErrorType::new_runtime_error(
-                    RuntimeErrorType::InvalidFunctionReturnType {
-                        reason: format!(
-                            "Tried to return value of {:?} for function which returns type {:?}",
-                            return_value.value_type,
-                            function_return_type.to_string()
-                        ),
-                    },
-                ));
-            }
-        }
-        Ok(return_value)
+        unimplemented!()
     }
 }

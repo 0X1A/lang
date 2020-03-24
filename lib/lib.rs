@@ -11,7 +11,6 @@ pub mod ast_printer;
 pub mod depresolver;
 pub mod env;
 pub mod error;
-pub mod interpreter;
 pub mod interpreterjit;
 pub mod lang;
 pub mod mem;

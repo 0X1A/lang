@@ -1,7 +1,6 @@
 use crate::ast::stmt::*;
 use crate::depresolver::*;
 use crate::error::*;
-use crate::interpreter::Interpreter;
 use crate::interpreterjit::IRGenerator;
 use crate::interpreterjit::InterpreterJIT;
 use crate::resolver::*;
@@ -16,7 +15,6 @@ use std::{
 };
 
 pub struct Lang<'a> {
-    interpreter: Interpreter,
     scanner: Option<Scanner<'a>>,
 }
 
@@ -27,10 +25,7 @@ impl<'a> Lang<'a> {
         } else {
             None
         };
-        Lang {
-            interpreter: Interpreter::new(),
-            scanner,
-        }
+        Lang { scanner }
     }
 }
 
@@ -78,7 +73,7 @@ impl<'a> Lang<'a> {
     pub fn run(&mut self) -> Result<(), LangError> {
         let statements = self.build_statements();
         let mut dep_resolver = DependencyResolver::default();
-        let mut resolver = Resolver::new(&mut self.interpreter);
+        let mut resolver = Resolver::new();
         let mut interpreterjit = InterpreterJIT::default();
         match statements {
             Ok(mut s) => {
@@ -96,7 +91,6 @@ impl<'a> Lang<'a> {
                 };
                 resolver.resolve(&import_statements)?;
                 interpreterjit.interpret(&ir_gen, import_statements.clone())?;
-                resolver.interpreter.interpret(&ir_gen, import_statements)?;
             }
             Err(e) => {
                 return Err(e);
@@ -108,7 +102,7 @@ impl<'a> Lang<'a> {
     pub fn build_and_run_statements(&mut self, script: &str) -> Result<(), LangError> {
         let mut scanner = Scanner::new(script);
         let tokens: Vec<Token> = scanner.scan_tokens()?;
-        let mut resolver = Resolver::new(&mut self.interpreter);
+        let mut resolver = Resolver::new();
         let mut dep_resolver = DependencyResolver::default();
         let mut parser = Parser::new(script, tokens);
         let statements = parser.parse()?;
@@ -124,7 +118,6 @@ impl<'a> Lang<'a> {
             builder,
             exec_engine,
         };
-        resolver.interpreter.interpret(&ir_gen, statements)?;
         Ok(())
     }
 

@@ -3,7 +3,6 @@ extern crate log;
 use crate::ast::expr::*;
 use crate::ast::stmt::*;
 use crate::error::*;
-use crate::interpreter::*;
 use crate::lang::*;
 use crate::token::*;
 use crate::value::*;
@@ -18,18 +17,16 @@ enum FunctionType {
 }
 
 #[derive(Debug)]
-pub struct Resolver<'a> {
-    pub interpreter: &'a mut Interpreter,
+pub struct Resolver {
     scopes: Vec<HashMap<String, bool>>,
     current_function_type: FunctionType,
 }
 
-impl<'a> Resolver<'a> {
-    pub fn new(interpreter: &mut Interpreter) -> Resolver {
+impl Resolver {
+    pub fn new() -> Resolver {
         let mut scopes = Vec::new();
         scopes.push(HashMap::new());
         Resolver {
-            interpreter,
             scopes,
             current_function_type: FunctionType::None,
         }
@@ -114,7 +111,7 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl<'a> VisitorMut<()> for Resolver<'a> {
+impl VisitorMut<()> for Resolver {
     fn visit_expr_mut(&mut self, expr: &Expr) -> Result<(), LangError> {
         Ok(visit_expr_mut(self, expr)?)
     }

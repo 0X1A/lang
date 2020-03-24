@@ -1,8 +1,8 @@
 use crate::ast::stmt::*;
 use crate::env::*;
 use crate::error::*;
-use crate::interpreter::*;
 use crate::interpreterjit::IRGenerator;
+use crate::interpreterjit::*;
 use crate::mem::*;
 use crate::token::TypeAnnotation;
 use crate::value::StructInstanceTrait;
@@ -19,7 +19,7 @@ pub trait CallableTrait {
         context: &IRGenerator,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
-        interpreter: &Interpreter,
+        interpreter: &InterpreterJIT,
         args: Vec<ArenaEntryIndex>,
     ) -> Result<TypedValue, LangError>;
     fn bind(
