@@ -2,6 +2,7 @@ use crate::ast::stmt::*;
 use crate::env::*;
 use crate::error::*;
 use crate::interpreter::*;
+use crate::interpreterjit::IRGenerator;
 use crate::mem::*;
 use crate::token::{GetTypeAnnotation, TokenType, TypeAnnotation};
 use crate::value_traits::callable::CallableTrait;
@@ -764,7 +765,7 @@ impl CallableTrait for StructValue {
     // TODO: This should take constructor args
     fn call(
         &self,
-        _: &Context,
+        _: &IRGenerator,
         arena: &mut Arena<TypedValue>,
         _: &mut Environment,
         _: &Interpreter,
@@ -942,7 +943,7 @@ impl CallableTrait for Callable {
 
     fn call(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
         interpreter: &Interpreter,

@@ -4,6 +4,7 @@ use crate::ast::expr::*;
 use crate::ast::stmt::*;
 use crate::env::*;
 use crate::error::*;
+use crate::interpreterjit::*;
 use crate::mem::*;
 use crate::token::*;
 use crate::type_checker::*;
@@ -33,7 +34,7 @@ impl Interpreter {
 
     fn evaluate(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         expr: &Expr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -54,7 +55,7 @@ impl Interpreter {
 
     fn visit_assign_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         assign: &AssignExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -70,7 +71,7 @@ impl Interpreter {
     // TODO: Clean this up. The nested iflets are an eyesore
     fn visit_call_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         call: &CallExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -123,7 +124,7 @@ impl Interpreter {
 
     fn visit_get_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         get_expr: &GetExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -205,7 +206,7 @@ impl Interpreter {
 
     fn visit_impl_trait_stmt(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         impl_trait_stmt: &ImplTraitStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -244,7 +245,7 @@ impl Interpreter {
 
     fn visit_trait_stmt(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         trait_stmt: &TraitStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -306,7 +307,7 @@ impl Interpreter {
 
     fn visit_struct_stmt(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         struct_stmt: &StructStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -339,7 +340,7 @@ impl Interpreter {
 
     fn visit_binary_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         expr: &BinaryExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -362,7 +363,7 @@ impl Interpreter {
 
     fn visit_unary_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         unary_expr: &UnaryExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -412,7 +413,7 @@ impl Interpreter {
 
     fn visit_logical_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         logical_expr: &LogicalExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -436,7 +437,7 @@ impl Interpreter {
     // TODO: this shit is _still_ a mess
     fn visit_set_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         set_expr: &SetExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -500,7 +501,7 @@ impl Interpreter {
 
     fn visit_set_array_element_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         set_array_element_expr: &SetArrayElementExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -535,7 +536,7 @@ impl Interpreter {
 
     fn visit_array_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         array_expr: &ArrayExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -572,7 +573,7 @@ impl Interpreter {
 
     fn visit_index_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         index_expr: &IndexExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -611,7 +612,7 @@ impl Interpreter {
     }
 
     #[inline(always)]
-    pub fn interpret(&self, context: &Context, stmts: Vec<Stmt>) -> Result<(), LangError> {
+    pub fn interpret(&self, context: &IRGenerator, stmts: Vec<Stmt>) -> Result<(), LangError> {
         let mut env = Environment::new();
         let mut arena: Arena<TypedValue> = Arena::with_capacity(256);
         for stmt in stmts {
@@ -623,7 +624,7 @@ impl Interpreter {
     #[inline(always)]
     fn execute(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         stmt: &Stmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -661,7 +662,7 @@ impl Interpreter {
 
     pub fn execute_block(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         stmts: &[Stmt],
         env_id: &mut EnvironmentEntryIndex,
         arena: &mut Arena<TypedValue>,
@@ -783,7 +784,7 @@ impl Interpreter {
 impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     fn visit_expr(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         expr: &Expr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -792,7 +793,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_stmt(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         stmt: &Stmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -802,7 +803,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
 
     fn visit_assign(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         assign: &AssignExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -811,7 +812,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_binary(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         binary: &BinaryExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -820,7 +821,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_call(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         call: &CallExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -829,7 +830,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_get(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         get: &GetExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -838,7 +839,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_enum_path(
         &self,
-        _: &Context,
+        _: &IRGenerator,
         _: &EnumPathExpr,
         _: &mut Arena<TypedValue>,
         _: &mut Environment,
@@ -847,7 +848,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_grouping(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         grouping_expr: &GroupingExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -856,7 +857,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_literal(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         literal: &LiteralExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -873,7 +874,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_logical(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         logical: &LogicalExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -882,7 +883,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_set(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         set: &SetExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -891,7 +892,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_unary(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         unary: &UnaryExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -900,7 +901,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_array(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         array: &ArrayExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -909,7 +910,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_index(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         index: &IndexExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -918,7 +919,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_set_array_element(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         set_array_element: &SetArrayElementExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -927,7 +928,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_variable(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         variable: &VariableExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -936,7 +937,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_self_ident(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         self_ident: &SelfIdentExpr,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -952,7 +953,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
 
     fn visit_assert(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         assert_stmt: &AssertStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -978,7 +979,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_enum(
         &self,
-        _: &Context,
+        _: &IRGenerator,
         _: &EnumStmt,
         _: &mut Arena<TypedValue>,
         _: &mut Environment,
@@ -987,7 +988,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_impl(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         impl_stmt: &ImplStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -996,7 +997,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_impl_trait(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         impl_trait: &ImplTraitStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1005,7 +1006,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_block(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         block: &BlockStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1015,7 +1016,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_struct(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         block: &StructStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1024,7 +1025,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_expression(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         block: &ExpressionStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1033,7 +1034,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_trait(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         block: &TraitStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1042,7 +1043,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_trait_function(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         trait_fn_stmt: &TraitFunctionStmt,
         arena: &mut Arena<TypedValue>,
         _: &mut Environment,
@@ -1056,7 +1057,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_function(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         function_stmt: &FunctionStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1075,7 +1076,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_if(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         if_stmt: &IfStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1098,7 +1099,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_print(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         print_stmt: &PrintStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1112,7 +1113,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_return(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         return_stmt: &ReturnStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1137,7 +1138,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_var(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         var_stmt: &VarStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1192,7 +1193,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_while(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         while_stmt: &WhileStmt,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
@@ -1225,7 +1226,7 @@ impl Visitor<Option<ArenaEntryIndex>, TypedValue> for Interpreter {
     }
     fn visit_import(
         &self,
-        _: &Context,
+        _: &IRGenerator,
         _: &ImportStmt,
         _: &mut Arena<TypedValue>,
         _: &mut Environment,

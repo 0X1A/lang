@@ -2,6 +2,7 @@ use crate::ast::stmt::*;
 use crate::env::*;
 use crate::error::*;
 use crate::interpreter::*;
+use crate::interpreterjit::IRGenerator;
 use crate::mem::*;
 use crate::token::TypeAnnotation;
 use crate::value::StructInstanceTrait;
@@ -15,7 +16,7 @@ pub trait CallableTrait {
     fn get_return_type(&self) -> Option<TypeAnnotation>;
     fn call(
         &self,
-        context: &Context,
+        context: &IRGenerator,
         arena: &mut Arena<TypedValue>,
         env: &mut Environment,
         interpreter: &Interpreter,

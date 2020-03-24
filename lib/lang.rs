@@ -2,6 +2,7 @@ use crate::ast::stmt::*;
 use crate::depresolver::*;
 use crate::error::*;
 use crate::interpreter::Interpreter;
+use crate::interpreterjit::IRGenerator;
 use crate::interpreterjit::InterpreterJIT;
 use crate::resolver::*;
 use crate::syntax::parser::Parser;
@@ -84,11 +85,18 @@ impl<'a> Lang<'a> {
                 let mut import_statements = dep_resolver.resolve(&s)?;
                 import_statements.append(&mut s);
                 let context = Context::create();
+                let module = context.create_module("main");
+                let builder = context.create_builder();
+                let exec_engine = module.create_execution_engine().unwrap();
+                let ir_gen = IRGenerator {
+                    context: &context,
+                    module,
+                    builder,
+                    exec_engine,
+                };
                 resolver.resolve(&import_statements)?;
-                interpreterjit.interpret(&context, import_statements.clone())?;
-                resolver
-                    .interpreter
-                    .interpret(&context, import_statements)?;
+                interpreterjit.interpret(&ir_gen, import_statements.clone())?;
+                resolver.interpreter.interpret(&ir_gen, import_statements)?;
             }
             Err(e) => {
                 return Err(e);
@@ -107,7 +115,16 @@ impl<'a> Lang<'a> {
         dep_resolver.resolve(&statements)?;
         resolver.resolve(&statements)?;
         let context = Context::create();
-        resolver.interpreter.interpret(&context, statements)?;
+        let module = context.create_module("main");
+        let builder = context.create_builder();
+        let exec_engine = module.create_execution_engine().unwrap();
+        let ir_gen = IRGenerator {
+            context: &context,
+            module,
+            builder,
+            exec_engine,
+        };
+        resolver.interpreter.interpret(&ir_gen, statements)?;
         Ok(())
     }
 
