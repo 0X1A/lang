@@ -4,6 +4,7 @@ use crate::env::*;
 use crate::error::LangError;
 use crate::interpreterjit::*;
 use crate::mem::*;
+use crate::value::AnyValueType;
 use crate::value::TypedValue;
 use inkwell::context::Context;
 
@@ -99,21 +100,21 @@ pub fn visit_stmt_mut<T, V: VisitorMut<T>>(visitor: &mut V, stmt: &Stmt) -> Resu
 
 // We _have_ to return a concrete definition of Result here since we can't have
 // bounds on an associated type in order to use the error propogation operator
-pub trait Visitor<T, ArenaType>: Sized {
+pub trait Visitor<'context, T>: Sized {
     fn visit_expr(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         expr: &Expr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError> {
         Ok(visit_expr(self, context, expr, arena, env)?)
     }
     fn visit_stmt(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         stmt: &Stmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError> {
         Ok(visit_stmt(self, context, stmt, arena, env)?)
@@ -121,230 +122,230 @@ pub trait Visitor<T, ArenaType>: Sized {
 
     fn visit_assign(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         assign: &AssignExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_binary(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         binary: &BinaryExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_call(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         call: &CallExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_get(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         get: &GetExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_enum_path(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         enum_path: &EnumPathExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_grouping(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         grouping: &GroupingExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_literal(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         literal: &LiteralExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_logical(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         logical: &LogicalExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_set(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         set: &SetExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_unary(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         unary: &UnaryExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_array(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         array: &ArrayExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_index(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         index: &IndexExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_set_array_element(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         set_array_element: &SetArrayElementExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_variable(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         variable: &VariableExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_self_ident(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         self_ident: &SelfIdentExpr,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
 
     fn visit_break(&self) -> Result<T, LangError>;
     fn visit_assert(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         condition: &AssertStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_enum(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         enum_stmt: &EnumStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_impl(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         impl_stmt: &ImplStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_impl_trait(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         impl_trait: &ImplTraitStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_block(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &BlockStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_struct(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &StructStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_expression(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &ExpressionStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_trait(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &TraitStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_trait_function(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &TraitFunctionStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_function(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &FunctionStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_if(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &IfStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_print(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &PrintStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_return(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &ReturnStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_var(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &VarStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_while(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         block: &WhileStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
     fn visit_import(
         &self,
-        context: &IRGenerator,
+        context: &'context IRGenerator,
         import_stmt: &ImportStmt,
-        arena: &mut Arena<ArenaType>,
+        arena: &'context mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<T, LangError>;
 }
 
-pub fn visit_expr<T, ArenaType, V: Visitor<T, ArenaType>>(
+pub fn visit_expr<'context, T, V: Visitor<'context, T>>(
     visitor: &V,
-    context: &IRGenerator,
+    context: &'context IRGenerator,
     expr: &Expr,
-    arena: &mut Arena<ArenaType>,
+    arena: &'context mut Arena<AnyValueType<'context>>,
     env: &mut Environment,
 ) -> Result<T, LangError> {
     match expr {
@@ -396,11 +397,11 @@ pub fn visit_expr<T, ArenaType, V: Visitor<T, ArenaType>>(
     }
 }
 
-pub fn visit_stmt<T, ArenaType, V: Visitor<T, ArenaType>>(
+pub fn visit_stmt<'context, T, V: Visitor<'context, T>>(
     visitor: &V,
-    context: &IRGenerator,
+    context: &'context IRGenerator,
     stmt: &Stmt,
-    arena: &mut Arena<ArenaType>,
+    arena: &'context mut Arena<AnyValueType<'context>>,
     env: &mut Environment,
 ) -> Result<T, LangError> {
     match stmt {

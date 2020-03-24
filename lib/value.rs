@@ -19,6 +19,7 @@ use std::{
     ops::*,
 };
 
+#[derive(Debug)]
 pub enum AnyValueType<'context> {
     AnyValue(AnyValueEnum<'context>),
     AnyType(AnyTypeEnum<'context>),
