@@ -19,6 +19,13 @@ use std::{
     ops::*,
 };
 
+pub enum AnyValueType<'context> {
+    AnyValue(AnyValueEnum<'context>),
+    AnyType(AnyTypeEnum<'context>),
+    BasicValue(BasicValueEnum<'context>),
+    BasicType(BasicTypeEnum<'context>),
+}
+
 use crate::type_checker::TypeChecker;
 
 type Float64 = f64;
