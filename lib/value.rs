@@ -20,11 +20,11 @@ use std::{
 };
 
 #[derive(Debug)]
-pub enum AnyValueType<'context> {
-    AnyValue(AnyValueEnum<'context>),
-    AnyType(AnyTypeEnum<'context>),
-    BasicValue(BasicValueEnum<'context>),
-    BasicType(BasicTypeEnum<'context>),
+pub enum AnyValueType<'ctx> {
+    AnyValue(AnyValueEnum<'ctx>),
+    AnyType(AnyTypeEnum<'ctx>),
+    BasicValue(BasicValueEnum<'ctx>),
+    BasicType(BasicTypeEnum<'ctx>),
 }
 
 use crate::type_checker::TypeChecker;
@@ -664,9 +664,9 @@ pub struct TypedValue {
 }
 
 #[derive(Clone, Debug)]
-pub struct TypedValue2<'context> {
-    pub value: AnyValueEnum<'context>,
-    pub value_type: AnyTypeEnum<'context>,
+pub struct TypedValue2<'ctx> {
+    pub value: AnyValueEnum<'ctx>,
+    pub value_type: AnyTypeEnum<'ctx>,
 }
 
 impl Default for TypedValue {

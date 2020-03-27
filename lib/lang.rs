@@ -102,7 +102,7 @@ impl<'a> Lang<'a> {
         let module = context.create_module("main");
         let builder = context.create_builder();
         let exec_engine = module.create_execution_engine().unwrap();
-        let ir_gen = IRGenerator {
+        let context = IRGenerator {
             context: &context,
             module,
             builder,

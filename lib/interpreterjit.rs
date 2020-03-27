@@ -19,11 +19,11 @@ use inkwell::values::*;
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-pub struct IRGenerator<'context> {
-    pub context: &'context Context,
-    pub module: Module<'context>,
-    pub builder: Builder<'context>,
-    pub exec_engine: ExecutionEngine<'context>,
+pub struct IRGenerator<'ctx> {
+    pub context: &'ctx Context,
+    pub module: Module<'ctx>,
+    pub builder: Builder<'ctx>,
+    pub exec_engine: ExecutionEngine<'ctx>,
 }
 
 #[derive(Debug)]
@@ -40,11 +40,11 @@ impl InterpreterJIT {
         InterpreterJIT {}
     }
 
-    fn evaluate<'context>(
+    fn evaluate<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         expr: &Expr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_expr(context, expr, arena, env)?)
@@ -54,32 +54,32 @@ impl InterpreterJIT {
         unimplemented!()
     }
 
-    fn visit_assign_expr<'context>(
+    fn visit_assign_expr<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         assign: &AssignExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
     // TODO: Clean this up. The nested iflets are an eyesore
-    fn visit_call_expr<'context>(
+    fn visit_call_expr<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         call: &CallExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
-    fn visit_get_expr<'context>(
+    fn visit_get_expr<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         get_expr: &GetExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
@@ -94,40 +94,40 @@ impl InterpreterJIT {
         unimplemented!()
     }
 
-    fn visit_impl_trait_stmt<'context>(
+    fn visit_impl_trait_stmt<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         impl_trait_stmt: &ImplTraitStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
-    fn visit_trait_stmt<'context>(
+    fn visit_trait_stmt<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         trait_stmt: &TraitStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
-    fn visit_impl_stmt<'context>(
+    fn visit_impl_stmt<'ctx: 'arna, 'arna>(
         &self,
         impl_stmt: &ImplStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
-    fn visit_struct_stmt<'context>(
+    fn visit_struct_stmt<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         struct_stmt: &StructStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
@@ -135,72 +135,72 @@ impl InterpreterJIT {
 
     // Visit Expr stuff
 
-    fn visit_binary_expr<'context>(
+    fn visit_binary_expr<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         expr: &BinaryExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
-    fn visit_unary_expr<'context>(
+    fn visit_unary_expr<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         unary_expr: &UnaryExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
-    fn visit_logical_expr<'context>(
+    fn visit_logical_expr<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         logical_expr: &LogicalExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
     // TODO: this shit is _still_ a mess
-    fn visit_set_expr<'context>(
+    fn visit_set_expr<'arna, 'ctx: 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         set_expr: &SetExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
-    fn visit_set_array_element_expr<'context>(
+    fn visit_set_array_element_expr<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         set_array_element_expr: &SetArrayElementExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
-    fn visit_array_expr<'context>(
+    fn visit_array_expr<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         array_expr: &ArrayExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
-    fn visit_index_expr<'context>(
+    fn visit_index_expr<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         index_expr: &IndexExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
@@ -214,44 +214,44 @@ impl InterpreterJIT {
         let module = context.create_module("main");
         let builder = context.create_builder();
         let exec_engine = module.create_execution_engine().unwrap();
-        let ir_gen = IRGenerator {
+        let context = IRGenerator {
             context: &context,
             module,
             builder,
             exec_engine,
         };
         for stmt in stmts {
-            self.execute(&ir_gen, &stmt, &mut arena, &mut env)?;
+            self.execute(&context, &stmt, &mut arena, &mut env)?;
         }
         Ok(())
     }
 
     #[inline(always)]
-    fn execute<'context: 'arena, 'arena>(
+    fn execute<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         stmt: &Stmt,
-        arena: &'arena mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        unimplemented!()
+        Ok(self.visit_stmt(&context, stmt, arena, env)?)
     }
 
-    fn look_up_variable<'context>(
+    fn look_up_variable<'ctx: 'arna, 'arna>(
         &self,
         token: &str,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
 
-    pub fn execute_block<'context>(
+    pub fn execute_block<'ctx: 'arna, 'arna>(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         stmts: &[Stmt],
         env_id: &mut EnvironmentEntryIndex,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
@@ -281,33 +281,33 @@ impl InterpreterJIT {
         unimplemented!()
     }
 
-    fn check_impl_trait<'context>(
+    fn check_impl_trait<'ctx: 'arna, 'arna>(
         &self,
         impl_trait: &str,
         fn_value: &Value,
         env: &Environment,
-        arena: &Arena<AnyValueType<'context>>,
+        arena: &'arna Arena<AnyValueType<'ctx>>,
         trait_token: &str,
     ) -> Result<bool, LangError> {
         unimplemented!()
     }
 }
 
-impl<'context: 'arena, 'arena> Visitor<'context, Option<ArenaEntryIndex>> for InterpreterJIT {
+impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for InterpreterJIT {
     fn visit_expr(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         expr: &Expr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(visit_expr(self, context, expr, arena, env)?)
     }
     fn visit_stmt(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         stmt: &Stmt,
-        arena: &'arena mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
@@ -315,135 +315,135 @@ impl<'context: 'arena, 'arena> Visitor<'context, Option<ArenaEntryIndex>> for In
 
     fn visit_assign(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         assign: &AssignExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_assign_expr(context, assign, arena, env)?)
     }
     fn visit_binary(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         binary: &BinaryExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_binary_expr(context, binary, arena, env)?)
     }
     fn visit_call(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         call: &CallExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_call_expr(context, call, arena, env)?)
     }
     fn visit_get(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         get: &GetExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_get_expr(context, get, arena, env)?)
     }
     fn visit_enum_path(
         &self,
-        _: &'context IRGenerator,
+        _: &'ctx IRGenerator,
         _: &EnumPathExpr,
-        _: &mut Arena<AnyValueType<'context>>,
+        _: &mut Arena<AnyValueType<'ctx>>,
         _: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(None)
     }
     fn visit_grouping(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         grouping_expr: &GroupingExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.evaluate(context, &grouping_expr.expression, arena, env)?)
     }
     fn visit_literal(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         literal: &LiteralExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_logical(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         logical: &LogicalExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_logical_expr(context, logical, arena, env)?)
     }
     fn visit_set(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         set: &SetExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_set_expr(context, set, arena, env)?)
     }
     fn visit_unary(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         unary: &UnaryExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_unary_expr(context, unary, arena, env)?)
     }
     fn visit_array(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         array: &ArrayExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_array_expr(context, array, arena, env)?)
     }
     fn visit_index(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         index: &IndexExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_index_expr(context, index, arena, env)?)
     }
     fn visit_set_array_element(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         set_array_element: &SetArrayElementExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_set_array_element_expr(context, set_array_element, arena, env)?)
     }
     fn visit_variable(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         variable: &VariableExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.look_up_variable(&variable.name, arena, env)?)
     }
     fn visit_self_ident(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         self_ident: &SelfIdentExpr,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.look_up_variable(&self_ident.keyword, arena, env)?)
@@ -457,54 +457,54 @@ impl<'context: 'arena, 'arena> Visitor<'context, Option<ArenaEntryIndex>> for In
 
     fn visit_assert(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         assert_stmt: &AssertStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_enum(
         &self,
-        _: &'context IRGenerator,
+        _: &'ctx IRGenerator,
         _: &EnumStmt,
-        _: &mut Arena<AnyValueType<'context>>,
+        _: &mut Arena<AnyValueType<'ctx>>,
         _: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_impl(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         impl_stmt: &ImplStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_impl_stmt(impl_stmt, arena, env)?)
     }
     fn visit_impl_trait(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         impl_trait: &ImplTraitStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(self.visit_impl_trait_stmt(context, impl_trait, arena, env)?)
     }
     fn visit_block(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         block: &BlockStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_struct(
         &self,
-        context: &'context IRGenerator,
-        block: &StructStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        context: &'ctx IRGenerator,
+        struct_stmt: &StructStmt,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         let struct_t = context.context.struct_type(&[], true);
@@ -513,90 +513,90 @@ impl<'context: 'arena, 'arena> Visitor<'context, Option<ArenaEntryIndex>> for In
     }
     fn visit_expression(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         block: &ExpressionStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        unimplemented!()
+        Ok(self.visit_expr(&context, &block.expression, arena, env)?)
     }
     fn visit_trait(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         block: &TraitStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_trait_function(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         trait_fn_stmt: &TraitFunctionStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         _: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_function(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         function_stmt: &FunctionStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_if(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         if_stmt: &IfStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_print(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         print_stmt: &PrintStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_return(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         return_stmt: &ReturnStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_var(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         var_stmt: &VarStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_while(
         &self,
-        context: &'context IRGenerator,
+        context: &'ctx IRGenerator,
         while_stmt: &WhileStmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
     }
     fn visit_import(
         &self,
-        _: &'context IRGenerator,
+        _: &'ctx IRGenerator,
         _: &ImportStmt,
-        _: &mut Arena<AnyValueType<'context>>,
+        _: &mut Arena<AnyValueType<'ctx>>,
         _: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         Ok(None)
