@@ -5,7 +5,7 @@ use crate::lang::*;
 use crate::syntax::parser::Parser;
 use crate::syntax::scanner::*;
 use crate::syntax::token::*;
-use crate::visitor::*;
+use crate::visitor_mut::*;
 
 pub struct DependencyResolver {}
 

@@ -74,23 +74,13 @@ impl<'a> Lang<'a> {
         let statements = self.build_statements();
         let mut dep_resolver = DependencyResolver::default();
         let mut resolver = Resolver::new();
-        let mut interpreterjit = InterpreterJIT::default();
         match statements {
             Ok(mut s) => {
+                let mut interpreterjit = InterpreterJIT::default();
                 let mut import_statements = dep_resolver.resolve(&s)?;
                 import_statements.append(&mut s);
-                let context = Context::create();
-                let module = context.create_module("main");
-                let builder = context.create_builder();
-                let exec_engine = module.create_execution_engine().unwrap();
-                let ir_gen = IRGenerator {
-                    context: &context,
-                    module,
-                    builder,
-                    exec_engine,
-                };
                 resolver.resolve(&import_statements)?;
-                interpreterjit.interpret(&ir_gen, import_statements.clone())?;
+                interpreterjit.interpret(import_statements.clone())?;
             }
             Err(e) => {
                 return Err(e);

@@ -207,20 +207,31 @@ impl InterpreterJIT {
     }
 
     #[inline(always)]
-    pub fn interpret<'context>(
-        &self,
-        context: &'context IRGenerator,
-        stmts: Vec<Stmt>,
-    ) -> Result<(), LangError> {
-        unimplemented!()
+    pub fn interpret(&self, stmts: Vec<Stmt>) -> Result<(), LangError> {
+        let mut env = Environment::new();
+        let mut arena: Arena<AnyValueType> = Arena::with_capacity(256);
+        let context = Context::create();
+        let module = context.create_module("main");
+        let builder = context.create_builder();
+        let exec_engine = module.create_execution_engine().unwrap();
+        let ir_gen = IRGenerator {
+            context: &context,
+            module,
+            builder,
+            exec_engine,
+        };
+        for stmt in stmts {
+            self.execute(&ir_gen, &stmt, &mut arena, &mut env)?;
+        }
+        Ok(())
     }
 
     #[inline(always)]
-    fn execute<'context>(
+    fn execute<'context: 'arena, 'arena>(
         &self,
         context: &'context IRGenerator,
         stmt: &Stmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arena mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         unimplemented!()
@@ -282,7 +293,7 @@ impl InterpreterJIT {
     }
 }
 
-impl<'context> Visitor<'context, Option<ArenaEntryIndex>> for InterpreterJIT {
+impl<'context: 'arena, 'arena> Visitor<'context, Option<ArenaEntryIndex>> for InterpreterJIT {
     fn visit_expr(
         &self,
         context: &'context IRGenerator,
@@ -296,10 +307,10 @@ impl<'context> Visitor<'context, Option<ArenaEntryIndex>> for InterpreterJIT {
         &self,
         context: &'context IRGenerator,
         stmt: &Stmt,
-        arena: &'context mut Arena<AnyValueType<'context>>,
+        arena: &'arena mut Arena<AnyValueType<'context>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(visit_stmt(self, context, stmt, arena, env)?)
+        unimplemented!()
     }
 
     fn visit_assign(

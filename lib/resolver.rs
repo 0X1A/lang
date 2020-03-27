@@ -6,7 +6,7 @@ use crate::error::*;
 use crate::lang::*;
 use crate::token::*;
 use crate::value::*;
-use crate::visitor::*;
+use crate::visitor_mut::*;
 
 use std::collections::HashMap;
 

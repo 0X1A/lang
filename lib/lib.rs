@@ -21,3 +21,4 @@ pub mod type_checker;
 pub mod value;
 pub mod value_traits;
 pub mod visitor;
+pub mod visitor_mut;
