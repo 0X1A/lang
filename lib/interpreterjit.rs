@@ -116,11 +116,45 @@ impl InterpreterJIT {
 
     fn visit_impl_stmt<'ctx: 'arna, 'arna>(
         &self,
+        context: &'ctx IRGenerator,
         impl_stmt: &ImplStmt,
         arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        unimplemented!()
+        for fn_decl in impl_stmt.fn_declarations.iter() {
+            if let Stmt::Function(fn_stmt) = fn_decl {
+                let mut fn_param = Vec::new();
+                for param in fn_stmt.params.iter() {
+                    match param.type_annotation {
+                        TypeAnnotation::I32 => {
+                            fn_param.push(BasicTypeEnum::IntType(context.context.i32_type()))
+                        }
+                        TypeAnnotation::I64 => {
+                            fn_param.push(BasicTypeEnum::IntType(context.context.i64_type()))
+                        }
+                        TypeAnnotation::F32 => {
+                            fn_param.push(BasicTypeEnum::FloatType(context.context.f32_type()))
+                        }
+                        TypeAnnotation::F64 => {
+                            fn_param.push(BasicTypeEnum::FloatType(context.context.f64_type()))
+                        }
+                        TypeAnnotation::Bool => {
+                            fn_param.push(BasicTypeEnum::IntType(context.context.bool_type()))
+                        }
+                        _ => fn_param.push(BasicTypeEnum::IntType(context.context.i32_type())),
+                    }
+                }
+                let return_t = match fn_stmt.return_type.to_type_annotation()? {
+                    TypeAnnotation::I32 => context.context.i32_type().fn_type(&fn_param, false),
+                    _ => context.context.i32_type().fn_type(&fn_param, false),
+                };
+                let fn_value = context.module.add_function(&fn_stmt.name, return_t, None);
+                arena.insert(AnyValueType::AnyValue(AnyValueEnum::FunctionValue(
+                    fn_value,
+                )));
+            }
+        }
+        Ok(None)
     }
 
     fn visit_struct_stmt<'ctx: 'arna, 'arna>(
@@ -223,6 +257,8 @@ impl InterpreterJIT {
         for stmt in stmts {
             self.execute(&context, &stmt, &mut arena, &mut env)?;
         }
+        println!("{:?}", arena);
+        println!("{:?}", env);
         Ok(())
     }
 
@@ -310,7 +346,7 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
         arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        unimplemented!()
+        Ok(visit_stmt(self, context, stmt, arena, env)?)
     }
 
     fn visit_assign(
@@ -374,6 +410,11 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
         arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
+        let value = match literal.value.value_type {
+            TypeAnnotation::I32 => context.context.i32_type().const_int(0, false),
+            TypeAnnotation::I64 => context.context.i64_type().const_int(0, false),
+            _ => context.context.i32_type().const_int(0, false),
+        };
         unimplemented!()
     }
     fn visit_logical(
@@ -480,7 +521,7 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
         arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        Ok(self.visit_impl_stmt(impl_stmt, arena, env)?)
+        Ok(self.visit_impl_stmt(context, impl_stmt, arena, env)?)
     }
     fn visit_impl_trait(
         &self,
@@ -507,7 +548,22 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
         arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        let struct_t = context.context.struct_type(&[], true);
+        let mut fields_v = Vec::new();
+        for field in struct_stmt.fields.iter() {
+            match field.type_annotation {
+                TypeAnnotation::I32 => {
+                    fields_v.push(BasicTypeEnum::IntType(context.context.i32_type()))
+                }
+                TypeAnnotation::I64 => {
+                    fields_v.push(BasicTypeEnum::IntType(context.context.i64_type()))
+                }
+                TypeAnnotation::Bool => {
+                    fields_v.push(BasicTypeEnum::IntType(context.context.bool_type()))
+                }
+                _ => fields_v.push(BasicTypeEnum::IntType(context.context.i32_type())),
+            }
+        }
+        let struct_t = context.context.struct_type(&fields_v, true);
         let index = arena.insert(AnyValueType::BasicType(BasicTypeEnum::StructType(struct_t)));
         Ok(Some(index))
     }
@@ -581,7 +637,29 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
         arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        unimplemented!()
+        // A variable can be instantiated without being initialized
+        if let Some(ref initializer) = var_stmt.initializer {
+            if let Some(value_index) = self.evaluate(context, &initializer, arena, env)? {
+                let value_entry = &mut arena[value_index];
+                let value = match value_entry {
+                    ArenaEntry::Occupied(any_val_type) => any_val_type,
+                    ArenaEntry::Emtpy => panic!(),
+                };
+                // Var vaue has already been put into the arena, so we just have to do an insert into the env
+                let env_idx = env.current_index;
+                env[env_idx]
+                    .values
+                    .insert(var_stmt.name.clone(), value_index);
+                return Ok(Some(value_index));
+            }
+        } else {
+            let val = AnyValueType::BasicValue(BasicValueEnum::IntValue(
+                context.context.i32_type().const_int(0, false),
+            ));
+            let value_index = arena.insert(val);
+            return Ok(Some(value_index));
+        }
+        Ok(None)
     }
     fn visit_while(
         &self,
