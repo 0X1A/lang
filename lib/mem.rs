@@ -35,6 +35,34 @@ impl TryInto<TypedValue> for ArenaEntry<TypedValue> {
     }
 }
 
+impl<'ctx: 'arna, 'arna> TryInto<&'arna mut AnyValueType<'ctx>>
+    for &'arna mut ArenaEntry<AnyValueType<'ctx>>
+{
+    type Error = LangError;
+    fn try_into(self) -> Result<&'arna mut AnyValueType<'ctx>, Self::Error> {
+        match self {
+            ArenaEntry::Occupied(ref mut value) => Ok(value),
+            ArenaEntry::Emtpy => Err(LangErrorType::new_iie_error(
+                "tried to index an empty arena entry".into(),
+            )),
+        }
+    }
+}
+
+impl<'ctx: 'arna, 'arna> TryInto<&'arna AnyValueType<'ctx>>
+    for &'arna ArenaEntry<AnyValueType<'ctx>>
+{
+    type Error = LangError;
+    fn try_into(self) -> Result<&'arna AnyValueType<'ctx>, Self::Error> {
+        match self {
+            ArenaEntry::Occupied(ref value) => Ok(value),
+            ArenaEntry::Emtpy => Err(LangErrorType::new_iie_error(
+                "tried to index an empty arena entry".into(),
+            )),
+        }
+    }
+}
+
 impl<'a> TryInto<&'a TypedValue> for &'a ArenaEntry<TypedValue> {
     type Error = LangError;
     fn try_into(self) -> Result<&'a TypedValue, Self::Error> {

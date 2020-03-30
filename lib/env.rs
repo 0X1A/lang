@@ -144,24 +144,42 @@ impl Environment {
         self[env_id].values.insert(name.to_string(), index);
     }
 
-    pub fn define_and_insert(
+    pub fn insert(
         &mut self,
         env_id: EnvironmentEntryIndex,
-        arena: &mut Arena<TypedValue>,
+        arena_index: ArenaEntryIndex,
         name: &str,
-        value: TypedValue,
-    ) -> ArenaEntryIndex {
+    ) {
         debug!(
-            "{}:{} Defining '{}' with value '{:?}' at index '{}'",
+            "{}:{} Defining '{}' with arena index '{}' at index '{}'",
             file!(),
             line!(),
             name,
-            value,
+            arena_index,
             env_id
         );
-        let index = arena.insert(value);
-        self[env_id].values.insert(name.to_string(), index);
-        index
+        self[env_id].values.insert(name.to_string(), arena_index);
+    }
+
+    pub fn lookup(
+        &mut self,
+        env_id: EnvironmentEntryIndex,
+        name: &str,
+    ) -> Result<ArenaEntryIndex, LangError> {
+        if self[env_id].values.contains_key(name) {
+            if let Some(existing_value_index) = self[env_id].values.get(name) {
+                return Ok(*existing_value_index);
+            }
+        } else if let Some(enclosing) = self[env_id].enclosing {
+            return Ok(self.lookup(enclosing, name)?);
+        }
+        // TODO: This should be considered a internal interpreter error, as we've lost track of where the
+        // index for this value has gone...
+        Err(LangErrorType::new_runtime_error(
+            RuntimeErrorType::UndefinedVariable {
+                reason: format!("tried to assign an undefined variable: '{}'", name),
+            },
+        ))
     }
 
     pub fn assign(

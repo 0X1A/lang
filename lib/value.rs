@@ -27,6 +27,22 @@ pub enum AnyValueType<'ctx> {
     BasicType(BasicTypeEnum<'ctx>),
 }
 
+impl AnyValueType<'_> {
+    pub fn get_any_value(&self) -> Option<AnyValueEnum> {
+        match self {
+            AnyValueType::AnyValue(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn get_basic_value(&self) -> Option<BasicValueEnum> {
+        match self {
+            AnyValueType::BasicValue(value) => Some(*value),
+            _ => None,
+        }
+    }
+}
+
 use crate::type_checker::TypeChecker;
 
 type Float64 = f64;
@@ -932,7 +948,8 @@ impl CallableTrait for Callable {
             }),
             TypeAnnotation::SelfIndex,
         );
-        env.define_and_insert(self.closure, arena, "self", value);
+        let index = arena.insert(value);
+        env.insert(self.closure, index, "self");
         Ok(())
     }
 
