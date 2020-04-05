@@ -35,10 +35,10 @@ impl AnyValueType<'_> {
         }
     }
 
-    pub fn get_basic_value(&self) -> Option<BasicValueEnum> {
+    pub fn get_basic_value(&self) -> Result<BasicValueEnum, LangError> {
         match self {
-            AnyValueType::BasicValue(value) => Some(*value),
-            _ => None,
+            AnyValueType::BasicValue(value) => Ok(*value),
+            any @ _ => Err(LangErrorType::new_iie_error("expected basic type".into())),
         }
     }
 }

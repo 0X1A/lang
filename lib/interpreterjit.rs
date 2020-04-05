@@ -61,7 +61,19 @@ impl InterpreterJIT {
         arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        unimplemented!()
+        if let Some(value_index) = self.evaluate(context, &assign.expr, arena, env)? {
+            let value_entry = &arena[value_index];
+            let any_value: &AnyValueType = value_entry.try_into()?;
+            if let Some(prev_val_index) = env[env.current_index].values.get(&assign.name) {
+                let prev_value_entry = &arena[*prev_val_index];
+                let prev_value_value: &AnyValueType = prev_value_entry.try_into()?;
+                context.builder.build_store(
+                    prev_value_value.get_basic_value()?.into_pointer_value(),
+                    any_value.get_basic_value()?,
+                );
+            }
+        }
+        Ok(None)
     }
 
     // TODO: Clean this up. The nested iflets are an eyesore
@@ -247,7 +259,9 @@ impl InterpreterJIT {
         let context = Context::create();
         let module = context.create_module("main");
         let builder = context.create_builder();
-        let exec_engine = module.create_execution_engine().unwrap();
+        let exec_engine = module
+            .create_jit_execution_engine(inkwell::OptimizationLevel::None)
+            .unwrap();
         let context = IRGenerator {
             context: &context,
             module,
@@ -411,11 +425,47 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
         let value = match literal.value.value_type {
-            TypeAnnotation::I32 => context.context.i32_type().const_int(0, false),
-            TypeAnnotation::I64 => context.context.i64_type().const_int(0, false),
-            _ => context.context.i32_type().const_int(0, false),
+            TypeAnnotation::I32 => {
+                if let Value::Int32(int_value) = literal.value.value {
+                    AnyValueType::BasicValue(BasicValueEnum::IntValue(
+                        context
+                            .context
+                            .i32_type()
+                            .const_int(int_value.try_into().unwrap(), true),
+                    ))
+                } else {
+                    panic!()
+                }
+            }
+            TypeAnnotation::I64 => {
+                if let Value::Int64(int_value) = literal.value.value {
+                    AnyValueType::BasicValue(BasicValueEnum::IntValue(
+                        context
+                            .context
+                            .i64_type()
+                            .const_int(int_value.try_into().unwrap(), true),
+                    ))
+                } else {
+                    panic!()
+                }
+            }
+            TypeAnnotation::Bool => {
+                if let Value::Boolean(bool_value) = literal.value.value {
+                    AnyValueType::BasicValue(BasicValueEnum::IntValue(
+                        context
+                            .context
+                            .bool_type()
+                            .const_int(bool_value as u64, true),
+                    ))
+                } else {
+                    panic!()
+                }
+            }
+            _ => AnyValueType::BasicValue(BasicValueEnum::IntValue(
+                context.context.i32_type().const_int(0, true),
+            )),
         };
-        unimplemented!()
+        Ok(Some(arena.insert(value)))
     }
     fn visit_logical(
         &self,
@@ -640,17 +690,39 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
         // A variable can be instantiated without being initialized
         if let Some(ref initializer) = var_stmt.initializer {
             if let Some(value_index) = self.evaluate(context, &initializer, arena, env)? {
+                let fn_value = context.module.add_function(
+                    "temp",
+                    context.context.i64_type().fn_type(&[], false),
+                    None,
+                );
+                let basic_block = context
+                    .context
+                    .append_basic_block(fn_value, "basic_block_entry");
+                context.builder.position_at_end(basic_block);
+
+                let block = fn_value.get_first_basic_block().unwrap();
+                match block.get_first_instruction() {
+                    Some(i) => context.builder.position_before(&i),
+                    None => context.builder.position_at_end(block),
+                };
+                let ptr_value = context
+                    .builder
+                    .build_alloca(context.context.f64_type(), &var_stmt.name);
                 let value_entry = &mut arena[value_index];
                 let value = match value_entry {
                     ArenaEntry::Occupied(any_val_type) => any_val_type,
                     ArenaEntry::Emtpy => panic!(),
                 };
+                context
+                    .builder
+                    .build_store(ptr_value, value.get_basic_value()?);
                 // Var vaue has already been put into the arena, so we just have to do an insert into the env
                 let env_idx = env.current_index;
-                env[env_idx]
-                    .values
-                    .insert(var_stmt.name.clone(), value_index);
-                return Ok(Some(value_index));
+                let ptr_index = arena.insert(AnyValueType::BasicValue(
+                    BasicValueEnum::PointerValue(ptr_value),
+                ));
+                env[env_idx].values.insert(var_stmt.name.clone(), ptr_index);
+                return Ok(Some(ptr_index));
             }
         } else {
             let val = AnyValueType::BasicValue(BasicValueEnum::IntValue(
