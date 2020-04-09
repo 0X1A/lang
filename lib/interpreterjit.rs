@@ -84,7 +84,36 @@ impl InterpreterJIT {
         arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        unimplemented!()
+        if let Some(fn_value_index) = self.evaluate(context, &call.callee, arena, env)? {
+            let mut evaluated_arg_indices = Vec::new();
+            for arg in call.arguments.iter() {
+                if let Some(arg_index) = self.evaluate(context, arg, arena, env)? {
+                    evaluated_arg_indices.push(arg_index);
+                }
+            }
+            let mut evaluated_values = Vec::new();
+            for arg_index in evaluated_arg_indices.iter() {
+                let arg_entry = &arena[*arg_index];
+                let arg_value: &AnyValueType = arg_entry.try_into()?;
+                evaluated_values.push(arg_value.get_basic_value()?);
+            }
+            let fn_value_entry = &arena[fn_value_index];
+            let fn_value_any: &AnyValueType = fn_value_entry.try_into()?;
+            let fn_value_basic = match fn_value_any.get_any_value()? {
+                AnyValueEnum::FunctionValue(f) => f,
+                _ => panic!(),
+            };
+            let return_value = context
+                .builder
+                .build_call(fn_value_basic, &evaluated_values, "tmp")
+                .try_as_basic_value()
+                .left()
+                .ok_or(LangErrorType::new_iie_error(
+                    "generated call did not have a return value".into(),
+                ))?;
+            context.builder.build_return(Some(&return_value));
+        }
+        Ok(None)
     }
 
     fn visit_get_expr<'ctx: 'arna, 'arna>(
@@ -259,9 +288,7 @@ impl InterpreterJIT {
         let context = Context::create();
         let module = context.create_module("main");
         let builder = context.create_builder();
-        let exec_engine = module
-            .create_jit_execution_engine(inkwell::OptimizationLevel::None)
-            .unwrap();
+        let exec_engine = module.create_jit_execution_engine(inkwell::OptimizationLevel::None)?;
         let context = IRGenerator {
             context: &context,
             module,
@@ -293,7 +320,19 @@ impl InterpreterJIT {
         arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        unimplemented!()
+        for entry in arena.entries().iter() {
+            debug!("{:?}", entry);
+        }
+        for entry in (0..env.entries.len()).rev() {
+            if env[entry].values.contains_key(token) {
+                return Ok(Some(env[entry].values[token]));
+            }
+        }
+        Err(LangErrorType::new_runtime_error(
+            RuntimeErrorType::UndefinedVariable {
+                reason: format!("could not find variable {}", token),
+            },
+        ))
     }
 
     pub fn execute_block<'ctx: 'arna, 'arna>(
@@ -431,7 +470,7 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
                         context
                             .context
                             .i32_type()
-                            .const_int(int_value.try_into().unwrap(), true),
+                            .const_int(int_value.try_into()?, true),
                     ))
                 } else {
                     panic!()
@@ -443,7 +482,7 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
                         context
                             .context
                             .i64_type()
-                            .const_int(int_value.try_into().unwrap(), true),
+                            .const_int(int_value.try_into()?, true),
                     ))
                 } else {
                     panic!()
@@ -615,6 +654,7 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
         }
         let struct_t = context.context.struct_type(&fields_v, true);
         let index = arena.insert(AnyValueType::BasicType(BasicTypeEnum::StructType(struct_t)));
+        env.define(env.current_index, &struct_stmt.name, index);
         Ok(Some(index))
     }
     fn visit_expression(
@@ -651,7 +691,33 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
         arena: &'arna mut Arena<AnyValueType<'ctx>>,
         env: &mut Environment,
     ) -> Result<Option<ArenaEntryIndex>, LangError> {
-        unimplemented!()
+        let return_type: BasicTypeEnum = match function_stmt.return_type.to_type_annotation()? {
+            TypeAnnotation::I32 => context.context.i32_type().into(),
+            TypeAnnotation::I64 => context.context.i64_type().into(),
+            TypeAnnotation::F32 => context.context.f32_type().into(),
+            TypeAnnotation::F64 => context.context.f64_type().into(),
+            TypeAnnotation::User(_) => context.context.struct_type(&[], true).into(),
+            TypeAnnotation::Bool => context.context.bool_type().into(),
+            _ => context.context.i32_type().into(),
+        };
+        let mut params = Vec::with_capacity(function_stmt.params.len());
+        for param in function_stmt.params.iter() {
+            match param.type_annotation {
+                TypeAnnotation::I32 => {
+                    params.push(BasicTypeEnum::IntType(context.context.i32_type()))
+                }
+                _ => params.push(BasicTypeEnum::IntType(context.context.i32_type())),
+            }
+        }
+        let fn_type = return_type.fn_type(&params, false);
+        let fn_value = context
+            .module
+            .add_function(&function_stmt.name, fn_type, None);
+        let index = arena.insert(AnyValueType::AnyValue(AnyValueEnum::FunctionValue(
+            fn_value,
+        )));
+        env.define(env.current_index, &function_stmt.name, index);
+        Ok(Some(index))
     }
     fn visit_if(
         &self,
@@ -700,7 +766,12 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
                     .append_basic_block(fn_value, "basic_block_entry");
                 context.builder.position_at_end(basic_block);
 
-                let block = fn_value.get_first_basic_block().unwrap();
+                let block =
+                    fn_value
+                        .get_first_basic_block()
+                        .ok_or(LangErrorType::new_iie_error(
+                            "expected a first block entry".into(),
+                        ))?;
                 match block.get_first_instruction() {
                     Some(i) => context.builder.position_before(&i),
                     None => context.builder.position_at_end(block),
@@ -708,11 +779,8 @@ impl<'ctx: 'arna, 'arna> Visitor<'arna, 'ctx, Option<ArenaEntryIndex>> for Inter
                 let ptr_value = context
                     .builder
                     .build_alloca(context.context.f64_type(), &var_stmt.name);
-                let value_entry = &mut arena[value_index];
-                let value = match value_entry {
-                    ArenaEntry::Occupied(any_val_type) => any_val_type,
-                    ArenaEntry::Emtpy => panic!(),
-                };
+                let value_entry = &arena[value_index];
+                let value: &AnyValueType = value_entry.try_into()?;
                 context
                     .builder
                     .build_store(ptr_value, value.get_basic_value()?);

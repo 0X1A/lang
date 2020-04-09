@@ -28,10 +28,10 @@ pub enum AnyValueType<'ctx> {
 }
 
 impl AnyValueType<'_> {
-    pub fn get_any_value(&self) -> Option<AnyValueEnum> {
+    pub fn get_any_value(&self) -> Result<AnyValueEnum, LangError> {
         match self {
-            AnyValueType::AnyValue(value) => Some(*value),
-            _ => None,
+            AnyValueType::AnyValue(value) => Ok(*value),
+            any @ _ => Err(LangErrorType::new_iie_error("expected basic type".into())),
         }
     }
 

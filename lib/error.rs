@@ -152,6 +152,22 @@ impl From<log::SetLoggerError> for LangError {
     }
 }
 
+impl From<inkwell::support::LLVMString> for LangError {
+    fn from(err: inkwell::support::LLVMString) -> LangError {
+        LangError::from(LangErrorType::from(LangErrorType::InternalError {
+            reason: err.to_string(),
+        }))
+    }
+}
+
+impl From<std::num::TryFromIntError> for LangError {
+    fn from(err: std::num::TryFromIntError) -> LangError {
+        LangError::from(LangErrorType::from(LangErrorType::InternalError {
+            reason: err.to_string(),
+        }))
+    }
+}
+
 impl From<num::ParseFloatError> for LangError {
     fn from(err: num::ParseFloatError) -> LangError {
         LangError::from(LangErrorType::ParserError {
